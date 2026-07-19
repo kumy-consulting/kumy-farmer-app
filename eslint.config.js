@@ -27,6 +27,11 @@ export default defineConfig([
       import: importPlugin,
       'unused-imports': unusedImports,
     },
+    settings: {
+      // Traite les alias `@/*` comme des imports internes (groupe dédié,
+      // trié avant les imports relatifs parent/sibling).
+      'import/internal-regex': '^@/',
+    },
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,

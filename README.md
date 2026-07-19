@@ -57,3 +57,27 @@ src/
 ```
 
 Alias d'import : `@/*` → `src/*` (+ `@/features`, `@/shared`, `@/theme`, `@/assets`).
+
+## Convention API — un `.api` par feature
+
+Contrairement à `agripilot-pwa` (qui entasse ~30 objets `xxxApi` dans un unique
+`shared/services/api.ts` de 1000 lignes), Kumy **sépare le transport du métier** :
+
+- **Transport (partagé, unique)** : `src/shared/api/client.ts` — l'instance axios,
+  les intercepteurs (Bearer natif, refresh 401) et `ApiRequestError`. C'est le SEUL
+  fichier API transverse.
+- **Endpoints (par feature)** : chaque feature possède son propre fichier
+  **`<feature>.api.ts`**, co-localisé, qui importe `apiClient` du client partagé.
+  Exemple de référence : `src/features/Auth/auth.api.ts` (+ `auth.types.ts`).
+
+```
+src/
+├─ shared/api/client.ts          # transport (client + intercepteurs) — partagé
+└─ features/
+   └─ Auth/
+      ├─ auth.api.ts             # endpoints de la feature Auth
+      └─ auth.types.ts           # DTO de la feature
+```
+
+Règle : **on ne crée jamais d'agrégat global d'endpoints**. Une nouvelle feature =
+un nouveau `<feature>.api.ts` qui consomme `@/shared/api/client`.

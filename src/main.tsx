@@ -8,12 +8,12 @@ import { ThemeProvider } from '@mui/material/styles';
 import dayjs from 'dayjs';
 import 'dayjs/locale/fr';
 
-import App from './App.tsx';
-
 import './index.css';
 import { initDatabase } from '@/shared/db/database';
 import { requestPersistentStorage } from '@/shared/services/persistence';
 import { theme } from '@/theme/theme';
+
+import App from './App.tsx';
 
 // En natif (Capacitor), aucun service worker : l'app sert ses assets localement.
 // On désenregistre tout SW résiduel (et ses caches) pour éviter qu'un ancien
