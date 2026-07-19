@@ -17,7 +17,7 @@ export function formatPhoneNumber(value: string): string {
 
 /** Assemble l'E.164 : indicatif + 9 chiffres locaux. */
 export function toE164(local9: string, dialCode = '224'): string {
-  return `+${unformat(dialCode)}${unformat(local9)}`;
+  return `+${unformat(dialCode)}${unformat(local9).slice(0, 9)}`;
 }
 
 /** `+224622201362` → `+224 622 20 13 62`. */
