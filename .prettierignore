@@ -1,0 +1,7 @@
+dist
+dev-dist
+node_modules
+android
+ios
+coverage
+package-lock.json

@@ -1,0 +1,37 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Dépendances
+node_modules
+.pnp
+.pnp.js
+
+# Build
+dist
+dist-ssr
+dev-dist
+*.local
+*.tsbuildinfo
+
+# Natif Capacitor (généré par `cap add`)
+android
+ios
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Éditeurs / OS
+.DS_Store
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Tests
+coverage
