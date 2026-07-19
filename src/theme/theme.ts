@@ -3,9 +3,14 @@ import { createTheme } from '@mui/material/styles';
 import { primary, secondary, error, neutral, warning, tokens } from './colors';
 
 /**
+ * Thème MUI Kumy — copie fidèle du design system de la PWA ingénieur
+ * (`agripilot-pwa`). Toute évolution du design system doit rester synchronisée
+ * entre les deux apps (cible à terme : package partagé `@agripilot/core`).
+ *
  * Module augmentation MUI.
- * - Les `PaletteColor` sont étendues d'un index numérique pour exposer la tonal
- *   palette complète (ex : `theme.palette.primary[50]`).
+ * - Les `PaletteColor` (primary, secondary, error, warning, info, success) sont
+ *   étendues d'un index numérique pour exposer la tonal palette complète
+ *   (ex : `theme.palette.primary[50]`, `theme.palette.secondary[90]`).
  * - Un champ `tokens` sémantique M3 est ajouté sur `palette`.
  */
 declare module '@mui/material/styles' {
@@ -84,7 +89,12 @@ export const theme = createTheme({
   },
   typography: {
     fontFamily: '"Ubuntu", "Roboto", "Helvetica", "Arial", sans-serif',
-    h1: { fontSize: '2rem', fontWeight: 700, lineHeight: 1.2, letterSpacing: '-0.01562em' },
+    h1: {
+      fontSize: '2rem',
+      fontWeight: 700,
+      lineHeight: 1.2,
+      letterSpacing: '-0.01562em',
+    },
     h2: { fontSize: '1.75rem', fontWeight: 600, lineHeight: 1.3 },
     h3: { fontSize: '1.5rem', fontWeight: 600, lineHeight: 1.4 },
     h4: { fontSize: '1.25rem', fontWeight: 600, lineHeight: 1.4 },
@@ -94,14 +104,51 @@ export const theme = createTheme({
     subtitle2: { fontSize: '0.875rem', fontWeight: 500, lineHeight: 1.57 },
     body1: { fontSize: '1rem', fontWeight: 400, lineHeight: 1.5 },
     body2: { fontSize: '0.875rem', fontWeight: 400, lineHeight: 1.43 },
-    button: { fontSize: '0.9375rem', fontWeight: 500, lineHeight: 1.75, textTransform: 'none' },
+    button: {
+      fontSize: '0.9375rem',
+      fontWeight: 500,
+      lineHeight: 1.75,
+      textTransform: 'none',
+    },
     caption: { fontSize: '0.75rem', fontWeight: 400, lineHeight: 1.66 },
-    overline: { fontSize: '0.75rem', fontWeight: 500, lineHeight: 2.66, textTransform: 'uppercase' },
+    overline: {
+      fontSize: '0.75rem',
+      fontWeight: 500,
+      lineHeight: 2.66,
+      textTransform: 'uppercase',
+    },
   },
   spacing: 8,
   shape: {
     borderRadius: 12,
   },
+  shadows: [
+    'none',
+    '0px 2px 4px rgba(0, 0, 0, 0.05)',
+    '0px 4px 8px rgba(0, 0, 0, 0.08)',
+    '0px 6px 12px rgba(0, 0, 0, 0.1)',
+    '0px 8px 16px rgba(0, 0, 0, 0.12)',
+    '0px 10px 20px rgba(0, 0, 0, 0.14)',
+    '0px 12px 24px rgba(0, 0, 0, 0.16)',
+    '0px 14px 28px rgba(0, 0, 0, 0.18)',
+    '0px 16px 32px rgba(0, 0, 0, 0.2)',
+    '0px 18px 36px rgba(0, 0, 0, 0.22)',
+    '0px 20px 40px rgba(0, 0, 0, 0.24)',
+    '0px 22px 44px rgba(0, 0, 0, 0.26)',
+    '0px 24px 48px rgba(0, 0, 0, 0.28)',
+    '0px 26px 52px rgba(0, 0, 0, 0.3)',
+    '0px 28px 56px rgba(0, 0, 0, 0.32)',
+    '0px 30px 60px rgba(0, 0, 0, 0.34)',
+    '0px 32px 64px rgba(0, 0, 0, 0.36)',
+    '0px 34px 68px rgba(0, 0, 0, 0.38)',
+    '0px 36px 72px rgba(0, 0, 0, 0.4)',
+    '0px 38px 76px rgba(0, 0, 0, 0.42)',
+    '0px 40px 80px rgba(0, 0, 0, 0.44)',
+    '0px 42px 84px rgba(0, 0, 0, 0.46)',
+    '0px 44px 88px rgba(0, 0, 0, 0.48)',
+    '0px 46px 92px rgba(0, 0, 0, 0.5)',
+    '0px 48px 96px rgba(0, 0, 0, 0.52)',
+  ],
   components: {
     MuiButton: {
       styleOverrides: {
@@ -111,16 +158,29 @@ export const theme = createTheme({
           fontSize: '0.9375rem',
           fontWeight: 500,
           boxShadow: 'none',
-          '&:hover': { boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.12)' },
+          '&:hover': {
+            boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.12)',
+          },
           '&:focus': { outline: 'none' },
           '&:focus-visible': { outline: 'none' },
         },
-        sizeLarge: { padding: '12px 32px', fontSize: '1rem' },
+        contained: {
+          '&:hover': {
+            boxShadow: `0px 4px 12px ${primary[40]}4D`,
+          },
+        },
+        sizeLarge: {
+          padding: '12px 32px',
+          fontSize: '1rem',
+        },
       },
     },
     MuiCard: {
       styleOverrides: {
-        root: { borderRadius: 12, boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.08)' },
+        root: {
+          borderRadius: 12,
+          boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.08)',
+        },
       },
     },
     MuiPaper: {
@@ -135,7 +195,25 @@ export const theme = createTheme({
     },
     MuiBottomNavigation: {
       styleOverrides: {
-        root: { borderTop: `1px solid ${neutral[90]}`, height: 64 },
+        root: {
+          borderTop: `1px solid ${neutral[90]}`,
+          height: 64,
+        },
+      },
+    },
+    MuiBottomNavigationAction: {
+      styleOverrides: {
+        root: {
+          minWidth: 'auto',
+          padding: '6px 12px',
+          '&.Mui-selected': { color: primary[50] },
+          '&:focus': { outline: 'none' },
+          '&:focus-visible': { outline: 'none' },
+        },
+        label: {
+          fontSize: '0.75rem',
+          '&.Mui-selected': { fontSize: '0.75rem' },
+        },
       },
     },
     MuiIconButton: {
