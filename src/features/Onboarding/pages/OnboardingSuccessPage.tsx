@@ -1,33 +1,43 @@
-import { useEffect, useState, type FunctionComponent } from 'react';
+import { useCallback, useEffect, useState, type FunctionComponent } from 'react';
 
 import { Box, Button, CircularProgress, Typography } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 
 import { CheckCircleIcon } from '@/features/Onboarding/components/OnboardingIcons';
 import { onboardingApi } from '@/features/Onboarding/onboarding.api';
 import { useOnboardingStore } from '@/features/Onboarding/onboarding.store';
+import { useAuthStore } from '@/shared/stores/authStore';
 import { neutral, primary, error as errorPalette } from '@/theme/colors';
 
 export const OnboardingSuccessPage: FunctionComponent = () => {
   const { token, userData, password, reset } = useOnboardingStore();
+  const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(true);
   const [activationError, setActivationError] = useState<string | null>(null);
 
+  const runActivation = useCallback(async () => {
+    if (!token || !password || !userData) {
+      setIsSubmitting(false);
+      setActivationError('Session d’activation invalide. Reprenez depuis le code d’invitation.');
+      return;
+    }
+    setIsSubmitting(true);
+    setActivationError(null);
+    try {
+      await onboardingApi.activate({ token, password });
+      // L'activation ne crée aucune session (ni cookie, ni jetons) : elle se
+      // contente de définir le PIN comme mot de passe Firebase. On établit
+      // donc la session en se connectant avec ces mêmes identifiants.
+      await useAuthStore.getState().login(userData.phone, password);
+    } catch {
+      setActivationError('Échec de l’activation. Réessayez.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [token, password, userData]);
+
   useEffect(() => {
-    const run = async () => {
-      if (!token || !password) {
-        setIsSubmitting(false);
-        setActivationError('Session d’activation invalide. Reprenez depuis le code d’invitation.');
-        return;
-      }
-      try {
-        await onboardingApi.activate({ token, password });
-      } catch {
-        setActivationError('Échec de l’activation. Réessayez.');
-      } finally {
-        setIsSubmitting(false);
-      }
-    };
-    void run();
+    void runActivation();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -69,7 +79,7 @@ export const OnboardingSuccessPage: FunctionComponent = () => {
         <Button
           size="large"
           variant="contained"
-          onClick={() => window.location.reload()}
+          onClick={() => void runActivation()}
           sx={{ maxWidth: 395, width: '100%' }}
         >
           Réessayer
@@ -80,7 +90,7 @@ export const OnboardingSuccessPage: FunctionComponent = () => {
 
   const handleAccess = () => {
     reset();
-    window.location.href = '/';
+    navigate('/', { replace: true });
   };
 
   return (
