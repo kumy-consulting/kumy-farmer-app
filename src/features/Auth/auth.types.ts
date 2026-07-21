@@ -11,6 +11,7 @@ export interface UserProfile {
   displayName: string;
   phone: string;
   role: string;
+  accessTier?: 'full' | 'simulation';
 }
 
 export interface LoginResponse {

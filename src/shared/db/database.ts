@@ -14,14 +14,25 @@ export interface SyncMeta {
   updatedAt: number;
 }
 
+/** Préférences d'auth device-level (numéro mémorisé pour la connexion simplifiée). Ligne unique id='current'. */
+export interface AuthPrefRow {
+  id: 'current';
+  rememberedPhone: string | null;
+}
+
 export class KumyDatabase extends Dexie {
   // Exemple à décommenter lors de l'ajout de la première feature :
   // domains!: Table<Domain, string>;
+
+  authPrefs!: Table<AuthPrefRow, string>;
 
   constructor() {
     super('KumyFarmerDB');
     this.version(1).stores({
       // domains: 'id, farmerId, syncStatus, updatedAt',
+    });
+    this.version(2).stores({
+      authPrefs: 'id',
     });
   }
 }
