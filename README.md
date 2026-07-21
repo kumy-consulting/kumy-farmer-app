@@ -81,3 +81,55 @@ src/
 
 Règle : **on ne crée jamais d'agrégat global d'endpoints**. Une nouvelle feature =
 un nouveau `<feature>.api.ts` qui consomme `@/shared/api/client`.
+
+## Déploiement
+
+| Env | Domaine | Projet Firebase | Site Hosting | Déclencheur |
+|---|---|---|---|---|
+| dev | https://mobile-dev.kumy.app | `kumy-agripilot-dev` | `kumy-farmer-dev` | push sur `main`, ou PR vers `main` |
+| prod | https://mobile.kumy.app | `kumy-agripilot-prod` | `kumy-farmer-prod` | tag `v*` uniquement |
+
+**Un push sur `main` ne livre jamais en production.** La prod part soit du merge de la
+PR « chore: release X.Y.Z » ouverte par release-please, soit d'un tag `v*` poussé à la
+main, soit d'un `workflow_dispatch` manuel en secours.
+
+Les PR déploient sur le **canal `live` du site dev** : `mobile-dev.kumy.app` reflète la
+dernière chose poussée, pas nécessairement `main`. Un push sur `main` après le merge
+restaure l'état de `main`.
+
+⚠️ Une PR issue d'un *fork* n'a pas accès aux secrets : son job de déploiement échouera.
+C'est assumé — le correctif usuel (`pull_request_target`) exécuterait du code non revu
+avec accès aux secrets.
+
+### Déployer à la main
+
+```bash
+npm run deploy:dev    # -> mobile-dev.kumy.app
+npm run deploy:prod   # -> mobile.kumy.app
+```
+
+### Prérequis d'infrastructure (une seule fois)
+
+1. Créer les sites Hosting :
+   ```bash
+   firebase hosting:sites:create kumy-farmer-dev  --project kumy-agripilot-dev
+   firebase hosting:sites:create kumy-farmer-prod --project kumy-agripilot-prod
+   ```
+2. Rattacher les domaines custom `mobile-dev.kumy.app` et `mobile.kumy.app` aux sites
+   correspondants (console Firebase → Hosting → Ajouter un domaine personnalisé), puis
+   poser les enregistrements DNS chez le registrar de `kumy.app`.
+3. Créer les secrets GitHub du repo (`Settings → Secrets and variables → Actions`) :
+   | Secret | Valeur |
+   |---|---|
+   | `FIREBASE_SERVICE_ACCOUNT_DEV` | contenu JSON de `dev-sa.json` |
+   | `FIREBASE_SERVICE_ACCOUNT_PROD` | contenu JSON de `prod-sa.json` |
+   | `DEV_FIREBASE_PROJECT_ID` | `kumy-agripilot-dev` |
+   | `PROD_FIREBASE_PROJECT_ID` | `kumy-agripilot-prod` |
+4. Créer les GitHub Environments `development` et `production`
+   (`Settings → Environments`). Une règle de protection sur `production` ajoute une
+   approbation manuelle avant chaque livraison.
+
+### Ce qui n'est pas couvert
+
+Le build et la signature des applications Android / iOS ne sont pas dans la CI : les
+projets natifs ne sont pas encore générés (`npm run cap:add:android` / `npm run cap:add:ios`).
