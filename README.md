@@ -123,14 +123,7 @@ contrairement à la CI, qui s'authentifie via un compte de service (`FIREBASE_SE
 2. Rattacher les domaines custom `mobile-dev.kumy.app` et `mobile.kumy.app` aux sites
    correspondants (console Firebase → Hosting → Ajouter un domaine personnalisé), puis
    poser les enregistrements DNS chez le registrar de `kumy.app`.
-3. Créer les secrets GitHub du repo (`Settings → Secrets and variables → Actions`) :
-   | Secret | Valeur |
-   |---|---|
-   | `FIREBASE_SERVICE_ACCOUNT_DEV` | contenu JSON de `dev-sa.json` |
-   | `FIREBASE_SERVICE_ACCOUNT_PROD` | contenu JSON de `prod-sa.json` |
-   | `DEV_FIREBASE_PROJECT_ID` | `kumy-agripilot-dev` |
-   | `PROD_FIREBASE_PROJECT_ID` | `kumy-agripilot-prod` |
-4. Créer les GitHub Environments `development` et `production`
+3. Créer les GitHub Environments `development` et `production`
    (`Settings → Environments`). Une règle de protection sur `production` ajoute une
    approbation manuelle avant chaque livraison.
    ⚠️ **Restreindre les branches de déploiement** de l'environnement `production`
@@ -141,6 +134,30 @@ contrairement à la CI, qui s'authentifie via un compte de service (`FIREBASE_SE
    ne protège que le chemin normal, pas un déclenchement manuel malveillant ou
    maladroit. Cette restriction fait appliquer la contrainte structurante par la
    plateforme GitHub elle-même, pas seulement par la logique du workflow.
+4. Créer les secrets **au niveau de chaque environment** (`Settings → Environments →
+   <env> → Environment secrets`), et non au niveau du repo :
+
+   | Environment | Secret | Valeur |
+   |---|---|---|
+   | `development` | `FIREBASE_SERVICE_ACCOUNT_DEV` | contenu JSON de `dev-sa.json` |
+   | `development` | `DEV_FIREBASE_PROJECT_ID` | `kumy-agripilot-dev` |
+   | `production` | `FIREBASE_SERVICE_ACCOUNT_PROD` | contenu JSON de `prod-sa.json` |
+   | `production` | `PROD_FIREBASE_PROJECT_ID` | `kumy-agripilot-prod` |
+
+   Le scoping par environment n'est pas cosmétique : un secret d'environment n'est
+   résolu que pour un job qui déclare cet `environment:`. Les identifiants de
+   production sont donc inaccessibles à `deploy-dev` **par construction** — si
+   quelqu'un repointait un jour ce job sur la configuration prod, il n'obtiendrait
+   aucun identifiant et le déploiement échouerait, au lieu de publier sur
+   `mobile.kumy.app`. C'est le même principe que la restriction de branches
+   ci-dessus : faire porter l'invariant par la plateforme plutôt que par la seule
+   logique du workflow.
+
+   Les deux comptes de service (`github-hosting-deployer@<projet>`) portent
+   `roles/firebasehosting.admin` et `roles/run.viewer` — de quoi déployer le hosting
+   et résoudre le rewrite Cloud Run, et rien d'autre. Aucun droit Firestore : un bloc
+   `firestore` ajouté par erreur dans une configuration Hosting ferait échouer le
+   déploiement au lieu d'effacer des index en production.
 5. Activer **« Allow GitHub Actions to create and approve pull requests »**
    (`Settings → Actions → General → Workflow permissions`). Sans ce réglage,
    `release-please` ne peut pas ouvrir sa PR de release malgré la déclaration
