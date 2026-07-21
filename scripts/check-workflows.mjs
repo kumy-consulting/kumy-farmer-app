@@ -99,6 +99,40 @@ check(
   'deploy.yml: le job "build" doit conserver une étape exécutant "npm run test" (même via --if-present)',
 );
 
+const rp = read('.github/workflows/release-please.yml');
+const rpOn = rp.on ?? rp[true];
+check(rpOn.push?.branches?.includes('main'), 'release-please.yml: doit se déclencher sur push main');
+
+const rpJobs = rp.jobs ?? {};
+check(!!rpJobs['release-please'], 'release-please.yml: job "release-please" manquant');
+check(!!rpJobs['deploy-prod'], 'release-please.yml: job "deploy-prod" manquant');
+check(
+  rpJobs['deploy-prod']?.uses === './.github/workflows/deploy.yml',
+  'release-please.yml: deploy-prod doit appeler ./.github/workflows/deploy.yml',
+);
+check(
+  rpJobs['deploy-prod']?.with?.environment === 'production',
+  'release-please.yml: deploy-prod doit passer environment: production',
+);
+check(
+  rpJobs['deploy-prod']?.secrets === 'inherit',
+  'release-please.yml: deploy-prod doit hériter des secrets',
+);
+// Sans cette garde, chaque push sur main livrerait en production.
+check(
+  String(rpJobs['deploy-prod']?.if ?? '').includes('release_created'),
+  'release-please.yml: deploy-prod doit être gardé par release_created',
+);
+
+const manifest = read('.release-please-manifest.json');
+check(typeof manifest['.'] === 'string', '.release-please-manifest.json: clé "." manquante');
+
+const rpCfg = read('release-please-config.json');
+check(
+  rpCfg.packages?.['.']?.['release-type'] === 'node',
+  'release-please-config.json: release-type doit valoir "node"',
+);
+
 if (failures.length) {
   console.error('Workflows invalides :');
   for (const f of failures) console.error(`  - ${f}`);
