@@ -108,10 +108,10 @@ doit jamais déployer de règles.
 2. `actions/setup-node@v4` — Node 22, `cache: npm`
 3. `npm ci`
 4. `npm run lint`
-5. `npm run test --if-present` — aucun script `test` ni harness vitest n'existe encore sur
-   cette branche (ils vivent sur `feature/onboarding-p1-connexion-invitation`, non
-   fusionnée) ; `--if-present` rend l'étape neutre en attendant et exécutera
-   automatiquement la vraie suite dès son arrivée, sans modification du workflow
+5. `npm run test --if-present` — exécute la suite vitest présente sur `main`.
+   Le `--if-present` date de la période où le harness vivait encore sur une branche
+   non fusionnée ; il est conservé pour que la CI reste neutre plutôt que rouge si le
+   script venait à disparaître
 6. Écriture d'un `.env.production` minimal : `VITE_API_URL=/api/v1` et `VITE_APP_ENV=<env>`,
    où `<env>` vaut `production` si le déclencheur est un tag `v*` ou un `workflow_call`,
    et `development` sinon (push `main`, PR)

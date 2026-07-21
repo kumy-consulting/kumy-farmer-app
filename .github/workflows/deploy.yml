@@ -94,11 +94,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      # Aucun script "test" n existe encore sur main (le harness vitest arrive
-      # via la branche feature/onboarding-p1-connexion-invitation) : --if-present
-      # rend l etape neutre (exit 0 sans rien executer) tant qu il est absent,
-      # et fait executer automatiquement la vraie suite des qu elle sera ajoutee
-      # a package.json, sans modification de ce workflow.
+      # --if-present : l etape execute la suite vitest quand le script "test"
+      # existe (c est le cas depuis l arrivee du harness sur main), et reste
+      # neutre s il venait a disparaitre, plutot que de casser la CI.
       - name: Tests
         run: npm run test --if-present
 

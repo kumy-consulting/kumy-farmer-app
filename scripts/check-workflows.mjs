@@ -173,8 +173,7 @@ check(
 // Garde-fou anti-régression : `--if-present` rend l'étape de test silencieuse
 // tant qu'aucun script "test" n'existe (cf. package.json). Ça permet aussi de
 // supprimer l'étape sans que rien ne s'en aperçoive — cette assertion s'assure
-// qu'elle reste présente, pour que la vraie suite (vitest, à venir via
-// feature/onboarding-p1-connexion-invitation) soit exécutée automatiquement.
+// qu'elle reste présente, pour que la suite vitest continue d'être exécutée.
 const buildSteps = jobs.build?.steps ?? [];
 check(
   buildSteps.some((step) => String(step?.run ?? '').includes('npm run test')),
