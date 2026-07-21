@@ -105,7 +105,10 @@ doit jamais déployer de règles.
 ### Job `build` (toujours exécuté)
 
 1. `actions/checkout@v4`
-2. `actions/setup-node@v4` — Node 22, `cache: npm`
+2. `actions/setup-node@v4` — Node 24 (aligné sur `.nvmrc` et sur le poste de
+   développement : npm 10 et npm 11 ne résolvent pas l'arbre de dépendances de la même
+   façon, et un `package-lock.json` généré par l'un fait échouer `npm ci` chez l'autre),
+   `cache: npm`
 3. `npm ci`
 4. `npm run lint`
 5. `npm run test --if-present` — exécute la suite vitest présente sur `main`.

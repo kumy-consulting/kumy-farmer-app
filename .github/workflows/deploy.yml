@@ -30,7 +30,10 @@ on:
         required: true
 
 env:
-  NODE_VERSION: "22"
+  # Doit rester aligne sur .nvmrc et sur le poste de developpement : npm 10 et
+  # npm 11 ne resolvent pas l arbre de dependances de la meme façon, et un
+  # package-lock.json genere par l un fait echouer `npm ci` chez l autre.
+  NODE_VERSION: "24"
 
 jobs:
   resolve:

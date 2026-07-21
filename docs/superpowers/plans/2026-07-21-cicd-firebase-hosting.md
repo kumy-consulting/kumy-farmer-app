@@ -6,7 +6,7 @@
 
 **Architecture:** Deux fichiers de configuration Hosting (`firebase.dev.json` / `firebase.prod.json`) ciblant deux sites distincts dans les projets Firebase agripilot existants. Un workflow GitHub Actions unique (`deploy.yml`) qui résout l'environnement cible depuis le déclencheur, builde une seule fois, puis déploie via la CLI `firebase-tools`. Un second workflow (`release-please.yml`) appelle `deploy.yml` en `workflow_call` quand une release est créée — ce qui contourne l'impossibilité pour un tag posé par le `GITHUB_TOKEN` de déclencher un workflow.
 
-**Tech Stack:** GitHub Actions, `firebase-tools` (CLI), `googleapis/release-please-action@v4`, Node 22, Vite 7, `vite-plugin-pwa`.
+**Tech Stack:** GitHub Actions, `firebase-tools` (CLI), `googleapis/release-please-action@v4`, Node 24, Vite 7, `vite-plugin-pwa`.
 
 **Spec de référence :** `docs/superpowers/specs/2026-07-21-cicd-firebase-hosting-design.md`
 
@@ -18,7 +18,7 @@
 - Rewrite `/api/**` → Cloud Run `agripilot-backoffice-api-dev` (dev) / `agripilot-backoffice-api` (prod), région `europe-west1`.
 - **Aucun bloc `firestore`** (`rules` / `indexes`) dans les fichiers `firebase.*.json`. Un déploiement de règles/index depuis ce repo effacerait des index Firestore non trackés.
 - `index.html`, `sw.js`, `registerSW.js`, `workbox-*.js` servis en `Cache-Control: no-cache`. Le reste des assets en `max-age=31536000`.
-- Node **22** dans la CI (Vite 7 exige `^20.19.0 || >=22.12.0` ; `22` est LTS et évite de dépendre de la résolution exacte de la ligne 20.x).
+- Node **24** dans la CI, déclaré aussi dans `.nvmrc` (Vite 7 exige `^20.19.0 || >=22.12.0`). La version doit rester alignée sur le poste de développement : npm 10 (Node 22) et npm 11 (Node 24) ne résolvent pas l'arbre de dépendances à l'identique, et un `package-lock.json` généré par l'un fait échouer `npm ci` chez l'autre.
 - Aucun secret `VITE_FIREBASE_*` : l'app n'importe pas le SDK Firebase.
 - Langue : commentaires et messages de commit en français, identifiants en anglais.
 
