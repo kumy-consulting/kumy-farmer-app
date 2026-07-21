@@ -377,6 +377,17 @@ check(
   'deploy.yml: deploy-prod ne doit JAMAIS annuler un déploiement prod en cours',
 );
 
+// Garde-fou anti-régression : `--if-present` rend l'étape de test silencieuse
+// tant qu'aucun script "test" n'existe (cf. package.json). Ça permet aussi de
+// supprimer l'étape sans que rien ne s'en aperçoive — cette assertion s'assure
+// qu'elle reste présente, pour que la vraie suite (vitest, à venir via
+// feature/onboarding-p1-connexion-invitation) soit exécutée automatiquement.
+const buildSteps = jobs.build?.steps ?? [];
+check(
+  buildSteps.some((step) => String(step?.run ?? '').includes('npm run test')),
+  'deploy.yml: le job "build" doit conserver une étape exécutant "npm run test" (même via --if-present)',
+);
+
 if (failures.length) {
   console.error('Workflows invalides :');
   for (const f of failures) console.error(`  - ${f}`);
@@ -384,6 +395,15 @@ if (failures.length) {
 }
 console.log('Workflows valides.');
 ```
+
+**Note (livré, correction post-implémentation) :** aucun script `test` n'existe
+sur `main` (le harness vitest arrive via `feature/onboarding-p1-connexion-invitation`).
+Une première version avait ajouté un script `test` factice (`echo ... && exit 0`)
+dans `package.json` pour que `npm run test` ne casse pas la CI — un stub qui
+n'assert rien et qui aurait masqué silencieusement l'arrivée de vitest. Corrigé :
+pas de script `test` du tout sur `main`, et l'étape du workflow utilise
+`npm run test --if-present` (Step 4) + une assertion dédiée ci-dessus qui garantit
+que cette étape reste présente dans `deploy.yml`.
 
 - [ ] **Step 2: Lancer le test pour vérifier qu'il échoue**
 
@@ -488,8 +508,13 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # Aucun script "test" n existe encore sur main (le harness vitest arrive
+      # via la branche feature/onboarding-p1-connexion-invitation) : --if-present
+      # rend l etape neutre (exit 0 sans rien executer) tant qu il est absent,
+      # et fait executer automatiquement la vraie suite des qu elle sera ajoutee
+      # a package.json, sans modification de ce workflow.
       - name: Tests
-        run: npm run test
+        run: npm run test --if-present
 
       # L app n importe pas le SDK Firebase : seule l URL d API est necessaire,
       # et elle est relative (rewrite /api/** cote Hosting).
@@ -584,7 +609,7 @@ Expected: PASS — `Workflows valides.`
 
 - [ ] **Step 6: Vérifier la chaîne complète telle que la CI l'exécutera**
 
-Run: `cd /Users/thierno/Documents/Projects/kumy/kumy-farmer-app && npm run check:hosting && npm run check:workflows && npm run lint && npm run test && npm run build`
+Run: `cd /Users/thierno/Documents/Projects/kumy/kumy-farmer-app && npm run check:hosting && npm run check:workflows && npm run lint && npm run test --if-present && npm run build`
 
 Expected: les cinq commandes passent successivement, sans erreur.
 

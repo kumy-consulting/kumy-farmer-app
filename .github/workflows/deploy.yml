@@ -82,8 +82,13 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # Aucun script "test" n existe encore sur main (le harness vitest arrive
+      # via la branche feature/onboarding-p1-connexion-invitation) : --if-present
+      # rend l etape neutre (exit 0 sans rien executer) tant qu il est absent,
+      # et fait executer automatiquement la vraie suite des qu elle sera ajoutee
+      # a package.json, sans modification de ce workflow.
       - name: Tests
-        run: npm run test
+        run: npm run test --if-present
 
       # L app n importe pas le SDK Firebase : seule l URL d API est necessaire,
       # et elle est relative (rewrite /api/** cote Hosting).
