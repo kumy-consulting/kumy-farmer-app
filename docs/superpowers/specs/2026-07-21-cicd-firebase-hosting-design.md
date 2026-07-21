@@ -116,7 +116,9 @@ doit jamais déployer de règles.
    où `<env>` vaut `production` si le déclencheur est un tag `v*` ou un `workflow_call`,
    et `development` sinon (push `main`, PR)
 7. `npm run build` — `GITHUB_SHA` alimente `__BUILD_SHA__`, déjà câblé dans `vite.config.ts`
-8. `actions/upload-artifact@v4` — `dist/`, rétention 1 jour
+8. `actions/upload-artifact@v4` — `dist/`, rétention 7 jours (doit couvrir le délai
+   d'approbation manuelle de l'environnement `production` : un artefact expiré rendrait
+   la release impossible à déployer sans repasser par un tag)
 
 `VITE_API_URL_NATIVE` n'est pas injecté : il ne concerne que les builds Capacitor,
 hors périmètre CI (voir §6).
@@ -128,7 +130,7 @@ Les deux téléchargent l'artifact `dist` et **ne rebuildent pas**. Déploiement
 ```bash
 echo "$SA_JSON" > /tmp/sa.json
 export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
-npx firebase-tools@latest deploy --only hosting \
+npx firebase-tools@14 deploy --only hosting \
   --config firebase.<env>.json --project <projectId> --non-interactive
 ```
 
