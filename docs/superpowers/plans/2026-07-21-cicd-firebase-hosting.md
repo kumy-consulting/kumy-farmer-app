@@ -269,8 +269,8 @@ Dans `package.json`, insérer ces deux entrées dans `scripts`, juste après `"p
 
 ```json
     "check:hosting": "node scripts/check-hosting-config.mjs",
-    "deploy:dev": "npm run build && npx firebase-tools deploy --only hosting --config firebase.dev.json --project development",
-    "deploy:prod": "npm run build && npx firebase-tools deploy --only hosting --config firebase.prod.json --project production",
+    "deploy:dev": "npm run build && npx firebase-tools@14 deploy --only hosting --config firebase.dev.json --project development",
+    "deploy:prod": "npm run build && npx firebase-tools@14 deploy --only hosting --config firebase.prod.json --project production",
 ```
 
 - [ ] **Step 7: Lancer le test pour vérifier qu'il passe**
@@ -360,6 +360,14 @@ check(
   prodIf.includes("== 'production'"),
   'deploy.yml: deploy-prod doit être gardé par une condition sur l environnement résolu',
 );
+// Symétrique : sans ce garde-fou, on pourrait retirer le `if:` de deploy-dev
+// sans que rien ne le signale — une release prod ferait alors AUSSI tourner
+// deploy-dev, écrasant le site dev silencieusement.
+const devIf = String(jobs['deploy-dev']?.if ?? '');
+check(
+  devIf.includes("== 'development'"),
+  'deploy.yml: deploy-dev doit être gardé par une condition sur l environnement résolu ("== \'development\'")',
+);
 check(
   jobs['deploy-prod']?.environment === 'production',
   'deploy.yml: deploy-prod doit déclarer environment: production',
@@ -375,6 +383,31 @@ check(
 check(
   jobs['deploy-prod']?.concurrency?.['cancel-in-progress'] === false,
   'deploy.yml: deploy-prod ne doit JAMAIS annuler un déploiement prod en cours',
+);
+
+// Invariant structurant (bis) : le commentaire en tête de ce fichier promet
+// « aucun push sur main ne doit pouvoir livrer en production », mais les
+// assertions ci-dessus n'inspectent que les `if:` de deploy-dev/deploy-prod,
+// jamais la LOGIQUE qui calcule l'environnement dans le job "resolve". Une
+// revue a montré qu'en remplaçant le TARGET="development" par défaut (branche
+// push/pull_request) par "production", ce garde-fou passait toujours au vert.
+// On inspecte donc directement le texte de l'étape shell "resolve".
+const resolveStep = (jobs.resolve?.steps ?? []).find((step) => step?.id === 'resolve');
+const resolveRun = String(resolveStep?.run ?? '');
+check(!!resolveRun, 'deploy.yml: étape shell "resolve" (id: resolve) introuvable dans le job "resolve"');
+check(
+  resolveRun.includes('refs/tags/v') && resolveRun.includes('TARGET="production"'),
+  'deploy.yml: TARGET ne doit passer à "production" que sous une garde sur un tag refs/tags/v*',
+);
+check(
+  resolveRun.includes('TARGET="development"'),
+  'deploy.yml: le défaut (push main / pull_request, hors tag) doit rester TARGET="development" ' +
+    '— sinon un push sur main livre en production',
+);
+check(
+  resolveRun.includes('exit 1'),
+  'deploy.yml: le job "resolve" doit échouer explicitement (exit 1) si TARGET n est ni development ni production ' +
+    '(sinon deploy-dev ET deploy-prod sont skippés silencieusement et le run reste vert sans rien déployer)',
 );
 
 // Garde-fou anti-régression : `--if-present` rend l'étape de test silencieuse
@@ -404,6 +437,23 @@ n'assert rien et qui aurait masqué silencieusement l'arrivée de vitest. Corrig
 pas de script `test` du tout sur `main`, et l'étape du workflow utilise
 `npm run test --if-present` (Step 4) + une assertion dédiée ci-dessus qui garantit
 que cette étape reste présente dans `deploy.yml`.
+
+**Note (livré, correctifs de revue post-implémentation) :** une revue a montré trois
+trous dans ce garde-fou et dans `deploy.yml` lui-même, tous corrigés dans le même
+commit :
+1. Le job `resolve` ne validait jamais que `TARGET` valait bien `development` ou
+   `production` — une valeur mal orthographiée (`workflow_call`/`workflow_dispatch`
+   avec `"prod"`) faisait skipper silencieusement `deploy-dev` ET `deploy-prod`,
+   avec un run qui restait VERT sans rien déployer. Ajout d'une garde fail-fast
+   (`exit 1` sur stderr) dans l'étape shell, avant l'écriture dans `$GITHUB_OUTPUT`.
+2. Ce script n'inspectait que le `if:` de `deploy-prod`, jamais celui de
+   `deploy-dev` — on aurait pu retirer ce dernier sans que rien ne le signale.
+   Ajout de l'assertion `devIf`.
+3. Aucune assertion n'inspectait la logique du job `resolve` lui-même : remplacer
+   le `TARGET="development"` par défaut par `"production"` faisait toujours passer
+   ce garde-fou. Ajout des trois assertions sur le texte de l'étape shell
+   `resolve` (garde tag `refs/tags/v*` → production, défaut `development` présent,
+   `exit 1` présent).
 
 - [ ] **Step 2: Lancer le test pour vérifier qu'il échoue**
 
@@ -479,6 +529,18 @@ jobs:
           else
             TARGET="development"
           fi
+
+          # Garde fail-fast : si TARGET n est ni development ni production
+          # (ex. workflow_call/dispatch avec une valeur mal orthographiee comme
+          # "prod"), aucun des deux jobs de deploiement ne matchera son `if:` -
+          # les deux seraient silencieusement skippes et le run resterait VERT
+          # alors que rien n a ete deploye. On echoue explicitement ici plutot
+          # que de laisser passer un deploiement fantome inapercu.
+          if [ "$TARGET" != "development" ] && [ "$TARGET" != "production" ]; then
+            echo "::error::Environnement resolu invalide : \"$TARGET\" (attendu development ou production)" >&2
+            exit 1
+          fi
+
           echo "environment=$TARGET" >> "$GITHUB_OUTPUT"
           echo "Environnement cible : $TARGET"
 
@@ -561,7 +623,7 @@ jobs:
 
       - name: Deploy to Firebase Hosting (Dev)
         run: |
-          npx firebase-tools@latest deploy \
+          npx firebase-tools@14 deploy \
             --only hosting \
             --config firebase.dev.json \
             --project ${{ secrets.DEV_FIREBASE_PROJECT_ID }} \
@@ -594,7 +656,7 @@ jobs:
 
       - name: Deploy to Firebase Hosting (Production)
         run: |
-          npx firebase-tools@latest deploy \
+          npx firebase-tools@14 deploy \
             --only hosting \
             --config firebase.prod.json \
             --project ${{ secrets.PROD_FIREBASE_PROJECT_ID }} \

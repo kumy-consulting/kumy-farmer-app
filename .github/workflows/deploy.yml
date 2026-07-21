@@ -53,6 +53,18 @@ jobs:
           else
             TARGET="development"
           fi
+
+          # Garde fail-fast : si TARGET n est ni development ni production
+          # (ex. workflow_call/dispatch avec une valeur mal orthographiee comme
+          # "prod"), aucun des deux jobs de deploiement ne matchera son `if:` -
+          # les deux seraient silencieusement skippes et le run resterait VERT
+          # alors que rien n a ete deploye. On echoue explicitement ici plutot
+          # que de laisser passer un deploiement fantome inapercu.
+          if [ "$TARGET" != "development" ] && [ "$TARGET" != "production" ]; then
+            echo "::error::Environnement resolu invalide : \"$TARGET\" (attendu development ou production)" >&2
+            exit 1
+          fi
+
           echo "environment=$TARGET" >> "$GITHUB_OUTPUT"
           echo "Environnement cible : $TARGET"
 
@@ -135,7 +147,7 @@ jobs:
 
       - name: Deploy to Firebase Hosting (Dev)
         run: |
-          npx firebase-tools@latest deploy \
+          npx firebase-tools@14 deploy \
             --only hosting \
             --config firebase.dev.json \
             --project ${{ secrets.DEV_FIREBASE_PROJECT_ID }} \
@@ -168,7 +180,7 @@ jobs:
 
       - name: Deploy to Firebase Hosting (Production)
         run: |
-          npx firebase-tools@latest deploy \
+          npx firebase-tools@14 deploy \
             --only hosting \
             --config firebase.prod.json \
             --project ${{ secrets.PROD_FIREBASE_PROJECT_ID }} \

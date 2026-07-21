@@ -38,6 +38,14 @@ check(
   prodIf.includes("== 'production'"),
   'deploy.yml: deploy-prod doit être gardé par une condition sur l environnement résolu',
 );
+// Symétrique : sans ce garde-fou, on pourrait retirer le `if:` de deploy-dev
+// sans que rien ne le signale — une release prod ferait alors AUSSI tourner
+// deploy-dev, écrasant le site dev silencieusement.
+const devIf = String(jobs['deploy-dev']?.if ?? '');
+check(
+  devIf.includes("== 'development'"),
+  'deploy.yml: deploy-dev doit être gardé par une condition sur l environnement résolu ("== \'development\'")',
+);
 check(
   jobs['deploy-prod']?.environment === 'production',
   'deploy.yml: deploy-prod doit déclarer environment: production',
@@ -53,6 +61,31 @@ check(
 check(
   jobs['deploy-prod']?.concurrency?.['cancel-in-progress'] === false,
   'deploy.yml: deploy-prod ne doit JAMAIS annuler un déploiement prod en cours',
+);
+
+// Invariant structurant (bis) : le commentaire en tête de ce fichier promet
+// « aucun push sur main ne doit pouvoir livrer en production », mais les
+// assertions ci-dessus n'inspectent que les `if:` de deploy-dev/deploy-prod,
+// jamais la LOGIQUE qui calcule l'environnement dans le job "resolve". Une
+// revue a montré qu'en remplaçant le TARGET="development" par défaut (branche
+// push/pull_request) par "production", ce garde-fou passait toujours au vert.
+// On inspecte donc directement le texte de l'étape shell "resolve".
+const resolveStep = (jobs.resolve?.steps ?? []).find((step) => step?.id === 'resolve');
+const resolveRun = String(resolveStep?.run ?? '');
+check(!!resolveRun, 'deploy.yml: étape shell "resolve" (id: resolve) introuvable dans le job "resolve"');
+check(
+  resolveRun.includes('refs/tags/v') && resolveRun.includes('TARGET="production"'),
+  'deploy.yml: TARGET ne doit passer à "production" que sous une garde sur un tag refs/tags/v*',
+);
+check(
+  resolveRun.includes('TARGET="development"'),
+  'deploy.yml: le défaut (push main / pull_request, hors tag) doit rester TARGET="development" ' +
+    '— sinon un push sur main livre en production',
+);
+check(
+  resolveRun.includes('exit 1'),
+  'deploy.yml: le job "resolve" doit échouer explicitement (exit 1) si TARGET n est ni development ni production ' +
+    '(sinon deploy-dev ET deploy-prod sont skippés silencieusement et le run reste vert sans rien déployer)',
 );
 
 // Garde-fou anti-régression : `--if-present` rend l'étape de test silencieuse
