@@ -46,12 +46,15 @@ relatives vers `/api/v1`. Sans lui, l'app ne joint aucun backend.
 
 ```
 .firebaserc                          default / development / production
+firebase.json                        copie de la config dev (deploy local sans --config)
 firebase.dev.json                    site: kumy-farmer-dev
 firebase.prod.json                   site: kumy-farmer-prod
 .github/workflows/deploy.yml
 .github/workflows/release-please.yml
 release-please-config.json
 .release-please-manifest.json
+scripts/check-hosting-config.mjs     garde-fous configs Hosting (joué par la CI)
+scripts/check-workflows.mjs          garde-fous workflows (joué par la CI)
 package.json                         + scripts deploy:dev / deploy:prod
 ```
 
