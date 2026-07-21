@@ -118,7 +118,13 @@ jobs:
         with:
           name: dist
           path: dist/
-          retention-days: 1
+          # La retention doit couvrir le delai d approbation manuelle de l
+          # environnement "production" (deploy-prod attend un reviewer humain) :
+          # une PR de release mergee un vendredi soir et approuvee le lundi ne
+          # doit pas voir son artefact expire avant le download-artifact de
+          # deploy-prod. 1 jour etait trop court ; rejouer le run ne suffit pas
+          # non plus, release_created vaudrait false au re-run de release-please.
+          retention-days: 7
 
   deploy-dev:
     name: Deploy to Firebase (Dev)

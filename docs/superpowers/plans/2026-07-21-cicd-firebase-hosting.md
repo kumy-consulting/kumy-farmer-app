@@ -399,15 +399,79 @@ check(
   resolveRun.includes('refs/tags/v') && resolveRun.includes('TARGET="production"'),
   'deploy.yml: TARGET ne doit passer à "production" que sous une garde sur un tag refs/tags/v*',
 );
-check(
-  resolveRun.includes('TARGET="development"'),
-  'deploy.yml: le défaut (push main / pull_request, hors tag) doit rester TARGET="development" ' +
-    '— sinon un push sur main livre en production',
-);
+// Une simple recherche de sous-chaîne `TARGET="development"` est contournable :
+// une revue a montré qu'en mettant la branche else à TARGET="production" tout en
+// laissant un commentaire `# TARGET="development"` juste en dessous, ce garde-fou
+// restait vert alors que tout push sur main livrerait la prod. On extrait donc
+// par regex la valeur RÉELLEMENT affectée dans la branche else et on la compare
+// exactement à "development".
+const elseMatch = resolveRun.match(/else\s*\n\s*TARGET="([^"]+)"/);
+if (!elseMatch) {
+  failures.push(
+    'deploy.yml: la structure de l\'étape "resolve" (branche else attendue sous la forme ' +
+      'else\\n  TARGET="...") n\'est plus reconnaissable — ce garde-fou ne peut plus rien ' +
+      'garantir sur le défaut de TARGET',
+  );
+} else {
+  check(
+    elseMatch[1] === 'development',
+    `deploy.yml: le défaut (branche else de l'étape "resolve") doit affecter TARGET="development", ` +
+      `trouvé TARGET="${elseMatch[1]}" — sinon un push sur main livre en production`,
+  );
+}
 check(
   resolveRun.includes('exit 1'),
   'deploy.yml: le job "resolve" doit échouer explicitement (exit 1) si TARGET n est ni development ni production ' +
     '(sinon deploy-dev ET deploy-prod sont skippés silencieusement et le run reste vert sans rien déployer)',
+);
+
+// Invariant croisé : les assertions ci-dessus ne vérifient que le `if:` de
+// deploy-dev/deploy-prod, jamais ce qu'ils déploient RÉELLEMENT. Une revue a
+// prouvé qu'en repointant deploy-dev sur firebase.prod.json +
+// PROD_FIREBASE_PROJECT_ID + FIREBASE_SERVICE_ACCOUNT_PROD (tout en laissant
+// son `if:` sur "== 'development'"), ce garde-fou restait vert — n'importe
+// quelle PR aurait alors déployé mobile.kumy.app avec l'aval de la CI. On
+// inspecte donc le texte concaténé des étapes de chaque job de déploiement.
+const stepsRunText = (steps) => (steps ?? []).map((step) => String(step?.run ?? '')).join('\n');
+
+const devStepsText = stepsRunText(jobs['deploy-dev']?.steps);
+check(devStepsText.includes('firebase.dev.json'), 'deploy.yml: deploy-dev doit déployer avec --config firebase.dev.json');
+check(devStepsText.includes('DEV_FIREBASE_PROJECT_ID'), 'deploy.yml: deploy-dev doit cibler le secret DEV_FIREBASE_PROJECT_ID');
+check(
+  devStepsText.includes('FIREBASE_SERVICE_ACCOUNT_DEV'),
+  'deploy.yml: deploy-dev doit s authentifier avec le secret FIREBASE_SERVICE_ACCOUNT_DEV',
+);
+check(
+  !devStepsText.includes('firebase.prod.json'),
+  'deploy.yml: deploy-dev ne doit JAMAIS référencer firebase.prod.json (risque : déployer la production depuis une simple PR)',
+);
+check(
+  !devStepsText.includes('PROD_FIREBASE_PROJECT_ID'),
+  'deploy.yml: deploy-dev ne doit JAMAIS référencer PROD_FIREBASE_PROJECT_ID (risque : déployer la production depuis une simple PR)',
+);
+check(
+  !devStepsText.includes('FIREBASE_SERVICE_ACCOUNT_PROD'),
+  'deploy.yml: deploy-dev ne doit JAMAIS référencer FIREBASE_SERVICE_ACCOUNT_PROD (risque : déployer la production depuis une simple PR)',
+);
+
+const prodStepsText = stepsRunText(jobs['deploy-prod']?.steps);
+check(prodStepsText.includes('firebase.prod.json'), 'deploy.yml: deploy-prod doit déployer avec --config firebase.prod.json');
+check(prodStepsText.includes('PROD_FIREBASE_PROJECT_ID'), 'deploy.yml: deploy-prod doit cibler le secret PROD_FIREBASE_PROJECT_ID');
+check(
+  prodStepsText.includes('FIREBASE_SERVICE_ACCOUNT_PROD'),
+  'deploy.yml: deploy-prod doit s authentifier avec le secret FIREBASE_SERVICE_ACCOUNT_PROD',
+);
+check(
+  !prodStepsText.includes('firebase.dev.json'),
+  'deploy.yml: deploy-prod ne doit JAMAIS référencer firebase.dev.json (risque : livrer un environnement de dev sur mobile.kumy.app)',
+);
+check(
+  !prodStepsText.includes('DEV_FIREBASE_PROJECT_ID'),
+  'deploy.yml: deploy-prod ne doit JAMAIS référencer DEV_FIREBASE_PROJECT_ID (risque : livrer un environnement de dev sur mobile.kumy.app)',
+);
+check(
+  !prodStepsText.includes('FIREBASE_SERVICE_ACCOUNT_DEV'),
+  'deploy.yml: deploy-prod ne doit JAMAIS référencer FIREBASE_SERVICE_ACCOUNT_DEV (risque : livrer un environnement de dev sur mobile.kumy.app)',
 );
 
 // Garde-fou anti-régression : `--if-present` rend l'étape de test silencieuse
@@ -421,6 +485,21 @@ check(
   'deploy.yml: le job "build" doit conserver une étape exécutant "npm run test" (même via --if-present)',
 );
 
+// Le garde-fou doit se protéger lui-même : rien n'empêchait de retirer les
+// étapes "npm run check:hosting" / "npm run check:workflows" du job "build"
+// sans que rien ne le signale, ce qui rouvrirait d'un coup tous les trous que
+// ces deux scripts sont censés colmater.
+check(
+  buildSteps.some((step) => String(step?.run ?? '').includes('npm run check:hosting')),
+  'deploy.yml: le job "build" doit conserver une étape exécutant "npm run check:hosting" ' +
+    '(sinon les invariants de configuration Hosting ne sont plus vérifiés par la CI)',
+);
+check(
+  buildSteps.some((step) => String(step?.run ?? '').includes('npm run check:workflows')),
+  'deploy.yml: le job "build" doit conserver une étape exécutant "npm run check:workflows" ' +
+    '(sinon ce garde-fou lui-même peut être retiré de la CI sans que rien ne le signale)',
+);
+
 if (failures.length) {
   console.error('Workflows invalides :');
   for (const f of failures) console.error(`  - ${f}`);
@@ -428,6 +507,24 @@ if (failures.length) {
 }
 console.log('Workflows valides.');
 ```
+
+**Note (livré, correctifs de revue finale) :** une dernière revue a montré trois
+trous supplémentaires dans ce garde-fou, tous corrigés dans le même commit :
+1. Rien ne reliait le job `deploy-dev`/`deploy-prod` à ce qu'il déploie
+   RÉELLEMENT : repointer `deploy-dev` sur `firebase.prod.json` +
+   `PROD_FIREBASE_PROJECT_ID` + `FIREBASE_SERVICE_ACCOUNT_PROD` laissait ce
+   garde-fou vert. Ajout des assertions croisées sur le texte concaténé des
+   étapes de chaque job de déploiement (présence des références au bon
+   environnement, absence des références à l'autre).
+2. L'assertion sur le défaut de `resolve` cherchait la sous-chaîne
+   `TARGET="development"` n'importe où dans le `run` — mettre la branche
+   `else` à `TARGET="production"` en laissant `# TARGET="development"` en
+   commentaire juste en dessous passait toujours. Remplacé par une extraction
+   regex de la valeur réellement affectée dans la branche `else`.
+3. Rien n'assertait que `npm run check:hosting` / `npm run check:workflows`
+   restaient dans le job `build` : on pouvait les retirer de la CI sans que
+   rien ne le signale, rouvrant tous les trous d'un coup. Ajout des deux
+   assertions correspondantes.
 
 **Note (livré, correction post-implémentation) :** aucun script `test` n'existe
 sur `main` (le harness vitest arrive via `feature/onboarding-p1-connexion-invitation`).
@@ -594,7 +691,13 @@ jobs:
         with:
           name: dist
           path: dist/
-          retention-days: 1
+          # La retention doit couvrir le delai d approbation manuelle de l
+          # environnement "production" (deploy-prod attend un reviewer humain) :
+          # une PR de release mergee un vendredi soir et approuvee le lundi ne
+          # doit pas voir son artefact expire avant le download-artifact de
+          # deploy-prod. 1 jour etait trop court ; rejouer le run ne suffit pas
+          # non plus, release_created vaudrait false au re-run de release-please.
+          retention-days: 7
 
   deploy-dev:
     name: Deploy to Firebase (Dev)
@@ -927,6 +1030,11 @@ npm run deploy:dev    # -> mobile-dev.kumy.app
 npm run deploy:prod   # -> mobile.kumy.app
 ```
 
+Ces commandes exigent d'être authentifié en local (`firebase login`) avec les droits sur
+les **deux** projets Firebase (`kumy-agripilot-dev` et `kumy-agripilot-prod`) —
+contrairement à la CI, qui s'authentifie via un compte de service (`FIREBASE_SERVICE_ACCOUNT_DEV`
+/ `FIREBASE_SERVICE_ACCOUNT_PROD`) et n'a pas besoin de session utilisateur.
+
 ### Prérequis d'infrastructure (une seule fois)
 
 1. Créer les sites Hosting :
@@ -947,6 +1055,18 @@ npm run deploy:prod   # -> mobile.kumy.app
 4. Créer les GitHub Environments `development` et `production`
    (`Settings → Environments`). Une règle de protection sur `production` ajoute une
    approbation manuelle avant chaque livraison.
+   ⚠️ **Restreindre les branches de déploiement** de l'environnement `production`
+   (`Settings → Environments → production → Deployment branches and tags`) aux tags
+   `v*` et à `main`. Sans cette restriction, un `workflow_dispatch` lancé depuis
+   n'importe quelle branche avec `environment: production` publierait ce code sur
+   `mobile.kumy.app` — cette restriction fait appliquer la contrainte structurante
+   par la plateforme, pas seulement par la logique du workflow.
+5. Activer **« Allow GitHub Actions to create and approve pull requests »**
+   (`Settings → Actions → General → Workflow permissions`). Sans ce réglage,
+   `release-please` ne peut pas ouvrir sa PR de release malgré
+   `permissions: pull-requests: write` — conséquence : aucune release n'existe
+   jamais, donc la production n'est jamais livrée, avec pour seul symptôme un job
+   rouge dans un workflow qu'on ne regarde pas.
 
 ### Ce qui n'est pas couvert
 

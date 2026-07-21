@@ -108,6 +108,11 @@ npm run deploy:dev    # -> mobile-dev.kumy.app
 npm run deploy:prod   # -> mobile.kumy.app
 ```
 
+Ces commandes exigent d'être authentifié en local (`firebase login`) avec les droits sur
+les **deux** projets Firebase (`kumy-agripilot-dev` et `kumy-agripilot-prod`) —
+contrairement à la CI, qui s'authentifie via un compte de service (`FIREBASE_SERVICE_ACCOUNT_DEV`
+/ `FIREBASE_SERVICE_ACCOUNT_PROD`) et n'a pas besoin de session utilisateur.
+
 ### Prérequis d'infrastructure (une seule fois)
 
 1. Créer les sites Hosting :
@@ -128,6 +133,20 @@ npm run deploy:prod   # -> mobile.kumy.app
 4. Créer les GitHub Environments `development` et `production`
    (`Settings → Environments`). Une règle de protection sur `production` ajoute une
    approbation manuelle avant chaque livraison.
+   ⚠️ **Restreindre les branches de déploiement** de l'environnement `production`
+   (`Settings → Environments → production → Deployment branches and tags`) aux tags
+   `v*` et à `main`. Sans cette restriction, un `workflow_dispatch` lancé depuis
+   n'importe quelle branche avec `environment: production` publierait ce code sur
+   `mobile.kumy.app` — la logique du workflow (`resolve` + les `if:` de `deploy-prod`)
+   ne protège que le chemin normal, pas un déclenchement manuel malveillant ou
+   maladroit. Cette restriction fait appliquer la contrainte structurante par la
+   plateforme GitHub elle-même, pas seulement par la logique du workflow.
+5. Activer **« Allow GitHub Actions to create and approve pull requests »**
+   (`Settings → Actions → General → Workflow permissions`). Sans ce réglage,
+   `release-please` ne peut pas ouvrir sa PR de release malgré la déclaration
+   `permissions: pull-requests: write` du workflow — conséquence : aucune release
+   n'existe jamais, donc la production n'est jamais livrée, avec pour seul symptôme
+   un job rouge dans un workflow que personne ne regarde.
 
 ### Ce qui n'est pas couvert
 

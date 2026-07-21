@@ -87,8 +87,8 @@ doit jamais déployer de règles.
 
 ### 2.3 Scripts npm (parité locale, non utilisés par la CI)
 
-- `deploy:dev` — `npm run build && firebase use development && firebase deploy --only hosting --config firebase.dev.json`
-- `deploy:prod` — idem avec `production` / `firebase.prod.json`
+- `deploy:dev` — `npm run build && npx firebase-tools@14 deploy --only hosting --config firebase.dev.json --project development`
+- `deploy:prod` — idem avec `--config firebase.prod.json --project production`
 
 ## 3. `deploy.yml`
 
@@ -105,10 +105,13 @@ doit jamais déployer de règles.
 ### Job `build` (toujours exécuté)
 
 1. `actions/checkout@v4`
-2. `actions/setup-node@v4` — Node 20, `cache: npm`
+2. `actions/setup-node@v4` — Node 22, `cache: npm`
 3. `npm ci`
 4. `npm run lint`
-5. `npm run test` — vitest est déjà configuré (`vitest.config.ts`, `vitest.setup.ts`)
+5. `npm run test --if-present` — aucun script `test` ni harness vitest n'existe encore sur
+   cette branche (ils vivent sur `feature/onboarding-p1-connexion-invitation`, non
+   fusionnée) ; `--if-present` rend l'étape neutre en attendant et exécutera
+   automatiquement la vraie suite dès son arrivée, sans modification du workflow
 6. Écriture d'un `.env.production` minimal : `VITE_API_URL=/api/v1` et `VITE_APP_ENV=<env>`,
    où `<env>` vaut `production` si le déclencheur est un tag `v*` ou un `workflow_call`,
    et `development` sinon (push `main`, PR)
@@ -231,4 +234,12 @@ Ces quatre points sont bloquants pour un premier déploiement vert et ne peuvent
 2. Un merge sur `main` redéploie le dev et **ne touche pas la prod**.
 3. Le merge de la PR « chore: release X.Y.Z » crée le tag `vX.Y.Z` **et** déploie `mobile.kumy.app`.
 4. `mobile.kumy.app/api/v1/...` atteint l'API Cloud Run de production.
-5. Une nouvelle version est proposée à l'utilisateur (prompt SW) sans vider le cache navigateur.
+5. **Note honnête (correction post-implémentation)** : ce critère visait initialement
+   « une nouvelle version est proposée à l'utilisateur (prompt SW) sans vider le cache
+   navigateur ». Il est **inatteignable en l'état** — `vite.config.ts` déclare
+   `injectRegister: null` et aucun code applicatif n'appelle `registerSW`, donc le
+   service worker n'est jamais enregistré par le navigateur, prompt ou pas. Les
+   en-têtes `no-cache` posés sur `index.html` / `sw.js` / `registerSW.js` /
+   `workbox-*.js` sont en place et corrects, mais le mécanisme de mise à jour PWA ne
+   pourra être recetté que lorsque l'enregistrement du service worker sera câblé côté
+   application — hors périmètre de ce chantier CI/CD.
