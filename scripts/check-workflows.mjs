@@ -118,10 +118,27 @@ check(
   rpJobs['deploy-prod']?.secrets === 'inherit',
   'release-please.yml: deploy-prod doit hériter des secrets',
 );
-// Sans cette garde, chaque push sur main livrerait en production.
+// Sans cette garde, chaque push sur main livrerait en production. On vérifie
+// la comparaison complète (opérateur + valeur), pas seulement la présence du
+// mot "release_created" : une revue a montré qu'en changeant la garde en
+// release_created == 'false' (qui bloquerait la prod pour toujours), une
+// simple recherche de sous-chaîne "release_created" passait toujours au vert.
 check(
-  String(rpJobs['deploy-prod']?.if ?? '').includes('release_created'),
-  'release-please.yml: deploy-prod doit être gardé par release_created',
+  String(rpJobs['deploy-prod']?.if ?? '').includes("release_created == 'true'"),
+  'release-please.yml: deploy-prod doit être gardé par la condition exacte ' +
+    "release_created == 'true' (pas seulement la présence du mot release_created)",
+);
+// Sans cette assertion, le job "release-please" pourrait ne pas déclarer la
+// sortie release_created dans son bloc outputs : la référence
+// needs.release-please.outputs.release_created serait alors toujours vide
+// (donc jamais égale à 'true') et la prod ne se déploierait plus JAMAIS,
+// silencieusement (le run reste vert). Une revue l'a démontré en retirant la
+// ligne release_created du bloc outputs.
+check(
+  typeof rpJobs['release-please']?.outputs?.release_created === 'string' &&
+    rpJobs['release-please']?.outputs?.release_created !== '',
+  'release-please.yml: le job "release-please" doit déclarer outputs.release_created ' +
+    '(sinon needs.release-please.outputs.release_created est toujours vide et la prod ne se déploie plus jamais)',
 );
 
 const manifest = read('.release-please-manifest.json');
