@@ -29,7 +29,6 @@
 | Fichier | Responsabilité |
 |---|---|
 | `.firebaserc` | Alias projets `development` / `production` |
-| `firebase.json` | Config par défaut = copie de la config dev (permet `firebase deploy` local sans `--config`) |
 | `firebase.dev.json` | Site `kumy-farmer-dev` + rewrite API dev |
 | `firebase.prod.json` | Site `kumy-farmer-prod` + rewrite API prod |
 | `.github/workflows/deploy.yml` | Résolution d'env, build unique, deploy dev, deploy prod |
@@ -39,7 +38,7 @@
 | `package.json` | Scripts `deploy:dev` / `deploy:prod` (parité locale) |
 | `README.md` | Section « Déploiement » + runbook des prérequis ops |
 
-**Note sur `firebase.json` :** la spec §2 ne le listait pas. Il est ajouté ici pour la même raison que dans `kumy-landing` — sans lui, un `firebase deploy` lancé à la main depuis le repo échoue. Son contenu est identique à `firebase.dev.json`.
+**Pas de `firebase.json` par défaut.** `kumy-landing` en a un (copie de sa config dev), mais c'est une duplication à maintenir en phase. Ici, tout passe par `--config` : les scripts npm, la CI, et les commandes manuelles. Un `firebase deploy` tapé sans `--config` échouera avec un message explicite — préférable à un déploiement silencieux vers le mauvais environnement.
 
 ---
 
@@ -47,7 +46,6 @@
 
 **Files:**
 - Create: `.firebaserc`
-- Create: `firebase.json`
 - Create: `firebase.dev.json`
 - Create: `firebase.prod.json`
 - Modify: `package.json` (bloc `scripts`)
@@ -76,7 +74,6 @@ const check = (cond, msg) => {
 const CASES = [
   { file: 'firebase.dev.json', site: 'kumy-farmer-dev', service: 'agripilot-backoffice-api-dev' },
   { file: 'firebase.prod.json', site: 'kumy-farmer-prod', service: 'agripilot-backoffice-api' },
-  { file: 'firebase.json', site: 'kumy-farmer-dev', service: 'agripilot-backoffice-api-dev' },
 ];
 
 for (const { file, site, service } of CASES) {
@@ -241,13 +238,7 @@ Identique à `firebase.dev.json`, avec deux valeurs changées : `hosting.site` e
 }
 ```
 
-- [ ] **Step 6: Créer `firebase.json` (copie de la config dev)**
-
-Run: `cd /Users/thierno/Documents/Projects/kumy/kumy-farmer-app && cp firebase.dev.json firebase.json`
-
-Expected: aucun affichage, `firebase.json` créé.
-
-- [ ] **Step 7: Ajouter les scripts npm**
+- [ ] **Step 6: Ajouter les scripts npm**
 
 Dans `package.json`, insérer ces deux entrées dans `scripts`, juste après `"preview"` :
 
@@ -257,13 +248,13 @@ Dans `package.json`, insérer ces deux entrées dans `scripts`, juste après `"p
     "deploy:prod": "npm run build && firebase use production && firebase deploy --only hosting --config firebase.prod.json",
 ```
 
-- [ ] **Step 8: Lancer le test pour vérifier qu'il passe**
+- [ ] **Step 7: Lancer le test pour vérifier qu'il passe**
 
 Run: `cd /Users/thierno/Documents/Projects/kumy/kumy-farmer-app && npm run check:hosting`
 
 Expected: PASS — `Configuration Hosting valide.`
 
-- [ ] **Step 9: Vérifier que le build produit bien `dist/` avec un service worker**
+- [ ] **Step 8: Vérifier que le build produit bien `dist/` avec un service worker**
 
 Run: `cd /Users/thierno/Documents/Projects/kumy/kumy-farmer-app && npm run build && ls dist/sw.js dist/index.html`
 
@@ -271,11 +262,11 @@ Expected: le build se termine sans erreur, `dist/sw.js` et `dist/index.html` exi
 Si `dist/sw.js` est absent, les headers `no-cache` posés à l'étape 4 ne servent à rien —
 vérifier la configuration `VitePWA` dans `vite.config.ts` avant de poursuivre.
 
-- [ ] **Step 10: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
 cd /Users/thierno/Documents/Projects/kumy/kumy-farmer-app
-git add .firebaserc firebase.json firebase.dev.json firebase.prod.json scripts/check-hosting-config.mjs package.json
+git add .firebaserc firebase.dev.json firebase.prod.json scripts/check-hosting-config.mjs package.json
 git commit -m "feat(cicd): configurations Firebase Hosting dev et prod
 
 Deux sites dedies (kumy-farmer-dev / kumy-farmer-prod) dans les projets
