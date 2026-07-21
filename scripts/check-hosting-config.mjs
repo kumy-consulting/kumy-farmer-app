@@ -36,15 +36,40 @@ for (const { file, site, service } of CASES) {
     `${file}: rewrite SPA "**" -> /index.html manquant`,
   );
 
+  // Le bloc générique d'assets (**/*.@(...|js|...)) DOIT rester en cache long,
+  // sinon l'app perd le bénéfice du cache pour ses assets statiques.
+  const headers = h?.headers ?? [];
+  const genericAssetsIndex = headers.findIndex((entry) => entry.source === '**/*.@(jpg|jpeg|gif|png|svg|webp|js|css|woff|woff2|ttf|eot)');
+  const genericAssets = headers[genericAssetsIndex];
+  check(
+    genericAssets?.headers?.some((x) => x.key === 'Cache-Control' && x.value === 'max-age=31536000'),
+    `${file}: header max-age=31536000 manquant pour le bloc générique d'assets`,
+  );
+
   // Le service worker DOIT être servi en no-cache, sinon l'app se fige chez l'utilisateur.
-  const noCache = (source) =>
-    (h?.headers ?? []).some(
+  const noCacheIndex = (source) =>
+    headers.findIndex(
       (entry) =>
         entry.source === source &&
         entry.headers.some((x) => x.key === 'Cache-Control' && x.value === 'no-cache'),
     );
   for (const source of ['/index.html', '/sw.js', '/registerSW.js', '/workbox-*.js']) {
-    check(noCache(source), `${file}: header no-cache manquant pour "${source}"`);
+    const idx = noCacheIndex(source);
+    check(idx !== -1, `${file}: header no-cache manquant pour "${source}"`);
+
+    // sw.js / registerSW.js / workbox-*.js sont aussi des ".js" : ils matchent le bloc
+    // générique d'assets ci-dessus (max-age=31536000). Firebase Hosting applique les
+    // headers de TOUS les blocs qui matchent, dans l'ORDRE du tableau — si le bloc
+    // générique arrivait après l'override no-cache, ce dernier serait écrasé et le
+    // service worker se retrouverait servi en cache long (l'app se figerait chez
+    // l'utilisateur, exactement le bug que cet override est censé empêcher).
+    if (idx !== -1 && source !== '/index.html' && genericAssetsIndex !== -1) {
+      check(
+        genericAssetsIndex < idx,
+        `${file}: le bloc générique d'assets doit précéder l'override no-cache de "${source}" ` +
+          `(sinon max-age=31536000 écrase le no-cache et le service worker reste en cache long)`,
+      );
+    }
   }
 }
 
