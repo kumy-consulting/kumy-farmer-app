@@ -1,0 +1,170 @@
+name: Build & Deploy
+
+# Contrainte structurante : un push sur `main` ne livre JAMAIS en production.
+# Seul un tag v* (pousse a la main) ou un appel workflow_call depuis
+# release-please.yml (au moment d une release) declenche la prod.
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environnement cible"
+        type: choice
+        options:
+          - development
+          - production
+        default: development
+  workflow_call:
+    inputs:
+      environment:
+        description: "Environnement cible"
+        type: string
+        required: true
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  resolve:
+    name: Résoudre l'environnement
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.resolve.outputs.environment }}
+    steps:
+      - name: Déterminer l'environnement cible
+        id: resolve
+        env:
+          # Vide pour push / pull_request ; renseigne pour workflow_call et
+          # workflow_dispatch.
+          REQUESTED: ${{ inputs.environment }}
+        run: |
+          if [ -n "$REQUESTED" ]; then
+            TARGET="$REQUESTED"
+          elif [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            TARGET="production"
+          else
+            TARGET="development"
+          fi
+          echo "environment=$TARGET" >> "$GITHUB_OUTPUT"
+          echo "Environnement cible : $TARGET"
+
+  build:
+    name: Build
+    needs: resolve
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Vérifier les configurations Hosting
+        run: npm run check:hosting
+
+      - name: Vérifier les workflows
+        run: npm run check:workflows
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Tests
+        run: npm run test
+
+      # L app n importe pas le SDK Firebase : seule l URL d API est necessaire,
+      # et elle est relative (rewrite /api/** cote Hosting).
+      - name: Créer le fichier .env.production
+        run: |
+          echo "VITE_API_URL=/api/v1" > .env.production
+          echo "VITE_APP_ENV=${{ needs.resolve.outputs.environment }}" >> .env.production
+          cat .env.production
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 1
+
+  deploy-dev:
+    name: Deploy to Firebase (Dev)
+    needs: [resolve, build]
+    if: needs.resolve.outputs.environment == 'development'
+    runs-on: ubuntu-latest
+    environment: development
+    # Les PR ecrasent le canal live du site dev : le run le plus recent gagne.
+    concurrency:
+      group: kumy-farmer-deploy-dev
+      cancel-in-progress: true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Authenticate with Firebase
+        run: |
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_DEV }}' > /tmp/sa.json
+          echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json" >> $GITHUB_ENV
+
+      - name: Deploy to Firebase Hosting (Dev)
+        run: |
+          npx firebase-tools@latest deploy \
+            --only hosting \
+            --config firebase.dev.json \
+            --project ${{ secrets.DEV_FIREBASE_PROJECT_ID }} \
+            --non-interactive
+
+  deploy-prod:
+    name: Deploy to Firebase (Production)
+    needs: [resolve, build]
+    if: needs.resolve.outputs.environment == 'production'
+    runs-on: ubuntu-latest
+    environment: production
+    # Un deploiement prod en cours ne doit jamais etre annule a mi-chemin.
+    concurrency:
+      group: kumy-farmer-deploy-prod
+      cancel-in-progress: false
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Authenticate with Firebase
+        run: |
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_PROD }}' > /tmp/sa.json
+          echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json" >> $GITHUB_ENV
+
+      - name: Deploy to Firebase Hosting (Production)
+        run: |
+          npx firebase-tools@latest deploy \
+            --only hosting \
+            --config firebase.prod.json \
+            --project ${{ secrets.PROD_FIREBASE_PROJECT_ID }} \
+            --non-interactive
