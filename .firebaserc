@@ -1,0 +1,7 @@
+{
+  "projects": {
+    "default": "kumy-agripilot-dev",
+    "development": "kumy-agripilot-dev",
+    "production": "kumy-agripilot-prod"
+  }
+}
