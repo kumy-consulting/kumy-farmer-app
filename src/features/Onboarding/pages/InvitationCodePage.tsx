@@ -3,6 +3,7 @@ import { useState, type FunctionComponent } from 'react';
 import { Alert, Box, Button, CircularProgress, Stack, TextField, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 
+import { extractInvitationCode } from '@/features/Onboarding/invitationCode.util';
 import { onboardingApi } from '@/features/Onboarding/onboarding.api';
 import { useOnboardingStore } from '@/features/Onboarding/onboarding.store';
 
@@ -14,7 +15,7 @@ export const InvitationCodePage: FunctionComponent = () => {
   const { setToken, setUserData } = useOnboardingStore();
 
   const handleSubmit = async () => {
-    const trimmed = code.trim();
+    const trimmed = extractInvitationCode(code);
     if (!trimmed) return;
 
     setIsSubmitting(true);
@@ -54,7 +55,9 @@ export const InvitationCodePage: FunctionComponent = () => {
         <Typography variant="h4" fontWeight={700}>
           Code d&apos;invitation
         </Typography>
-        <Typography color="text.secondary">Saisissez le code reçu de votre encadreur</Typography>
+        <Typography color="text.secondary">
+          Saisissez le code reçu par SMS, ou collez le message entier
+        </Typography>
       </Stack>
 
       <Stack spacing={1.5} alignItems="center">
