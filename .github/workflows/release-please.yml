@@ -1,0 +1,44 @@
+name: Release Please
+
+# Ouvre / maintient une PR « chore: release X.Y.Z » a partir des conventional
+# commits pousses sur main. Au merge de cette PR : bump de package.json, mise a
+# jour du CHANGELOG.md, creation du tag vX.Y.Z + GitHub Release.
+#
+# Un tag cree par l action avec le GITHUB_TOKEN par defaut ne redeclenche AUCUN
+# workflow (garde-fou anti-boucle de GitHub). On n attend donc pas que le tag
+# reveille deploy.yml : on appelle deploy.yml directement en workflow_call,
+# conditionne a release_created. Aucun PAT n est necessaire.
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    name: Release Please
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  deploy-prod:
+    name: Deploy to Production
+    needs: release-please
+    # Sans cette garde, chaque push sur main livrerait en production.
+    if: needs.release-please.outputs.release_created == 'true'
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: production
+    secrets: inherit

@@ -8,6 +8,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
+    "check:hosting": "node scripts/check-hosting-config.mjs",
+    "check:workflows": "node scripts/check-workflows.mjs",
+    "deploy:dev": "npm run build && npx firebase-tools@14 deploy --only hosting --config firebase.dev.json --project development",
+    "deploy:prod": "npm run build && npx firebase-tools@14 deploy --only hosting --config firebase.prod.json --project production",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,json,md}\"",
@@ -78,6 +82,7 @@
     "typescript-eslint": "^8.45.0",
     "vite": "^7.1.7",
     "vite-plugin-pwa": "^1.1.0",
-    "vitest": "^3.2.7"
+    "vitest": "^3.2.7",
+    "yaml": "^2.9.0"
   }
 }
