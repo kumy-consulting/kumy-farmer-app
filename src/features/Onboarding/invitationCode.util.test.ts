@@ -26,4 +26,8 @@ describe('extractInvitationCode', () => {
   it('renvoie une chaine vide sur une entree vide', () => {
     expect(extractInvitationCode('   ')).toBe('');
   });
+
+  it('laisse passer une saisie non reconnue', () => {
+    expect(extractInvitationCode('bonjour')).toBe('bonjour');
+  });
 });
