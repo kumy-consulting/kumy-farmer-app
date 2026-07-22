@@ -792,7 +792,7 @@ Le SMS contient un code **et** un lien. L'agriculteur peut coller le message ent
 
 **Interfaces:**
 - Consumes: rien.
-- Produces: `extractInvitationCode(input: string): string` exporté depuis `src/features/Onboarding/invitationCode.util.ts`. Renvoie une chaîne vide si aucun code n'est extractible.
+- Produces: `extractInvitationCode(input: string): string` exporté depuis `src/features/Onboarding/invitationCode.util.ts`. Renvoie une chaîne vide sur une saisie vide ; sinon, si aucun motif reconnu ne matche, renvoie la saisie brute (nettoyée) telle quelle — un `''` ferait paraître le bouton inerte à cause du garde `if (!trimmed) return;` côté formulaire, alors que laisser passer la saisie déclenche un rejet explicite côté API.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -827,6 +827,10 @@ describe('extractInvitationCode', () => {
   it('renvoie une chaine vide sur une entree vide', () => {
     expect(extractInvitationCode('   ')).toBe('');
   });
+
+  it('laisse passer une saisie non reconnue', () => {
+    expect(extractInvitationCode('bonjour')).toBe('bonjour');
+  });
 });
 ```
 
@@ -849,6 +853,12 @@ Créer `kumy-farmer-app/src/features/Onboarding/invitationCode.util.ts` :
  * L'app n'a pas de deep link : l'agriculteur recopie le code, colle l'URL
  * d'activation, ou colle le SMS entier. Les trois formes sont acceptées.
  * Le code est une chaîne hexadécimale de 12 caractères.
+ *
+ * Si aucun motif ne correspond, la saisie brute (nettoyée) est renvoyée
+ * telle quelle plutôt qu'une chaîne vide : le formulaire ne soumet que sur
+ * une saisie non vide (`if (!trimmed) return;`), donc renvoyer '' ferait
+ * paraître le bouton inerte. La saisie part à l'API, qui répond « code
+ * invalide » — un échec explicite plutôt qu'un silence.
  */
 const TOKEN_IN_URL = /token=([0-9a-fA-F]{12})/;
 const BARE_TOKEN = /\b([0-9a-fA-F]{12})\b/;
@@ -875,7 +885,7 @@ L'ordre compte : sur un SMS collé, le code apparaît avant l'URL, mais c'est bi
 cd kumy-farmer-app && npx vitest run src/features/Onboarding/invitationCode.util.test.ts
 ```
 
-Attendu : PASS, 5 tests.
+Attendu : PASS, 6 tests.
 
 - [ ] **Step 5: Brancher la fonction dans la page**
 
