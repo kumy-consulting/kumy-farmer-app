@@ -5,6 +5,8 @@ import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
 import { styled } from '@mui/material/styles';
 import { useLocation, useNavigate } from 'react-router-dom';
 
+import { KumySprout } from '@/shared/components/KumySprout';
+
 /** Hauteur de la barre (hors débordement du bouton central + safe-area). */
 export const NAV_HEIGHT = 66;
 
@@ -189,15 +191,6 @@ const CenterWrapper = styled('div')({
   justifyContent: 'center',
 });
 
-/** Pousse Kumy (deux feuilles + tige), reprise de la marque. */
-const Sprout: FunctionComponent = () => (
-  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <path d="M12 22V10.5" stroke={CREAM} strokeWidth="2.1" strokeLinecap="round" />
-    <path d="M11.6 13.4C7.9 13.4 5.4 11 5.4 6.6c4 0 6.2 2.6 6.2 6.8Z" fill={CREAM} />
-    <path d="M12.4 11.4c3.4 0 5.9-2.3 5.9-6.4-3.7 0-5.9 2.6-5.9 6.4Z" fill="#EAF7F1" />
-  </svg>
-);
-
 interface TabDef {
   key: string;
   label: string;
@@ -250,7 +243,7 @@ export const BottomNav: FunctionComponent = () => {
           onClick={() => navigate('/domaines')}
         >
           <Fab className="kumy-fab" active={domainesActive}>
-            <Sprout />
+            <KumySprout size={30} color={CREAM} accent="#EAF7F1" />
           </Fab>
           <CenterLabel active={domainesActive}>Domaines</CenterLabel>
         </Center>

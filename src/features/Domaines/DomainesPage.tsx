@@ -1,8 +1,8 @@
 import type { FunctionComponent } from 'react';
 
-import GrassRoundedIcon from '@mui/icons-material/GrassRounded';
 import { Box, Stack, Typography } from '@mui/material';
 
+import { KumySprout } from '@/shared/components/KumySprout';
 import { neutral, primary } from '@/theme/colors';
 
 /**
@@ -35,10 +35,9 @@ export const DomainesPage: FunctionComponent = () => (
           background: 'radial-gradient(circle at 30% 25%, #FFFFFF 0%, #EAF6F0 100%)',
           border: `1px solid ${primary[80]}`,
           boxShadow: '0 14px 30px rgba(1,134,117,0.18)',
-          '& svg': { fontSize: 38, color: primary[40] },
         }}
       >
-        <GrassRoundedIcon />
+        <KumySprout size={42} color={primary[40]} accent={primary[50]} />
       </Box>
       <Typography sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 24, fontWeight: 700, color: primary[20] }}>
         Vos domaines
