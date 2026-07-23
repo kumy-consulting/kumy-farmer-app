@@ -6,6 +6,7 @@ import { HomePage } from '@/features/Home/HomePage';
 import { InvitationCodePage } from '@/features/Onboarding/pages/InvitationCodePage';
 import { InvitedWelcomePage } from '@/features/Onboarding/pages/InvitedWelcomePage';
 import { OnboardingPinPage } from '@/features/Onboarding/pages/OnboardingPinPage';
+import { OnboardingProfilePage } from '@/features/Onboarding/pages/OnboardingProfilePage';
 import { OnboardingSuccessPage } from '@/features/Onboarding/pages/OnboardingSuccessPage';
 import { RegisterComingSoonPage } from '@/features/Onboarding/pages/RegisterComingSoonPage';
 import { WelcomeChoicePage } from '@/features/Onboarding/pages/WelcomeChoicePage';
@@ -17,6 +18,7 @@ export const router = createBrowserRouter([
   { path: '/auth/pin-entry', element: <PinEntryPage /> },
   { path: '/onboarding/invitation', element: <InvitationCodePage /> },
   { path: '/onboarding/welcome', element: <InvitedWelcomePage /> },
+  { path: '/onboarding/profile', element: <OnboardingProfilePage /> },
   { path: '/onboarding/pin', element: <OnboardingPinPage /> },
   { path: '/onboarding/success', element: <OnboardingSuccessPage /> },
   { path: '/onboarding/register/phone', element: <RegisterComingSoonPage /> },

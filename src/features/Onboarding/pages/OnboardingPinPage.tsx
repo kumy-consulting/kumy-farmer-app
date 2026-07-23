@@ -34,7 +34,7 @@ export const OnboardingPinPage: FunctionComponent = () => {
   return (
     <OnboardingLayout keyboardOpen={keyboardOpen}>
       <IconButton
-        onClick={() => navigate('/onboarding/welcome')}
+        onClick={() => navigate('/onboarding/profile')}
         aria-label="Retour"
         sx={{
           position: 'absolute',
@@ -47,7 +47,7 @@ export const OnboardingPinPage: FunctionComponent = () => {
         <ArrowBackRoundedIcon />
       </IconButton>
 
-      <OnboardingStepper current={1} />
+      <OnboardingStepper current={2} total={3} />
 
       <CollapseOnKeyboard>
         <Medallion>

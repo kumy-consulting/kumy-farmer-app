@@ -1,5 +1,7 @@
 import { useEffect, useState, type FunctionComponent } from 'react';
 
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { RouterProvider } from 'react-router-dom';
 
 import { router } from '@/shared/routes';
@@ -17,7 +19,11 @@ const App: FunctionComponent = () => {
 
   if (!ready) return null;
 
-  return <RouterProvider router={router} />;
+  return (
+    <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="fr">
+      <RouterProvider router={router} />
+    </LocalizationProvider>
+  );
 };
 
 export default App;
