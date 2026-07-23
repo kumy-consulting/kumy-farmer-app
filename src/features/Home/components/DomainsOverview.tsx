@@ -46,21 +46,22 @@ const Chip: FunctionComponent<{ children: ReactNode; bg?: string; color?: string
 );
 
 /** Tuile stat uniforme : chip + chiffre + label (2 lignes, hauteur fixe). */
-const StatTile: FunctionComponent<{ icon: ReactNode; value: ReactNode; label: string; valueColor?: string; chipBg?: string; chipColor?: string }> = ({
-  icon,
-  value,
-  label,
-  valueColor = '#1A2B27',
-  chipBg,
-  chipColor,
-}) => (
+const StatTile: FunctionComponent<{
+  icon: ReactNode;
+  value: ReactNode;
+  label: string;
+  valueColor?: string;
+  valueSize?: number;
+  chipBg?: string;
+  chipColor?: string;
+}> = ({ icon, value, label, valueColor = '#1A2B27', valueSize = 21, chipBg, chipColor }) => (
   <Box sx={{ ...cardSx, p: '13px 14px', height: 74, display: 'flex', alignItems: 'center', gap: 1.25 }}>
     <Chip bg={chipBg} color={chipColor}>
       {icon}
     </Chip>
     <Box sx={{ minWidth: 0 }}>
       <Typography
-        sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 21, fontWeight: 700, color: valueColor, lineHeight: 1.1 }}
+        sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: valueSize, fontWeight: 700, color: valueColor, lineHeight: 1.15 }}
         noWrap
       >
         {value}
@@ -162,6 +163,7 @@ export const DomainsOverview: FunctionComponent<DomainsOverviewProps> = ({ overv
           chipColor={health.color}
           value={health.label}
           valueColor={health.color}
+          valueSize={15.5}
           label="Santé globale"
         />
       </Box>
