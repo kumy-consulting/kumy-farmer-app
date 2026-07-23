@@ -1,6 +1,6 @@
-import type { FunctionComponent } from 'react';
+import type { FunctionComponent, ReactNode } from 'react';
 
-import { MenuItem, Select, type SelectChangeEvent } from '@mui/material';
+import { Box, MenuItem, Select, type SelectChangeEvent } from '@mui/material';
 import { styled } from '@mui/material/styles';
 
 import type { ReferentialItem } from '@/features/Onboarding/onboarding.api';
@@ -12,6 +12,8 @@ interface ProfileSelectProps {
   onChange: (id: string, name: string) => void;
   disabled?: boolean;
   placeholder?: string;
+  /** Icône sémantique de tête (globe, ville…), cohérente avec le champ date. */
+  icon?: ReactNode;
 }
 
 /**
@@ -30,7 +32,13 @@ const CapsuleSelect = styled(Select)({
   boxShadow: '0 6px 20px rgba(1,134,117,0.08), 0 1px 0 rgba(255,255,255,0.85) inset',
   transition: 'all 0.25s ease',
   '& .MuiSelect-select': {
-    padding: '16px 18px',
+    padding: '15px 18px',
+    display: 'flex',
+    alignItems: 'center',
+  },
+  '& .MuiSelect-icon': {
+    color: 'rgba(1,101,87,0.55)',
+    right: 14,
   },
   '& fieldset': {
     borderColor: 'rgba(55,75,70,0.08)',
@@ -51,8 +59,19 @@ const CapsuleSelect = styled(Select)({
   '&.Mui-disabled': {
     background: 'rgba(240,242,238,0.7)',
     color: 'rgba(55,75,70,0.35)',
+    boxShadow: 'none',
   },
 });
+
+const LeadingIcon = styled(Box, { shouldForwardProp: (prop) => prop !== 'muted' })<{ muted?: boolean }>(
+  ({ muted }) => ({
+    display: 'flex',
+    alignItems: 'center',
+    marginRight: 12,
+    color: muted ? 'rgba(55,75,70,0.30)' : '#016557',
+    '& svg': { fontSize: 21 },
+  }),
+);
 
 export const ProfileSelect: FunctionComponent<ProfileSelectProps> = ({
   label,
@@ -61,6 +80,7 @@ export const ProfileSelect: FunctionComponent<ProfileSelectProps> = ({
   onChange,
   disabled = false,
   placeholder,
+  icon,
 }) => {
   const handleChange = (event: SelectChangeEvent<unknown>) => {
     const id = event.target.value as string;
@@ -77,10 +97,25 @@ export const ProfileSelect: FunctionComponent<ProfileSelectProps> = ({
       SelectDisplayProps={{ 'aria-label': label }}
       renderValue={(selected) => {
         const id = selected as string;
-        if (!id) {
-          return <span style={{ color: 'rgba(55,75,70,0.42)', fontWeight: 400 }}>{placeholder ?? label}</span>;
-        }
-        return options.find((option) => option.id === id)?.name ?? '';
+        const isPlaceholder = !id;
+        const text = isPlaceholder ? (placeholder ?? label) : (options.find((o) => o.id === id)?.name ?? '');
+        return (
+          <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0 }}>
+            {icon && <LeadingIcon muted={disabled || isPlaceholder}>{icon}</LeadingIcon>}
+            <Box
+              component="span"
+              sx={{
+                color: isPlaceholder ? 'rgba(55,75,70,0.42)' : undefined,
+                fontWeight: isPlaceholder ? 400 : 600,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {text}
+            </Box>
+          </Box>
+        );
       }}
     >
       {options.map((option) => (
