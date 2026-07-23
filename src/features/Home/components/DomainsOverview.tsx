@@ -2,6 +2,7 @@ import type { FunctionComponent, ReactNode } from 'react';
 
 import CellTowerRounded from '@mui/icons-material/CellTowerRounded';
 import GridViewRounded from '@mui/icons-material/GridViewRounded';
+import SpaRounded from '@mui/icons-material/SpaRounded';
 import YardRounded from '@mui/icons-material/YardRounded';
 import { Box, Stack, Typography } from '@mui/material';
 
@@ -20,10 +21,6 @@ const cardSx = {
   borderRadius: '18px',
   border: '1px solid rgba(55,75,70,0.07)',
   boxShadow: '0 6px 18px rgba(1,134,117,0.06)',
-  p: '13px 14px',
-  display: 'flex',
-  alignItems: 'center',
-  gap: 1.25,
 } as const;
 
 const Chip: FunctionComponent<{ children: ReactNode; bg?: string; color?: string }> = ({
@@ -48,30 +45,38 @@ const Chip: FunctionComponent<{ children: ReactNode; bg?: string; color?: string
   </Box>
 );
 
-const Body: FunctionComponent<{ value: ReactNode; label: string; sub?: string; valueColor?: string }> = ({
+/** Tuile stat uniforme : chip + chiffre + label (2 lignes, hauteur fixe). */
+const StatTile: FunctionComponent<{ icon: ReactNode; value: ReactNode; label: string; valueColor?: string; chipBg?: string; chipColor?: string }> = ({
+  icon,
   value,
   label,
-  sub,
   valueColor = '#1A2B27',
+  chipBg,
+  chipColor,
 }) => (
-  <Box sx={{ minWidth: 0 }}>
-    <Typography
-      sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 20, fontWeight: 700, color: valueColor, lineHeight: 1.15 }}
-    >
-      {value}
-    </Typography>
-    <Typography sx={{ fontSize: 12.5, fontWeight: 600, color: 'rgba(55,75,70,0.72)', lineHeight: 1.25 }}>
-      {label}
-    </Typography>
-    {sub && <Typography sx={{ fontSize: 11.5, fontWeight: 500, color: 'rgba(55,75,70,0.5)' }}>{sub}</Typography>}
+  <Box sx={{ ...cardSx, p: '13px 14px', height: 74, display: 'flex', alignItems: 'center', gap: 1.25 }}>
+    <Chip bg={chipBg} color={chipColor}>
+      {icon}
+    </Chip>
+    <Box sx={{ minWidth: 0 }}>
+      <Typography
+        sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 21, fontWeight: 700, color: valueColor, lineHeight: 1.1 }}
+        noWrap
+      >
+        {value}
+      </Typography>
+      <Typography sx={{ fontSize: 12.5, fontWeight: 600, color: 'rgba(55,75,70,0.7)' }} noWrap>
+        {label}
+      </Typography>
+    </Box>
   </Box>
 );
 
 /** Anneau de progression SVG (%). */
 const ProgressRing: FunctionComponent<{ value: number; size?: number; stroke?: number }> = ({
   value,
-  size = 54,
-  stroke = 6,
+  size = 62,
+  stroke = 7,
 }) => {
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -94,7 +99,7 @@ const ProgressRing: FunctionComponent<{ value: number; size?: number; stroke?: n
         />
       </svg>
       <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Typography sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 13.5, fontWeight: 700, color: '#016557' }}>
+        <Typography sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 15, fontWeight: 700, color: '#016557' }}>
           {value}%
         </Typography>
       </Box>
@@ -113,71 +118,75 @@ export const DomainsOverview: FunctionComponent<DomainsOverviewProps> = ({ overv
   return (
     <Box>
       <SectionHeader title="Vos domaines" />
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1.25 }}>
-        {/* Patrimoine condensé */}
-        <Box sx={cardSx}>
-          <Chip>
-            <GridViewRounded />
-          </Chip>
-          <Body value={overview.domains} label="Domaines" sub={`${overview.parcels} parcelles`} />
-        </Box>
 
-        {/* Taux d'exploitation — tuile focale (anneau) */}
-        <Box sx={cardSx}>
-          <ProgressRing value={exploitation} />
-          <Body
-            value={
-              <>
-                {fr(overview.cultivatedAreaHa)}
-                <Typography component="span" sx={{ fontSize: 13, fontWeight: 600, color: 'rgba(55,75,70,0.55)' }}>
-                  {' '}
-                  / {fr(overview.totalAreaHa)} ha
-                </Typography>
-              </>
-            }
-            label="Exploité"
-            sub={`+${fr(availableHa)} ha disponibles`}
-          />
-        </Box>
-
-        {/* Cultures en cours */}
-        <Box sx={cardSx}>
-          <Chip>
-            <YardRounded />
-          </Chip>
-          <Body value={overview.cropsCount} label="Cultures" sub={`${overview.activeParcels} parcelles actives`} />
-        </Box>
-
-        {/* Santé + alertes */}
-        <Box sx={cardSx}>
-          <Chip bg={health.bg} color={health.color}>
-            <Box sx={{ width: 12, height: 12, borderRadius: '50%', background: health.color }} />
-          </Chip>
-          <Body value={health.label} valueColor={health.color} label="Santé globale" sub={`${overview.alertsCount} alertes en cours`} />
-        </Box>
-
-        {/* Couverture capteurs — pleine largeur */}
-        <Box sx={{ gridColumn: '1 / -1', ...cardSx }}>
-          <Chip>
-            <CellTowerRounded />
-          </Chip>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Stack direction="row" alignItems="baseline" justifyContent="space-between" spacing={1}>
-              <Typography sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 14, fontWeight: 700, color: '#1A2B27' }}>
-                {overview.equippedDomains}/{overview.domains} domaines équipés d’un kit
-              </Typography>
-              <Typography sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 13, fontWeight: 700, color: '#016557' }}>
-                {Math.round(coverage)}%
-              </Typography>
-            </Stack>
-            <Typography sx={{ fontSize: 11.5, fontWeight: 500, color: 'rgba(55,75,70,0.55)', mt: 0.25 }}>
-              {regionalDomains > 0 ? `${regionalDomains} en météo régionale (estimée)` : 'Tous vos domaines sont mesurés'}
+      {/* Exploitation — carte focale pleine largeur */}
+      <Box sx={{ ...cardSx, p: '16px', display: 'flex', alignItems: 'center', gap: 2, mb: 1.25 }}>
+        <ProgressRing value={exploitation} />
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography sx={{ fontSize: 12.5, fontWeight: 600, color: 'rgba(55,75,70,0.62)' }}>
+            Surface exploitée
+          </Typography>
+          <Typography sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 20, fontWeight: 700, color: '#1A2B27' }} noWrap>
+            {fr(overview.cultivatedAreaHa)}
+            <Typography component="span" sx={{ fontSize: 14, fontWeight: 600, color: 'rgba(55,75,70,0.55)' }}>
+              {' '}
+              / {fr(overview.totalAreaHa)} ha
             </Typography>
-            <Box sx={{ mt: 0.75, height: 6, borderRadius: 999, background: 'rgba(1,134,117,0.10)', overflow: 'hidden' }}>
-              <Box
-                sx={{ width: `${coverage}%`, height: '100%', borderRadius: 999, background: 'linear-gradient(90deg, #018675, #35A18F)' }}
-              />
-            </Box>
+          </Typography>
+        </Box>
+        <Box
+          sx={{
+            flexShrink: 0,
+            px: 1.25,
+            py: 0.75,
+            borderRadius: '12px',
+            background: 'rgba(1,134,117,0.08)',
+            textAlign: 'center',
+          }}
+        >
+          <Typography sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 15, fontWeight: 700, color: '#016557' }}>
+            +{fr(availableHa)}
+          </Typography>
+          <Typography sx={{ fontSize: 10.5, fontWeight: 600, color: 'rgba(1,101,87,0.7)' }}>ha libres</Typography>
+        </Box>
+      </Box>
+
+      {/* Grille 2×2 uniforme */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1.25 }}>
+        <StatTile icon={<GridViewRounded />} value={overview.domains} label="Domaines" />
+        <StatTile icon={<SpaRounded />} value={overview.parcels} label="Parcelles" />
+        <StatTile icon={<YardRounded />} value={overview.cropsCount} label="Cultures" />
+        <StatTile
+          icon={<Box sx={{ width: 12, height: 12, borderRadius: '50%', background: health.color }} />}
+          chipBg={health.bg}
+          chipColor={health.color}
+          value={health.label}
+          valueColor={health.color}
+          label="Santé globale"
+        />
+      </Box>
+
+      {/* Couverture capteurs — pleine largeur */}
+      <Box sx={{ ...cardSx, p: '13px 14px', display: 'flex', alignItems: 'center', gap: 1.25, mt: 1.25 }}>
+        <Chip>
+          <CellTowerRounded />
+        </Chip>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Stack direction="row" alignItems="baseline" justifyContent="space-between" spacing={1}>
+            <Typography sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 14, fontWeight: 700, color: '#1A2B27' }}>
+              {overview.equippedDomains}/{overview.domains} domaines équipés d’un kit
+            </Typography>
+            <Typography sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 13, fontWeight: 700, color: '#016557' }}>
+              {Math.round(coverage)}%
+            </Typography>
+          </Stack>
+          <Typography sx={{ fontSize: 11.5, fontWeight: 500, color: 'rgba(55,75,70,0.55)', mt: 0.25 }}>
+            {regionalDomains > 0 ? `${regionalDomains} en météo régionale (estimée)` : 'Tous vos domaines sont mesurés'}
+          </Typography>
+          <Box sx={{ mt: 0.75, height: 6, borderRadius: 999, background: 'rgba(1,134,117,0.10)', overflow: 'hidden' }}>
+            <Box
+              sx={{ width: `${coverage}%`, height: '100%', borderRadius: 999, background: 'linear-gradient(90deg, #018675, #35A18F)' }}
+            />
           </Box>
         </Box>
       </Box>

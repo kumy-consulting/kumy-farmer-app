@@ -43,10 +43,11 @@ describe('HomePage (tableau de bord)', () => {
     expect(screen.getByText(/Risque de sécheresse/)).toBeDefined();
     expect(screen.getByText('Irrigation goutte-à-goutte')).toBeDefined();
 
-    // Tuiles vue d'ensemble (métriques actionnables)
+    // Vue d'ensemble (métriques actionnables)
     expect(screen.getByText('Domaines')).toBeDefined();
-    expect(screen.getByText('Exploité')).toBeDefined();
+    expect(screen.getByText('Surface exploitée')).toBeDefined();
     expect(screen.getByText('Cultures')).toBeDefined();
+    expect(screen.getByText('Parcelles')).toBeDefined();
     expect(screen.getByText(/domaines équipés/)).toBeDefined();
   });
 });
