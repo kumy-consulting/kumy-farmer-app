@@ -5,7 +5,13 @@ export type ActivityStatus = 'todo' | 'in_progress' | 'done';
 export type WeatherCondition = 'sunny' | 'cloudy' | 'rain' | 'storm';
 export type DomainsHealth = 'good' | 'attention' | 'critical';
 
+export type WeatherSource = 'station' | 'regional';
+
 export interface WeatherNow {
+  domainName: string;
+  source: WeatherSource; // 'station' = mesuré par le kit du domaine ; 'regional' = prévision fournisseur
+  observedAt: string; // ISO — fraîcheur de la mesure (surtout pour 'station')
+  stationOffline?: boolean; // kit HS → repli automatique sur régional
   tempC: number;
   condition: WeatherCondition;
   rainProbability: number; // %

@@ -53,7 +53,7 @@ export const HomePage: FunctionComponent = () => {
   return (
     <Page>
       <Reveal>
-        <DashboardHeader firstName={firstName} weather={data.weather} />
+        <DashboardHeader firstName={firstName} weather={data.weather} onDomainClick={goDomaines} />
       </Reveal>
 
       <Box sx={{ px: 2.5, mt: -3 }}>

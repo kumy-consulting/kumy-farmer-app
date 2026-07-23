@@ -15,11 +15,14 @@ export function buildMockDashboard(): FarmerDashboard {
 
   return {
     weather: {
+      domainName: 'Domaine Kaporo',
+      source: 'station',
+      observedAt: now.subtract(4, 'minute').toISOString(),
       tempC: 29,
       condition: 'sunny',
       rainProbability: 15,
       windKmh: 11,
-      location: 'Dubréka',
+      location: 'Kaporo',
     },
     forecast: [
       { label: "Auj.", condition: 'sunny', tempC: 29, rainProbability: 15 },
