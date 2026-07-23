@@ -64,6 +64,29 @@ describe('InvitationCodePage', () => {
     await waitFor(() => expect(navigateMock).toHaveBeenCalledWith('/onboarding/welcome'));
   });
 
+  it('enregistre dateOfBirth et gender renvoyés par validate-token', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(onboardingApi, 'validateToken').mockResolvedValue({
+      valid: true,
+      email: 'agri@kumy.gn',
+      phone: '+224620000000',
+      firstName: 'Mamadou',
+      lastName: 'Diallo',
+      role: 'farmer',
+      dateOfBirth: '1990-05-12',
+      gender: 'male',
+    });
+
+    renderPage();
+    await user.type(screen.getByLabelText("Code d'invitation"), 'abc123def456');
+    await user.click(screen.getByRole('button', { name: 'Continuer' }));
+
+    await waitFor(() => {
+      expect(useOnboardingStore.getState().userData?.dateOfBirth).toBe('1990-05-12');
+      expect(useOnboardingStore.getState().userData?.gender).toBe('male');
+    });
+  });
+
   it('affiche une erreur quand le code est invalide', async () => {
     const user = userEvent.setup();
     vi.spyOn(onboardingApi, 'validateToken').mockRejectedValue(new Error('boom'));

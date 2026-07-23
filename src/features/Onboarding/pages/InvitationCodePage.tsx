@@ -89,6 +89,8 @@ export const InvitationCodePage: FunctionComponent = () => {
         firstName: data.firstName,
         lastName: data.lastName,
         role: data.role,
+        dateOfBirth: data.dateOfBirth,
+        gender: data.gender,
       });
       navigate('/onboarding/welcome');
     } catch {
