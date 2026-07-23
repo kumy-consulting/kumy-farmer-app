@@ -1,12 +1,11 @@
-import { useCallback, useEffect, useState, type ChangeEvent, type FunctionComponent } from 'react';
+import { useCallback, useEffect, useState, type FunctionComponent } from 'react';
 
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined';
 import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
 import LocationCityRoundedIcon from '@mui/icons-material/LocationCityRounded';
 import PublicRoundedIcon from '@mui/icons-material/PublicRounded';
-import SignpostRoundedIcon from '@mui/icons-material/SignpostRounded';
-import { Box, IconButton, InputAdornment, InputBase, Stack } from '@mui/material';
+import { Box, IconButton, InputAdornment, Stack } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { MobileDatePicker } from '@mui/x-date-pickers/MobileDatePicker';
 import dayjs, { type Dayjs } from 'dayjs';
@@ -19,7 +18,6 @@ import { onboardingApi, type ReferentialItem } from '@/features/Onboarding/onboa
 import { useOnboardingStore } from '@/features/Onboarding/onboarding.store';
 import {
   Eyebrow,
-  FieldCapsule,
   Medallion,
   PrimaryButton,
   Subtitle,
@@ -30,32 +28,6 @@ import { OnboardingLayout } from '@/features/Onboarding/OnboardingLayout';
 
 const MIN_AGE = 15;
 const MAX_AGE = 100;
-
-const DetailInput = styled(InputBase)({
-  flex: 1,
-  padding: '10px 16px 10px 8px',
-  fontFamily: "'Ubuntu', sans-serif",
-  fontSize: 15,
-  fontWeight: 500,
-  color: 'rgba(20,40,35,0.92)',
-  '& input': {
-    padding: 0,
-    '&::placeholder': {
-      color: 'rgba(55,75,70,0.42)',
-      opacity: 1,
-      fontWeight: 400,
-    },
-  },
-});
-
-/** Icône de tête d'une capsule (champ détail). */
-const CapsuleLeadIcon = styled(Box)({
-  display: 'flex',
-  alignItems: 'center',
-  paddingLeft: 12,
-  color: '#016557',
-  '& svg': { fontSize: 21 },
-});
 
 /** Révélation en fondu montant, mise en cascade via `animation-delay`. */
 const FieldReveal = styled(Box)({
@@ -136,7 +108,6 @@ export const OnboardingProfilePage: FunctionComponent = () => {
   const [regionName, setRegionName] = useState('');
   const [prefectureId, setPrefectureId] = useState('');
   const [prefectureName, setPrefectureName] = useState('');
-  const [addressDetail, setAddressDetail] = useState('');
   const [loadError, setLoadError] = useState(false);
 
   // Pré-remplit la date depuis l'éventuelle valeur saisie par l'administrateur.
@@ -190,7 +161,6 @@ export const OnboardingProfilePage: FunctionComponent = () => {
       regionName,
       prefectureId,
       prefectureName,
-      addressDetail: addressDetail.trim() || null,
     });
     navigate('/onboarding/pin');
   };
@@ -256,21 +226,6 @@ export const OnboardingProfilePage: FunctionComponent = () => {
             placeholder="Sélectionnez votre préfecture"
             icon={<LocationCityRoundedIcon />}
           />
-        </FieldReveal>
-
-        <FieldReveal sx={{ animationDelay: '0.22s' }}>
-          <FieldCapsule sx={{ alignItems: 'center' }}>
-            <CapsuleLeadIcon>
-              <SignpostRoundedIcon />
-            </CapsuleLeadIcon>
-            <DetailInput
-              value={addressDetail}
-              onChange={(event: ChangeEvent<HTMLInputElement>) => setAddressDetail(event.target.value)}
-              placeholder="Quartier / repère (optionnel)"
-              fullWidth
-              inputProps={{ 'aria-label': 'Quartier ou repère', autoComplete: 'off' }}
-            />
-          </FieldCapsule>
         </FieldReveal>
       </Stack>
 
