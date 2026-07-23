@@ -1,11 +1,23 @@
-import { useState, type FunctionComponent } from 'react';
+import { type FunctionComponent, useState } from 'react';
 
-import { Box, Button, Stack, Typography } from '@mui/material';
+import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded';
+import CallOutlinedIcon from '@mui/icons-material/CallOutlined';
+import { Box } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 
 import { CountryCodeSelector } from '@/features/Auth/components/CountryCodeSelector';
 import { PhoneNumberInput } from '@/features/Auth/components/PhoneNumberInput';
 import { isValidGuineaNumber, toE164 } from '@/features/Auth/phone.util';
+import {
+  Eyebrow,
+  FieldCapsule,
+  HelpRow,
+  Medallion,
+  PrimaryButton,
+  Subtitle,
+  Title,
+} from '@/features/Onboarding/onboarding.styled';
+import { CollapseOnKeyboard, OnboardingLayout } from '@/features/Onboarding/OnboardingLayout';
 
 export const PhoneEntryPage: FunctionComponent = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -19,47 +31,37 @@ export const PhoneEntryPage: FunctionComponent = () => {
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: '100dvh',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        px: 3,
-        gap: 4,
-      }}
-    >
-      <Stack spacing={1} alignItems="center" textAlign="center">
-        <Typography variant="h4" fontWeight={700}>
-          Numéro de téléphone
-        </Typography>
-        <Typography color="text.secondary">Entrez votre numéro de téléphone, puis continuer</Typography>
-      </Stack>
+    <OnboardingLayout>
+      <CollapseOnKeyboard>
+        <Medallion>
+          <CallOutlinedIcon />
+        </Medallion>
+      </CollapseOnKeyboard>
 
-      <Stack spacing={1.5} alignItems="center">
-        <Stack
-          direction="row"
-          alignItems="stretch"
-          spacing={0.75}
-          sx={{ width: '100%', maxWidth: 395, p: 0.75, borderRadius: 3, border: 1, borderColor: 'divider' }}
-        >
-          <CountryCodeSelector countryCode="+224" />
-          <PhoneNumberInput value={phoneNumber} onChange={setPhoneNumber} placeholder="622 20 13 62" />
-        </Stack>
-        <Typography variant="caption" color="text.secondary">
-          Pays : Guinée · Format local à 9 chiffres
-        </Typography>
-      </Stack>
+      <Eyebrow>Connexion</Eyebrow>
 
-      <Button
-        size="large"
-        variant="contained"
+      <Title>Numéro de téléphone</Title>
+
+      <Subtitle>Entrez votre numéro de téléphone, puis continuer</Subtitle>
+
+      <FieldCapsule sx={{ mb: 1.75 }}>
+        <CountryCodeSelector countryCode="+224" />
+        <PhoneNumberInput value={phoneNumber} onChange={setPhoneNumber} placeholder="622 20 13 62" />
+      </FieldCapsule>
+
+      <CollapseOnKeyboard>
+        <HelpRow sx={{ mb: 3.5 }}>
+          Pays : <Box component="span">Guinée</Box> · Format local à 9 chiffres
+        </HelpRow>
+      </CollapseOnKeyboard>
+
+      <PrimaryButton
         onClick={handleContinue}
         disabled={!isValid}
-        sx={{ maxWidth: 395, alignSelf: 'center', width: '100%' }}
+        endIcon={<ArrowForwardRoundedIcon sx={{ fontSize: 20 }} />}
       >
         Continuer
-      </Button>
-    </Box>
+      </PrimaryButton>
+    </OnboardingLayout>
   );
 };
