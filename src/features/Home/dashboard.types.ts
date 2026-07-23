@@ -47,7 +47,12 @@ export interface PlannedActivity {
 export interface DomainsOverview {
   domains: number;
   parcels: number;
-  areaHa: number;
+  totalAreaHa: number;
+  cultivatedAreaHa: number; // surface exploitée
+  cropsCount: number; // diversité des cultures
+  activeParcels: number; // parcelles en culture
+  equippedDomains: number; // domaines dotés d'un kit météo
+  alertsCount: number;
   health: DomainsHealth;
 }
 

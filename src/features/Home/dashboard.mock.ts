@@ -110,7 +110,12 @@ export function buildMockDashboard(): FarmerDashboard {
     overview: {
       domains: 3,
       parcels: 7,
-      areaHa: 12.5,
+      totalAreaHa: 12.5,
+      cultivatedAreaHa: 9.2,
+      cropsCount: 4,
+      activeParcels: 5,
+      equippedDomains: 2,
+      alertsCount: 4,
       health: 'attention',
     },
   };
