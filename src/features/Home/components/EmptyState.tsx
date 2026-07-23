@@ -14,7 +14,7 @@ export const EmptyState: FunctionComponent<EmptyStateProps> = ({ icon, message }
       alignItems: 'center',
       gap: 1.25,
       p: '16px 16px',
-      borderRadius: 16,
+      borderRadius: '18px',
       background: 'rgba(1,134,117,0.05)',
       border: '1px dashed rgba(1,134,117,0.22)',
       '& svg': { fontSize: 24, color: '#35A18F' },

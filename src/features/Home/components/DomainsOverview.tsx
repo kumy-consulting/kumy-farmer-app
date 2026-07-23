@@ -14,37 +14,49 @@ interface DomainsOverviewProps {
   overview: Overview;
 }
 
-const Tile: FunctionComponent<{ icon: ReactNode; value: ReactNode; label: string }> = ({ icon, value, label }) => (
+const tileSx = {
+  background: '#FFFFFF',
+  borderRadius: '20px',
+  border: '1px solid rgba(55,75,70,0.07)',
+  boxShadow: '0 6px 18px rgba(1,134,117,0.06)',
+  p: '14px 16px',
+  minHeight: 96,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 0.5,
+} as const;
+
+const IconChip: FunctionComponent<{ children: ReactNode; tint?: string; color?: string }> = ({
+  children,
+  tint = 'rgba(1,134,117,0.10)',
+  color = '#016557',
+}) => (
   <Box
     sx={{
-      background: '#FFFFFF',
-      borderRadius: 18,
-      border: '1px solid rgba(55,75,70,0.07)',
-      boxShadow: '0 6px 18px rgba(1,134,117,0.06)',
-      p: 1.75,
+      width: 32,
+      height: 32,
+      borderRadius: '11px',
       display: 'flex',
-      flexDirection: 'column',
-      gap: 0.75,
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: tint,
+      mb: 0.5,
+      '& svg': { fontSize: 18, color },
     }}
   >
-    <Box
-      sx={{
-        width: 34,
-        height: 34,
-        borderRadius: 11,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'rgba(1,134,117,0.10)',
-        '& svg': { fontSize: 19, color: '#016557' },
-      }}
+    {children}
+  </Box>
+);
+
+const Tile: FunctionComponent<{ icon: ReactNode; value: ReactNode; label: string }> = ({ icon, value, label }) => (
+  <Box sx={tileSx}>
+    <IconChip>{icon}</IconChip>
+    <Typography
+      sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 22, fontWeight: 700, color: '#1A2B27', lineHeight: 1.1 }}
     >
-      {icon}
-    </Box>
-    <Typography sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 21, fontWeight: 700, color: '#1A2B27', lineHeight: 1.1 }}>
       {value}
     </Typography>
-    <Typography sx={{ fontSize: 12, fontWeight: 500, color: 'rgba(55,75,70,0.62)' }}>{label}</Typography>
+    <Typography sx={{ fontSize: 12, fontWeight: 500, color: 'rgba(55,75,70,0.6)' }}>{label}</Typography>
   </Box>
 );
 
@@ -56,7 +68,7 @@ export const DomainsOverview: FunctionComponent<DomainsOverviewProps> = ({ overv
       <SectionHeader title="Vos domaines" />
       <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1.25 }}>
         <Tile icon={<GridViewRounded />} value={overview.domains} label="Domaines" />
-        <Tile icon={<KumySprout size={19} color="#016557" />} value={overview.parcels} label="Parcelles" />
+        <Tile icon={<KumySprout size={18} color="#016557" />} value={overview.parcels} label="Parcelles" />
         <Tile
           icon={<SquareFootRounded />}
           value={
@@ -69,23 +81,19 @@ export const DomainsOverview: FunctionComponent<DomainsOverviewProps> = ({ overv
           }
           label="Surface"
         />
-        <Box
-          sx={{
-            background: '#FFFFFF',
-            borderRadius: 18,
-            border: '1px solid rgba(55,75,70,0.07)',
-            boxShadow: '0 6px 18px rgba(1,134,117,0.06)',
-            p: 1.75,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 0.75,
-            justifyContent: 'space-between',
-          }}
-        >
-          <Typography sx={{ fontSize: 12, fontWeight: 500, color: 'rgba(55,75,70,0.62)' }}>Santé globale</Typography>
-          <Stack direction="row" alignItems="center" spacing={0.75}>
-            <Box sx={{ width: 10, height: 10, borderRadius: '50%', background: health.color }} />
-            <Typography sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 17, fontWeight: 700, color: health.color }}>
+        <Box sx={{ ...tileSx, gap: 0.75, justifyContent: 'space-between' }}>
+          <Typography sx={{ fontSize: 12, fontWeight: 500, color: 'rgba(55,75,70,0.6)' }}>Santé globale</Typography>
+          <Stack direction="row" alignItems="center" spacing={0.9}>
+            <Box
+              sx={{
+                width: 11,
+                height: 11,
+                borderRadius: '50%',
+                background: health.color,
+                boxShadow: `0 0 0 4px ${health.bg}`,
+              }}
+            />
+            <Typography sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 18, fontWeight: 700, color: health.color }}>
               {health.label}
             </Typography>
           </Stack>
