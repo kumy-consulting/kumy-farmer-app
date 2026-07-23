@@ -1,37 +1,47 @@
-import { Box, Button, Stack, Typography } from '@mui/material';
+import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded';
+import { Box, Stack } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+
+import {
+  Eyebrow,
+  Medallion,
+  OutlinedButton,
+  PrimaryButton,
+  Subtitle,
+  TextLink,
+  Title,
+} from '@/features/Onboarding/onboarding.styled';
+import { OnboardingLayout } from '@/features/Onboarding/OnboardingLayout';
 
 export function WelcomeChoicePage() {
   const navigate = useNavigate();
+
   return (
-    <Box
-      sx={{
-        minHeight: '100dvh',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        px: 3,
-        gap: 4,
-      }}
-    >
-      <Stack spacing={1.5} alignItems="center" textAlign="center">
-        <Box component="img" src="/logo-kumy.svg" alt="Kumy" sx={{ width: 88 }} />
-        <Typography variant="h4" fontWeight={700}>
-          Bienvenue sur Kumy
-        </Typography>
-        <Typography color="text.secondary">Votre exploitation, dans votre poche.</Typography>
-      </Stack>
-      <Stack spacing={1.5}>
-        <Button size="large" variant="contained" onClick={() => navigate('/auth/phone-entry')}>
+    <OnboardingLayout>
+      <Medallion>
+        <Box component="img" src="/logo-kumy.svg" alt="Kumy" sx={{ width: 48, height: 48 }} />
+      </Medallion>
+
+      <Eyebrow>Bienvenue</Eyebrow>
+
+      <Title>Bienvenue sur Kumy</Title>
+
+      <Subtitle>Votre exploitation, dans votre poche.</Subtitle>
+
+      <Stack spacing={1.75} alignItems="center" sx={{ width: '100%' }}>
+        <PrimaryButton
+          onClick={() => navigate('/auth/phone-entry')}
+          endIcon={<ArrowForwardRoundedIcon sx={{ fontSize: 20 }} />}
+        >
           Connexion
-        </Button>
-        <Button size="large" variant="outlined" onClick={() => navigate('/onboarding/register/phone')}>
-          Créer un compte
-        </Button>
-        <Button variant="text" onClick={() => navigate('/onboarding/invitation')}>
+        </PrimaryButton>
+
+        <OutlinedButton onClick={() => navigate('/onboarding/register/phone')}>Créer un compte</OutlinedButton>
+
+        <TextLink onClick={() => navigate('/onboarding/invitation')} sx={{ mt: 0.5 }}>
           J&apos;ai une invitation
-        </Button>
+        </TextLink>
       </Stack>
-    </Box>
+    </OnboardingLayout>
   );
 }
