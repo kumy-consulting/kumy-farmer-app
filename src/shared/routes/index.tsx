@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 
 import { PhoneEntryPage } from '@/features/Auth/pages/PhoneEntryPage';
 import { PinEntryPage } from '@/features/Auth/pages/PinEntryPage';
+import { DomaineDetailPage } from '@/features/Domaines/DomaineDetailPage';
 import { DomainesPage } from '@/features/Domaines/DomainesPage';
 import { HomePage } from '@/features/Home/HomePage';
 import { MonEspacePage } from '@/features/MonEspace/MonEspacePage';
@@ -34,6 +35,7 @@ export const router = createBrowserRouter([
     children: [
       { path: '/', element: <HomePage /> },
       { path: '/domaines', element: <DomainesPage /> },
+      { path: '/domaines/:id', element: <DomaineDetailPage /> },
       { path: '/mon-espace', element: <MonEspacePage /> },
     ],
   },

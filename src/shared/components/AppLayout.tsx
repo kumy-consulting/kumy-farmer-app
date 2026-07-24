@@ -4,6 +4,7 @@ import { Box } from '@mui/material';
 import { Outlet } from 'react-router-dom';
 
 import { BottomNav, NAV_HEIGHT } from '@/shared/components/BottomNav';
+import { ErrorBoundary } from '@/shared/components/ErrorBoundary';
 
 /**
  * Coquille des écrans authentifiés : rend l'onglet courant (`Outlet`) au-dessus
@@ -12,7 +13,9 @@ import { BottomNav, NAV_HEIGHT } from '@/shared/components/BottomNav';
 export const AppLayout: FunctionComponent = () => (
   <Box sx={{ minHeight: '100dvh', position: 'relative' }}>
     <Box sx={{ pb: `calc(${NAV_HEIGHT}px + env(safe-area-inset-bottom, 0px))` }}>
-      <Outlet />
+      <ErrorBoundary>
+        <Outlet />
+      </ErrorBoundary>
     </Box>
     <BottomNav />
   </Box>
