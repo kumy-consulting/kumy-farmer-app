@@ -55,11 +55,13 @@ export interface Domain {
   ownership?: { type: 'individual' | 'communal' };
 }
 
-/** Alerte active rattachée à un domaine (`farmId`). */
+/** Alerte active rattachée à un domaine (`farmId`) et éventuellement une parcelle. */
 export interface FarmerAlert {
   id: string;
   farmId: string;
   farmName: string;
+  parcelId?: string;
+  parcelName?: string;
   type: string;
   severity: AlertSeverity;
   status: string;
@@ -95,6 +97,12 @@ export interface GeoBounds {
 /** Parcelle avec sa tuile NDVI pré-rendue (PNG serveur, transparent hors parcelle). */
 export interface ParcelVegetation {
   parcelId: string;
+  name: string;
+  culture: string;
+  variety: string;
+  area: string;
+  status: string;
+  stade: string;
   /** [latitude, longitude][] */
   coordinates: [number, number][];
   bounds: GeoBounds;
@@ -107,6 +115,10 @@ export interface ParcelVegetation {
 /** Végétation d'un domaine (contour + parcelles NDVI). */
 export interface FarmVegetation {
   farmId: string;
+  name: string;
+  region?: string;
+  totalArea?: string;
+  center?: { latitude: number; longitude: number };
   coordinates: [number, number][];
   parcels: ParcelVegetation[];
 }
@@ -121,4 +133,90 @@ export interface DomainCard extends Domain {
   alertCount: number;
   alertSeverity: AlertSeverity | null;
   vegetationParcels: ParcelVegetation[];
+}
+
+// ─── Détail d'un domaine ───
+
+export interface CurrentCrop {
+  cropType?: string;
+  variety?: string;
+  plantingDate?: string;
+  expectedHarvestDate?: string;
+  growthStage?: string;
+  itkRef?: string;
+}
+
+/**
+ * Instantané « dernière bonne valeur » NDVI dénormalisé sur le doc parcelle
+ * (parcels/{id}.lastIndicators). Couverture plus large que la végétation, qui
+ * ne lit que la scène la plus récente de la sous-collection indicators/history.
+ */
+export interface LastIndicators {
+  ndvi?: number;
+  status?: 'healthy' | 'stressed' | 'critical' | string;
+  tileUrl?: string;
+  bounds?: GeoBounds;
+}
+
+/** Parcelle brute (GET /farms/:farmId/parcels → ParcelResponseDto). */
+export interface Parcel {
+  id: string;
+  name: string;
+  area?: number;
+  areaUnit?: string;
+  coordinates?: { latitude: number; longitude: number }[];
+  currentCrop?: CurrentCrop;
+  currentStageCode?: string | null;
+  itkMaterializationStatus?: { status: 'pending' | 'success' | 'skipped' | 'failed' };
+  status: string;
+  lastIndicators?: LastIndicators;
+}
+
+/** Enveloppe paginée générique du backoffice. */
+export interface Paginated<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+/** Alerte agrégée d'une parcelle (pire sévérité + intitulé + nombre). */
+export interface ParcelAlert {
+  severity: AlertSeverity;
+  label: string;
+  count: number;
+}
+
+/** Parcelle fusionnée (végétation + parcelle + alertes) consommée par la carte parcelle. */
+export interface DetailParcel {
+  parcelId: string;
+  name: string;
+  cropType?: string;
+  plantingDate?: string;
+  area?: number;
+  ndvi: number | null;
+  ndviStatus?: string;
+  tileUrl?: string;
+  tileBounds?: GeoBounds;
+  coordinates: [number, number][];
+  itkActive: boolean;
+  alert?: ParcelAlert;
+}
+
+/** Station météo live d'un domaine (GET /farms/:id/live-station). */
+export interface FarmLiveStation {
+  station: {
+    stationCode?: string;
+    name?: string;
+    online?: boolean;
+    lastSeenAt?: string;
+    measures?: {
+      temperature?: number;
+      humidity?: number;
+      pressure?: number;
+      wind?: number;
+      rain?: number;
+    };
+  } | null;
 }

@@ -1,6 +1,14 @@
 import { apiClient } from '@/shared/api/client';
 
-import type { Domain, DomainsSummary, FarmerAlert, FarmerFarmsVegetation } from './domaines.types';
+import type {
+  Domain,
+  DomainsSummary,
+  FarmerAlert,
+  FarmerFarmsVegetation,
+  FarmLiveStation,
+  Paginated,
+  Parcel,
+} from './domaines.types';
 
 /**
  * API de la feature Domaines.
@@ -36,6 +44,20 @@ export const domainesApi = {
   /** Végétation : contours + parcelles avec tuiles NDVI (pour le fond carte). */
   async vegetation(farmerId: string): Promise<FarmerFarmsVegetation> {
     const { data } = await apiClient.get<FarmerFarmsVegetation>(`/farmers/${farmerId}/farms/vegetation`);
+    return data;
+  },
+
+  /** Parcelles d'un domaine (culture, plantation/âge, statut ITK). */
+  async parcels(farmId: string): Promise<Parcel[]> {
+    const { data } = await apiClient.get<Paginated<Parcel>>(`/farms/${farmId}/parcels`, {
+      params: { limit: 200 },
+    });
+    return data.data;
+  },
+
+  /** Station météo live d'un domaine (onglet Météos). */
+  async liveStation(farmId: string): Promise<FarmLiveStation> {
+    const { data } = await apiClient.get<FarmLiveStation>(`/farms/${farmId}/live-station`);
     return data;
   },
 };
