@@ -38,13 +38,18 @@ reconstruit un conseil équivalent à partir de sources autorisées FARMER, prin
 | Sujet | Décision |
 |---|---|
 | Référence visuelle | PWA ingénieur `ParcelDetail` + style écran domaine du farmer-app |
-| Onglets | **ITK + Conseils** uniquement (pas de Vue d'ensemble ni Tâches séparés) |
+| Onglets | **Vue d'ensemble + ITK + Conseils** (Vue d'ensemble par défaut) |
+| Onglet Vue d'ensemble | Infos générales (culture, variété, semis, récolte prévue, surface) + **estimation de rendement** (`/yield-estimate`, autorisé FARMER) |
 | Onglet ITK | **Lecture seule** (pas de journalisation de tâche en v1) |
 | Onglet Conseils | **Essentiel** : Synthèse santé + Risques/recommandations (ITK) + Évolution NDVI |
 | Backend | **Aucune modification** (endpoints FARMER existants uniquement) |
 
-Hors périmètre v1 : journalisation de tâches (POST log + dialogs + sync Dexie), sections
-Climat/Sol/Rendement/Zones-à-inspecter, Verdict/alertes/recos OAD, fenêtre d'épandage.
+> Note : l'onglet **Vue d'ensemble** (avec estimation de rendement) a été ajouté après la v1
+> initiale à la demande de l'utilisateur (2026-07-29). Il consomme `GET /parcels/:id/yield-estimate`
+> (autorisé FARMER, 404 géré gracieusement) et les champs `currentCrop` de la parcelle.
+
+Hors périmètre : journalisation de tâches (POST log + dialogs + sync Dexie), sections
+Climat/Sol/Zones-à-inspecter, Verdict/alertes/recos OAD, fenêtre d'épandage.
 
 ## 4. Emplacement & navigation
 

@@ -13,6 +13,7 @@ import { OnboardingProfilePage } from '@/features/Onboarding/pages/OnboardingPro
 import { OnboardingSuccessPage } from '@/features/Onboarding/pages/OnboardingSuccessPage';
 import { RegisterComingSoonPage } from '@/features/Onboarding/pages/RegisterComingSoonPage';
 import { WelcomeChoicePage } from '@/features/Onboarding/pages/WelcomeChoicePage';
+import { ParcelDetailPage } from '@/features/Parcelle/ParcelDetailPage';
 import { AppLayout } from '@/shared/components/AppLayout';
 import { ProtectedRoute } from '@/shared/components/ProtectedRoute';
 
@@ -36,6 +37,7 @@ export const router = createBrowserRouter([
       { path: '/', element: <HomePage /> },
       { path: '/domaines', element: <DomainesPage /> },
       { path: '/domaines/:id', element: <DomaineDetailPage /> },
+      { path: '/domaines/:id/parcelles/:parcelId', element: <ParcelDetailPage /> },
       { path: '/mon-espace', element: <MonEspacePage /> },
     ],
   },

@@ -1,7 +1,6 @@
 import { useState, type FunctionComponent, type ReactNode } from 'react';
 
 import ChevronLeftRounded from '@mui/icons-material/ChevronLeftRounded';
-import GridViewRounded from '@mui/icons-material/GridViewRounded';
 import ReplayRounded from '@mui/icons-material/ReplayRounded';
 import { Box, CircularProgress, IconButton, Stack, Typography } from '@mui/material';
 import { keyframes } from '@mui/material/styles';
@@ -10,29 +9,24 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { NAV_HEIGHT } from '@/shared/components/BottomNav';
 import { DraggableBottomSheet } from '@/shared/components/DraggableBottomSheet';
 
-import { DomaineDetailMap } from './components/DomaineDetailMap';
-import { DomaineStatsRow } from './components/DomaineStatsRow';
-import { DomaineWeather } from './components/DomaineWeather';
-import { ParcelCard } from './components/ParcelCard';
-import { useDomaineDetail } from './useDomaineDetail';
+import { ConseilsTabContent } from './components/ConseilsTab/ConseilsTabContent';
+import { ItkTabContent } from './components/ItkTab/ItkTabContent';
+import { OverviewTabContent } from './components/OverviewTab/OverviewTabContent';
+import { ParcelKpiRow } from './components/ParcelKpiRow';
+import { ParcelMapHero } from './components/ParcelMapHero';
+import { useParcelDetail } from './useParcelDetail';
 
 const HEADER_OVERLAY_PX = 96;
 const SHEET_SNAPS: (number | string)[] = [120, '45vh', '85vh'];
 const CONTENT_BOTTOM_PADDING = NAV_HEIGHT + 40;
-const TABS = ['Parcelles', 'Météos'];
+const TABS = ["Vue d'ensemble", 'Calendrier', 'Conseils'];
 
-/** Révélation en fondu montant (cartes de parcelles, en cascade). */
-const cardIn = keyframes`
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-`;
 /** Fondu doux au changement d'onglet. */
 const tabIn = keyframes`
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 `;
 
-/** Bouton retour translucide sombre (variante overlay). */
 const BackButton: FunctionComponent<{ onClick: () => void }> = ({ onClick }) => (
   <IconButton
     onClick={onClick}
@@ -65,9 +59,9 @@ const FullScreen: FunctionComponent<{ children: ReactNode }> = ({ children }) =>
   </Box>
 );
 
-/** En-tête superposé sur la carte : retour + (agriculteur) + nom du domaine + stats, scrim dégradé. */
-const HeaderOverlay: FunctionComponent<{ owner: string; title: string; subtitle: string; onBack: () => void }> = ({
-  owner,
+/** En-tête superposé : retour + fil d'Ariane domaine + nom parcelle + culture, scrim dégradé. */
+const HeaderOverlay: FunctionComponent<{ crumb: string; title: string; subtitle?: string; onBack: () => void }> = ({
+  crumb,
   title,
   subtitle,
   onBack,
@@ -80,7 +74,6 @@ const HeaderOverlay: FunctionComponent<{ owner: string; title: string; subtitle:
       right: 0,
       zIndex: 1000,
       padding: 'calc(env(safe-area-inset-top, 0px) + 14px) 16px 32px',
-      // Scrim plus haut et progressif (3 paliers) → titre lisible sur satellite.
       background:
         'linear-gradient(180deg, rgba(0,0,0,0.60) 0%, rgba(0,0,0,0.34) 42%, rgba(0,0,0,0.12) 72%, transparent 100%)',
     }}
@@ -88,7 +81,7 @@ const HeaderOverlay: FunctionComponent<{ owner: string; title: string; subtitle:
     <Stack direction="row" alignItems="flex-start" spacing="14px">
       <BackButton onClick={onBack} />
       <Box sx={{ minWidth: 0, pt: '2px' }}>
-        {owner && (
+        {crumb && (
           <Typography
             sx={{
               fontFamily: "'Ubuntu', sans-serif",
@@ -102,7 +95,7 @@ const HeaderOverlay: FunctionComponent<{ owner: string; title: string; subtitle:
             }}
             noWrap
           >
-            {owner}
+            {crumb}
           </Typography>
         )}
         <Typography
@@ -120,33 +113,33 @@ const HeaderOverlay: FunctionComponent<{ owner: string; title: string; subtitle:
           {title}
         </Typography>
         {subtitle && (
-          <Stack direction="row" alignItems="center" spacing="5px" sx={{ mt: '3px' }}>
-            <GridViewRounded sx={{ fontSize: 13, color: 'rgba(255,255,255,0.9)' }} />
-            <Typography
-              sx={{
-                fontFamily: "'Ubuntu', sans-serif",
-                fontSize: '12.5px',
-                fontWeight: 500,
-                color: 'rgba(255,255,255,0.92)',
-                lineHeight: '16px',
-                textShadow: '0 1px 3px rgba(0,0,0,0.4)',
-              }}
-              noWrap
-            >
-              {subtitle}
-            </Typography>
-          </Stack>
+          <Typography
+            sx={{
+              fontFamily: "'Ubuntu', sans-serif",
+              fontSize: '12.5px',
+              fontWeight: 500,
+              color: 'rgba(255,255,255,0.92)',
+              lineHeight: '16px',
+              textShadow: '0 1px 3px rgba(0,0,0,0.4)',
+              mt: '3px',
+            }}
+            noWrap
+          >
+            {subtitle}
+          </Typography>
         )}
       </Box>
     </Stack>
   </Box>
 );
 
-export const DomaineDetailPage: FunctionComponent = () => {
-  const { id: farmId } = useParams<{ id: string }>();
+export const ParcelDetailPage: FunctionComponent = () => {
+  const { id: farmId, parcelId } = useParams<{ id: string; parcelId: string }>();
   const navigate = useNavigate();
-  const { detail, isLoading, error, reload } = useDomaineDetail(farmId);
+  const { detail, isLoading, error, reload } = useParcelDetail(farmId, parcelId);
   const [activeTab, setActiveTab] = useState(0);
+
+  const backToDomaine = () => navigate(`/domaines/${farmId ?? ''}`);
 
   if (isLoading || (!detail && !error)) {
     return (
@@ -154,7 +147,7 @@ export const DomaineDetailPage: FunctionComponent = () => {
         <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <CircularProgress sx={{ color: '#93F4E0' }} />
         </Box>
-        <HeaderOverlay owner="" title="" subtitle="" onBack={() => navigate('/domaines')} />
+        <HeaderOverlay crumb="" title="" onBack={backToDomaine} />
       </FullScreen>
     );
   }
@@ -162,7 +155,7 @@ export const DomaineDetailPage: FunctionComponent = () => {
   if (error || !detail) {
     return (
       <FullScreen>
-        <HeaderOverlay owner="" title="" subtitle="" onBack={() => navigate('/domaines')} />
+        <HeaderOverlay crumb="" title="" onBack={backToDomaine} />
         <Box
           sx={{
             position: 'absolute',
@@ -179,7 +172,7 @@ export const DomaineDetailPage: FunctionComponent = () => {
             Chargement impossible
           </Typography>
           <Typography sx={{ fontSize: 14, color: 'rgba(255,255,255,0.85)', mt: 1, maxWidth: 300 }}>
-            {error ?? 'Domaine introuvable'}
+            {error ?? 'Parcelle introuvable'}
           </Typography>
           <Stack
             component="button"
@@ -211,30 +204,25 @@ export const DomaineDetailPage: FunctionComponent = () => {
 
   return (
     <FullScreen>
-      {/* Carte plein écran */}
       <Box sx={{ position: 'absolute', inset: 0 }}>
-        <DomaineDetailMap
-          contour={detail.contour}
-          parcels={detail.parcels}
+        <ParcelMapHero
+          coordinates={detail.coordinates}
+          tileUrl={detail.tileUrl}
+          tileBounds={detail.tileBounds}
           topReservedPx={HEADER_OVERLAY_PX}
           bottomReservedPx={bottomReservedPx}
         />
       </Box>
 
-      <HeaderOverlay
-        owner={detail.ownerName ?? ''}
-        title={detail.headerTitle}
-        subtitle={detail.headerSubtitle}
-        onBack={() => navigate('/domaines')}
-      />
+      <HeaderOverlay crumb="Parcelle" title={detail.parcelName} subtitle={detail.cropLabel} onBack={backToDomaine} />
 
-      <DraggableBottomSheet
-        snapPoints={SHEET_SNAPS}
-        initialSnap={1}
-        contentBottomPadding={CONTENT_BOTTOM_PADDING}
-        zIndex={900}
-      >
-        <DomaineStatsRow stats={detail.stats} />
+      <DraggableBottomSheet snapPoints={SHEET_SNAPS} initialSnap={1} contentBottomPadding={CONTENT_BOTTOM_PADDING} zIndex={900}>
+        <ParcelKpiRow
+          ndvi={detail.ndvi}
+          area={detail.area}
+          daysAfterSowing={detail.daysAfterSowing}
+          yieldEstimate={detail.yieldEstimate}
+        />
 
         {/* Onglets */}
         <Box
@@ -279,74 +267,11 @@ export const DomaineDetailPage: FunctionComponent = () => {
 
         <Box key={activeTab} sx={{ animation: `${tabIn} 0.28s ease both` }}>
           {activeTab === 0 ? (
-            <Box sx={{ pt: 0.5 }}>
-              <Stack direction="row" alignItems="center" spacing={1} sx={{ padding: '18px 16px 12px' }}>
-                <Typography sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 18, fontWeight: 700, color: '#1A1C1B' }}>
-                  Parcelles
-                </Typography>
-                <Box
-                  sx={{
-                    minWidth: 22,
-                    height: 22,
-                    px: '6px',
-                    borderRadius: 999,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    background: 'rgba(1,134,117,0.14)',
-                    color: '#006B5D',
-                    fontFamily: "'Ubuntu', sans-serif",
-                    fontSize: 12,
-                    fontWeight: 700,
-                  }}
-                >
-                  {detail.parcels.length}
-                </Box>
-              </Stack>
-
-              {detail.parcels.length === 0 ? (
-                <Stack alignItems="center" spacing={1.25} sx={{ px: 3, py: 4, textAlign: 'center' }}>
-                  <Box
-                    sx={{
-                      width: 56,
-                      height: 56,
-                      borderRadius: '50%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      background: 'rgba(1,134,117,0.08)',
-                      '& svg': { fontSize: 26, color: '#35A18F' },
-                    }}
-                  >
-                    <GridViewRounded />
-                  </Box>
-                  <Typography sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 14.5, fontWeight: 700, color: '#243F38' }}>
-                    Aucune parcelle
-                  </Typography>
-                  <Typography sx={{ fontSize: 13, color: '#5C5F5E', maxWidth: 260, lineHeight: 1.5 }}>
-                    Les parcelles de ce domaine apparaîtront ici dès que votre technicien les aura tracées.
-                  </Typography>
-                </Stack>
-              ) : (
-                detail.parcels.map((parcel, i) => (
-                  <Box
-                    key={parcel.parcelId}
-                    sx={{
-                      animation: `${cardIn} 0.42s cubic-bezier(0.22,0.61,0.36,1) both`,
-                      animationDelay: `${Math.min(i, 8) * 0.05}s`,
-                      '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
-                    }}
-                  >
-                    <ParcelCard
-                      parcel={parcel}
-                      onClick={() => navigate(`/domaines/${farmId}/parcelles/${parcel.parcelId}`)}
-                    />
-                  </Box>
-                ))
-              )}
-            </Box>
+            <OverviewTabContent detail={detail} />
+          ) : activeTab === 1 ? (
+            <ItkTabContent itk={detail.itk} />
           ) : (
-            <DomaineWeather liveStation={detail.liveStation} />
+            <ConseilsTabContent itk={detail.itk} ndvi={detail.ndvi} indicators={detail.indicators} />
           )}
         </Box>
       </DraggableBottomSheet>
