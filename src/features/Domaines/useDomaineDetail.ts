@@ -68,6 +68,8 @@ export interface DomaineStats {
 
 export interface DomaineDetail {
   farmName: string;
+  /** Nom de l'agriculteur (affiché en filigrane dans l'en-tête). */
+  ownerName?: string;
   headerTitle: string;
   headerSubtitle: string;
   contour: [number, number][];
@@ -111,10 +113,9 @@ export function useDomaineDetail(farmId: string | undefined): DomaineDetailState
       domainesApi.farms(farmerId),
       domainesApi.parcels(farmId),
       domainesApi.alerts(farmerId),
-      domainesApi.summary(farmerId),
       domainesApi.liveStation(farmId),
     ])
-      .then(([vegRes, farmsRes, parcelsRes, alertsRes, summaryRes, stationRes]) => {
+      .then(([vegRes, farmsRes, parcelsRes, alertsRes, stationRes]) => {
         if (!active) return;
 
         const vegFarm =
@@ -134,7 +135,6 @@ export function useDomaineDetail(farmId: string | undefined): DomaineDetailState
         const rawParcels = parcelsRes.status === 'fulfilled' ? parcelsRes.value : [];
         const vegParcels = vegFarm?.parcels ?? [];
         const alerts = alertsRes.status === 'fulfilled' ? alertsRes.value : [];
-        const dashboard = summaryRes.status === 'fulfilled' ? summaryRes.value : null;
         const liveStation = stationRes.status === 'fulfilled' ? stationRes.value : null;
 
         const farmAlerts = alerts.filter((a) => a.farmId === farmId && a.status === 'active');
@@ -202,15 +202,16 @@ export function useDomaineDetail(farmId: string | undefined): DomaineDetailState
           cultivatedHa,
         };
 
-        const domainsCount = dashboard?.totalFarms || (farmsRes.status === 'fulfilled' ? farmsRes.value.length : 0);
-        const totalHa =
-          dashboard?.totalArea ||
-          (farmsRes.status === 'fulfilled' ? farmsRes.value.reduce((s, f) => s + f.area, 0) : 0);
+        // En-tête = identité de CE domaine (nom + ses parcelles/surface), pas le
+        // total tous domaines confondus.
+        const domainName = enrichedFarm?.name ?? vegFarm?.name ?? 'Domaine';
+        const domainArea = enrichedFarm?.area ?? cultivatedHa;
 
         setDetail({
-          farmName: enrichedFarm?.name ?? vegFarm?.name ?? 'Domaine',
-          headerTitle: user?.displayName?.trim() || enrichedFarm?.name || vegFarm?.name || 'Mon domaine',
-          headerSubtitle: `${domainsCount} domaine${domainsCount > 1 ? 's' : ''} · ${fr1(totalHa)}ha`,
+          farmName: domainName,
+          ownerName: user?.displayName?.trim() || undefined,
+          headerTitle: domainName,
+          headerSubtitle: `${parcelTotal} parcelle${parcelTotal > 1 ? 's' : ''} · ${fr1(domainArea)} ha`,
           contour: vegFarm?.coordinates ?? [],
           parcels,
           stats,

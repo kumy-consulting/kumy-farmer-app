@@ -1,6 +1,7 @@
 import type { FunctionComponent } from 'react';
 
 import EnergySavingsLeafRounded from '@mui/icons-material/EnergySavingsLeafRounded';
+import SatelliteAltRounded from '@mui/icons-material/SatelliteAltRounded';
 import { Box, Typography } from '@mui/material';
 
 import type { DetailParcel } from '../domaines.types';
@@ -98,17 +99,29 @@ export const ParcelCard: FunctionComponent<ParcelCardProps> = ({ parcel, onClick
       >
         {tileUrl ? (
           <img src={tileUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-        ) : (
+        ) : ndvi != null ? (
           <Box
             sx={{
               width: '100%',
               height: '100%',
-              backgroundImage:
-                ndvi != null
-                  ? `radial-gradient(circle at 30% 30%, ${color}38, ${color}18 60%, transparent), linear-gradient(135deg, #B6FFEE, #E5FFF7)`
-                  : 'linear-gradient(135deg, #F0F1EF, #FCFDFA)',
+              backgroundImage: `radial-gradient(circle at 30% 30%, ${color}38, ${color}18 60%, transparent), linear-gradient(135deg, #B6FFEE, #E5FFF7)`,
             }}
           />
+        ) : (
+          // En attente de scan : fond neutre + petit satellite en filigrane.
+          <Box
+            sx={{
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundImage: 'linear-gradient(135deg, #EEF2F0, #FCFDFA)',
+              '& svg': { fontSize: 22, color: 'rgba(55,75,70,0.28)' },
+            }}
+          >
+            <SatelliteAltRounded />
+          </Box>
         )}
         <Box
           sx={{
@@ -209,39 +222,64 @@ export const ParcelCard: FunctionComponent<ParcelCardProps> = ({ parcel, onClick
           </Box>
         )}
 
-        {/* NDVI : 5 points + libellé */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.4, minWidth: 0 }}>
-          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
-            {[0, 1, 2, 3, 4].map((i) => (
-              <Box
-                key={i}
-                sx={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: '50%',
-                  background: i < filledDots ? color : '#E2E3E1',
-                  transform: i < filledDots ? 'scale(1)' : 'scale(0.85)',
-                  transition: 'background-color 180ms ease, transform 180ms ease',
-                }}
-              />
-            ))}
+        {/* NDVI : 5 points + libellé quand mesuré ; sinon puce discrète « en attente ». */}
+        {ndvi != null ? (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.4, minWidth: 0 }}>
+            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
+              {[0, 1, 2, 3, 4].map((i) => (
+                <Box
+                  key={i}
+                  sx={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    background: i < filledDots ? color : '#E2E3E1',
+                    transform: i < filledDots ? 'scale(1)' : 'scale(0.85)',
+                    transition: 'background-color 180ms ease, transform 180ms ease',
+                  }}
+                />
+              ))}
+            </Box>
+            <Typography
+              sx={{
+                fontFamily: "'Ubuntu', sans-serif",
+                fontSize: 11.5,
+                fontWeight: 600,
+                letterSpacing: 0.2,
+                color,
+                fontVariantNumeric: 'tabular-nums',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {`NDVI · ${ndviLabel(ndvi)} · ${ndvi.toFixed(2)}`}
+            </Typography>
           </Box>
-          <Typography
+        ) : (
+          <Box
             sx={{
-              fontFamily: "'Ubuntu', sans-serif",
-              fontSize: 11.5,
-              fontWeight: 600,
-              letterSpacing: 0.2,
-              color: ndvi != null ? color : '#AAADAB',
-              fontVariantNumeric: 'tabular-nums',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '5px',
+              alignSelf: 'flex-start',
+              mt: 0.4,
+              pl: '6px',
+              pr: '10px',
+              py: '3px',
+              borderRadius: 999,
+              background: 'rgba(55,75,70,0.05)',
+              '& svg': { fontSize: 13, color: 'rgba(55,75,70,0.45)' },
             }}
           >
-            {ndvi != null ? `NDVI · ${ndviLabel(ndvi)} · ${ndvi.toFixed(2)}` : 'NDVI · indisponible'}
-          </Typography>
-        </Box>
+            <SatelliteAltRounded />
+            <Typography
+              sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 11, fontWeight: 600, letterSpacing: 0.2, color: 'rgba(55,75,70,0.55)' }}
+            >
+              NDVI en attente de scan
+            </Typography>
+          </Box>
+        )}
 
         {/* Bande d'alerte */}
         {showAlert && alert && (

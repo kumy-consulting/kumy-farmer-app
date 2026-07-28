@@ -139,9 +139,10 @@ describe('DomaineDetailPage', () => {
   it('affiche l’en-tête (nom agriculteur + total), les stats et la liste de parcelles', async () => {
     renderPage();
 
-    // En-tête : nom de l'agriculteur + sous-titre total domaines/ha
-    expect(await screen.findByText('Mamadou Aliou Barry')).toBeDefined();
-    expect(screen.getByText(/7 domaines · 822,3ha/)).toBeDefined();
+    // En-tête : nom du DOMAINE en titre + sous-titre propre à ce domaine + agriculteur en filigrane
+    expect(await screen.findByText('Test Ingenieurs')).toBeDefined();
+    expect(screen.getByText(/2 parcelles · 12,2 ha/)).toBeDefined();
+    expect(screen.getByText('Mamadou Aliou Barry')).toBeDefined();
 
     // Stats (4 tuiles)
     expect(screen.getByText('Sous ITK')).toBeDefined();
@@ -151,12 +152,12 @@ describe('DomaineDetailPage', () => {
     expect(screen.getAllByText('Parcelles').length).toBeGreaterThan(0);
     expect(screen.getByText('Ananas 2')).toBeDefined();
 
-    // Ananas 2 a un NDVI via lastIndicators → libellé NDVI présent (pas « indisponible »).
+    // Ananas 2 a un NDVI via lastIndicators → libellé NDVI présent.
     expect(screen.getByText(/NDVI · Bon · 0\.62/)).toBeDefined();
 
-    // Aubergine sans indicateurs → « Données absentes » + NDVI indisponible.
-    expect(screen.getByText('Données absentes')).toBeDefined();
-    expect(screen.getByText('NDVI · indisponible')).toBeDefined();
+    // Aubergine sans indicateurs → badge « En attente » + état de scan gracieux.
+    expect(screen.getByText('En attente')).toBeDefined();
+    expect(screen.getByText('NDVI en attente de scan')).toBeDefined();
   });
 
   it('bascule sur l’onglet Météos et affiche l’état sans station', async () => {

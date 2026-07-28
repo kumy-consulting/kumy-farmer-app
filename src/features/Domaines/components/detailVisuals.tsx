@@ -56,7 +56,7 @@ export const healthVerdict = (
 ): HealthVerdict => {
   if (severity === 'critical') return { label: 'Critique', tone: 'critical' };
   if (severity === 'warning') return { label: 'Vigilance', tone: 'warning' };
-  if (ndvi == null) return { label: 'Données absentes', tone: 'neutral' };
+  if (ndvi == null) return { label: 'En attente', tone: 'neutral' };
   if (ndvi < 0.2) return { label: 'Critique', tone: 'critical' };
   if (ndvi < 0.35) return { label: 'Faible', tone: 'warning' };
   if (ndvi < 0.5) return { label: 'Modéré', tone: 'warning' };
