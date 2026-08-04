@@ -89,7 +89,12 @@ export const OverviewTabContent: FunctionComponent<{ detail: ParcelDetail }> = (
         <InfoRow icon={<GrassRounded />} label="Culture" value={cap(detail.cropType)} />
         <InfoRow icon={<SpaRounded />} label="Variété" value={cap(detail.variety)} />
         <InfoRow icon={<CalendarMonthRounded />} label="Date de semis" value={fmtDate(detail.plantingDate)} hint={age ?? undefined} />
-        <InfoRow icon={<EventAvailableRounded />} label="Récolte prévue" value={fmtDate(detail.expectedHarvestDate)} />
+        <InfoRow
+          icon={<EventAvailableRounded />}
+          label="Récolte prévue"
+          value={fmtDate(detail.expectedHarvestDate)}
+          hint={detail.expectedHarvestEstimated ? 'estimée' : undefined}
+        />
       </Box>
 
       <Typography sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 15, fontWeight: 700, color: '#1A1C1B', px: 2, pt: 2.5, pb: 1 }}>

@@ -180,6 +180,40 @@ describe('ParcelDetailPage', () => {
     expect(screen.getAllByText('42,5').length).toBeGreaterThan(0);
   });
 
+  it('dérive la récolte prévue du plan ITK quand le backend ne la renseigne pas', async () => {
+    mocked.parcel.mockResolvedValue({
+      ...parcel,
+      currentCrop: { cropType: 'ananas', variety: 'MD2', plantingDate: '2026-06-24' },
+    });
+    renderPage();
+
+    // Fin du dernier stade ITK (Floraison → 2026-08-30) marquée « estimée ».
+    expect(await screen.findByText('30 août 2026')).toBeDefined();
+    expect(screen.getByText('estimée')).toBeDefined();
+  });
+
+  it('dérive la récolte prévue même si le backend renvoie une chaîne vide', async () => {
+    mocked.parcel.mockResolvedValue({
+      ...parcel,
+      currentCrop: { cropType: 'ananas', variety: 'MD2', plantingDate: '2026-06-24', expectedHarvestDate: '' },
+    });
+    renderPage();
+
+    expect(await screen.findByText('30 août 2026')).toBeDefined();
+    expect(screen.getByText('estimée')).toBeDefined();
+  });
+
+  it('affiche la santé NDVI depuis l’historique quand lastIndicators est absent', async () => {
+    mocked.parcel.mockResolvedValue({ ...parcel, lastIndicators: undefined });
+    renderPage();
+    await screen.findByText('Ananas 2');
+
+    // Dernier point valide de l'historique (0.62) → santé renseignée, pas « En attente ».
+    expect(screen.getByText('0.62')).toBeDefined();
+    expect(screen.getByText('Bon')).toBeDefined();
+    expect(screen.queryByText('En attente')).toBeNull();
+  });
+
   it('bascule sur Calendrier et affiche le stade courant avec sa tâche', async () => {
     const { findByText, getByText, getAllByText } = renderPage();
     await findByText('Ananas 2');

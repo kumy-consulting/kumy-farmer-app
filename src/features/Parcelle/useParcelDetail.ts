@@ -19,6 +19,8 @@ export interface ParcelDetail {
   plantingDate?: string;
   /** Date de récolte prévue ISO (onglet Vue d'ensemble). */
   expectedHarvestDate?: string;
+  /** `true` si la récolte prévue est dérivée du plan ITK (backend non renseigné). */
+  expectedHarvestEstimated?: boolean;
   /** Polygone de la parcelle [lat, lng][]. */
   coordinates: [number, number][];
   tileUrl?: string;
@@ -47,6 +49,30 @@ interface ParcelDetailState {
 
 const toLatLng = (coords: Parcel['coordinates']): [number, number][] =>
   (coords ?? []).map((c) => [c.latitude, c.longitude] as [number, number]);
+
+/** Dernier NDVI valide (> 0) de l'historique, par date décroissante. */
+const latestNdvi = (indicators: IndicatorPoint[]): number | undefined => {
+  const valid = indicators
+    .filter((d) => typeof d.ndvi === 'number' && (d.ndvi as number) > 0)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  return valid.length ? (valid[valid.length - 1].ndvi as number) : undefined;
+};
+
+/** Renvoie la valeur seulement si elle parse en date valide (ISO string), sinon undefined. */
+const asValidDate = (v: unknown): string | undefined => {
+  if (typeof v !== 'string' || v.trim() === '') return undefined;
+  return Number.isNaN(new Date(v).getTime()) ? undefined : v;
+};
+
+/**
+ * Récolte prévue dérivée du plan ITK : fin (`expectedEnd`) du dernier stade,
+ * qui vaut semis + durée totale du cycle — la même base que le calcul backend.
+ */
+const deriveExpectedHarvest = (itk: ItkParcelTasks | null): string | undefined => {
+  if (!itk?.stages?.length) return undefined;
+  const last = itk.stages.reduce((a, b) => (b.order > a.order ? b : a));
+  return asValidDate(last.expectedEnd);
+};
 
 export function useParcelDetail(
   farmId: string | undefined,
@@ -91,13 +117,23 @@ export function useParcelDetail(
           return;
         }
 
+        // NDVI : instantané dénormalisé `lastIndicators` en priorité (couverture
+        // large), sinon dernier point valide de l'historique `/indicators`.
         const li = parcel?.lastIndicators;
-        const ndviRaw = li?.ndvi;
-        const ndvi = typeof ndviRaw === 'number' && ndviRaw > 0 ? ndviRaw : null;
+        const liNdvi = typeof li?.ndvi === 'number' && li.ndvi > 0 ? li.ndvi : undefined;
+        const ndvi = liNdvi ?? latestNdvi(indicators) ?? null;
 
         const cropType = parcel?.currentCrop?.cropType ?? itk?.cropType;
         const variety = parcel?.currentCrop?.variety ?? itk?.variety;
         const cropLabel = variety ?? cropType;
+
+        // Récolte prévue : valeur backend si elle est une date valide, sinon
+        // dérivée du plan ITK. On valide ('' , null, Timestamp mal sérialisé,
+        // chaîne invalide → tous ignorés) pour ne jamais afficher « Non renseigné »
+        // alors que l'ITK permet de l'estimer.
+        const officialHarvest = asValidDate(parcel?.currentCrop?.expectedHarvestDate);
+        const derivedHarvest = officialHarvest ? undefined : deriveExpectedHarvest(itk);
+        const expectedHarvestDate = officialHarvest ?? derivedHarvest;
 
         setDetail({
           parcelName: parcel?.name ?? 'Parcelle',
@@ -105,7 +141,8 @@ export function useParcelDetail(
           cropType: cropType || undefined,
           variety: variety || undefined,
           plantingDate: parcel?.currentCrop?.plantingDate ?? itk?.plantingDate,
-          expectedHarvestDate: parcel?.currentCrop?.expectedHarvestDate,
+          expectedHarvestDate,
+          expectedHarvestEstimated: !officialHarvest && Boolean(derivedHarvest),
           coordinates: toLatLng(parcel?.coordinates),
           tileUrl: li?.tileUrl,
           tileBounds: li?.bounds,
