@@ -237,11 +237,14 @@ function inputsSummary(task: ItkTask): string {
 /**
  * Tâches ITK du **stade courant** → éléments du fil.
  *
- * Une tâche à intrants dont la fenêtre est ouverte (ou s'ouvre sous 24 h) et se
- * ferme sous 7 jours est **promue** en carte « fenêtre de traitement » : elle
- * n'apparaît donc jamais deux fois. On ne prédit rien — la prévision météo est
- * inaccessible au rôle FARMER — on se contente de dater la fenêtre agronomique
- * et de mentionner ce que le kit mesure à l'instant.
+ * Une tâche d'un type traitable (`WINDOW_TYPES` : `treatment | fertilisation |
+ * fertilization | weeding | irrigation`) dont la fenêtre est datée, ouverte (ou
+ * s'ouvre sous 24 h) et se ferme sous 7 jours, est **promue** en carte
+ * « fenêtre de traitement » : elle n'apparaît donc jamais deux fois. Les
+ * intrants ne conditionnent pas la promotion — ils enrichissent seulement le
+ * conseil affiché. On ne prédit rien — la prévision météo est inaccessible au
+ * rôle FARMER — on se contente de dater la fenêtre agronomique et de
+ * mentionner ce que le kit mesure à l'instant.
  */
 export function itkToFeed(sources: ParcelItkSource[], ctx: ItkFeedContext): FeedItemDraft[] {
   const items: FeedItemDraft[] = [];
@@ -257,7 +260,6 @@ export function itkToFeed(sources: ParcelItkSource[], ctx: ItkFeedContext): Feed
       if (task.state === 'completed') continue;
 
       const at = task.windowStart ?? task.windowEnd ?? stage.expectedStart;
-      if (!at) continue;
 
       const icon = ITK_ICON[task.type] ?? 'inspection';
       const end = task.windowEnd ? dayjs(task.windowEnd) : null;
@@ -283,7 +285,7 @@ export function itkToFeed(sources: ParcelItkSource[], ctx: ItkFeedContext): Feed
           note: ctx.unfavourableFarmIds.has(farmId)
             ? 'Conditions défavorables en ce moment — mesuré par le kit'
             : undefined,
-          at: task.windowEnd as string,
+          at: end.toISOString(),
           urgentNow: closingSoon || undefined,
           target,
         });

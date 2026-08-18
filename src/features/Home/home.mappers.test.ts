@@ -347,4 +347,65 @@ describe('itkToFeed', () => {
     const items = itkToFeed([itkSource([itkTask()])], ctx);
     expect(items[0].advice).toContain('Urée 150 kg/ha');
   });
+
+  it('promeut une fenêtre qui ferme pile à 7 jours, pas au-delà', () => {
+    const withinSeven = itkToFeed(
+      [itkSource([itkTask({ taskId: 'itSeven', windowStart: null, windowEnd: '2026-08-26T09:00:00.000Z' })])],
+      ctx,
+    );
+    expect(withinSeven[0].kind).toBe('window');
+
+    const beyondSeven = itkToFeed(
+      [itkSource([itkTask({ taskId: 'itEight', windowStart: null, windowEnd: '2026-08-27T09:00:00.000Z' })])],
+      ctx,
+    );
+    expect(beyondSeven[0].kind).toBe('itk');
+  });
+
+  it('bascule urgentNow pile à 48 h de la fermeture, pas au-delà', () => {
+    const atFortyEight = itkToFeed(
+      [itkSource([itkTask({ taskId: 'itFortyEight', windowStart: null, windowEnd: '2026-08-21T09:00:00.000Z' })])],
+      ctx,
+    );
+    expect(atFortyEight[0].kind).toBe('window');
+    expect(atFortyEight[0].urgentNow).toBeUndefined();
+
+    const underFortyEight = itkToFeed(
+      [itkSource([itkTask({ taskId: 'itFortySeven', windowStart: null, windowEnd: '2026-08-21T08:00:00.000Z' })])],
+      ctx,
+    );
+    expect(underFortyEight[0].urgentNow).toBe(true);
+  });
+
+  it('promeut une fenêtre qui s’ouvre pile à 24 h, pas au-delà', () => {
+    const atTwentyFour = itkToFeed(
+      [
+        itkSource([
+          itkTask({ taskId: 'itOpen24', windowStart: '2026-08-20T09:00:00.000Z', windowEnd: '2026-08-25T09:00:00.000Z' }),
+        ]),
+      ],
+      ctx,
+    );
+    expect(atTwentyFour[0].kind).toBe('window');
+
+    const beyondTwentyFour = itkToFeed(
+      [
+        itkSource([
+          itkTask({ taskId: 'itOpen25', windowStart: '2026-08-20T10:00:00.000Z', windowEnd: '2026-08-25T09:00:00.000Z' }),
+        ]),
+      ],
+      ctx,
+    );
+    expect(beyondTwentyFour[0].kind).toBe('itk');
+  });
+
+  it('promeut par type même sans intrant, conseil limité à la date', () => {
+    const items = itkToFeed(
+      [itkSource([itkTask({ taskId: 'itNoInput', inputs: [], windowStart: null, windowEnd: '2026-08-21T00:00:00.000Z' })])],
+      ctx,
+    );
+
+    expect(items[0].kind).toBe('window');
+    expect(items[0].advice).toBe('Jusqu’au 21/08');
+  });
 });
