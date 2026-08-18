@@ -1,4 +1,7 @@
+import dayjs, { type Dayjs } from 'dayjs';
+
 import type { FarmerAlert } from '@/features/Domaines/domaines.types';
+import type { FieldTask, FieldTaskType } from '@/features/FieldTasks/fieldTasks.types';
 import type { ItkParcelTasks } from '@/features/Parcelle/parcelle.types';
 
 import type {
@@ -9,6 +12,7 @@ import type {
   DomainAlert,
   PlannedActivity,
 } from './dashboard.types';
+import type { FeedIcon, FeedItemDraft } from './home.feed.types';
 
 /** Type d'alerte backend (`weather|pest|disease|irrigation|ndvi|soil`) → icône app. */
 const ALERT_TYPE: Record<string, AlertType> = {
@@ -110,4 +114,87 @@ export function toActivities(items: ParcelItk[], limit = 6): PlannedActivity[] {
   }
 
   return activities.sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt)).slice(0, limit);
+}
+
+/** Index des noms lisibles, alimenté au fil des vagues de chargement. */
+export interface NameIndex {
+  parcels: Map<string, string>;
+  farms: Map<string, string>;
+}
+
+/** Type de consigne → pictogramme de la carte. */
+const TASK_ICON: Record<FieldTaskType, FeedIcon> = {
+  weeding: 'treatment',
+  fertilization: 'treatment',
+  treatment: 'treatment',
+  irrigation: 'irrigation',
+  sowing: 'sowing',
+  harvest: 'harvest',
+  other: 'inspection',
+};
+
+/** Type d'alerte backend → pictogramme. */
+const ALERT_ICON: Record<string, FeedIcon> = {
+  weather: 'rain',
+  pest: 'disease',
+  disease: 'disease',
+  irrigation: 'soil_moisture',
+  ndvi: 'drought',
+  soil: 'soil_moisture',
+};
+
+/**
+ * Consignes de terrain → éléments du fil.
+ *
+ * Seule source actionnable : l'agriculteur peut la démarrer et la terminer.
+ * Une consigne terminée reste visible le jour même (elle ne doit pas disparaître
+ * sous le doigt), puis sort du fil.
+ */
+export function fieldTasksToFeed(tasks: FieldTask[], names: NameIndex, now: Dayjs = dayjs()): FeedItemDraft[] {
+  return tasks
+    .filter((task) => task.status !== 'done' || (task.completedAt != null && dayjs(task.completedAt).isSame(now, 'day')))
+    .map((task) => {
+      const parcelName = task.parcelId ? names.parcels.get(task.parcelId) : undefined;
+      const farmName = names.farms.get(task.farmId);
+      const unmet = task.prerequisitesResolved?.filter((p) => !p.satisfied).map((p) => p.label);
+
+      return {
+        id: `task:${task.id}`,
+        kind: 'task',
+        title: task.title,
+        place: parcelName ?? farmName ?? 'Mon exploitation',
+        icon: TASK_ICON[task.type] ?? 'inspection',
+        advice: task.description || undefined,
+        at: `${task.dueDate}T00:00:00`,
+        status: task.status,
+        overdue: task.overdue,
+        daysOverdue: task.daysOverdue,
+        actionable: true,
+        author: task.createdByName ?? undefined,
+        unmetPrerequisites: unmet && unmet.length > 0 ? unmet : undefined,
+        target: task.parcelId ? `/domaines/${task.farmId}/parcelles/${task.parcelId}` : `/domaines/${task.farmId}`,
+      } satisfies FeedItemDraft;
+    });
+}
+
+/**
+ * Alertes actives → éléments du fil. La sévérité passe par la normalisation
+ * `SEVERITY` déjà en place (le backend renvoie parfois `high|medium|low`).
+ */
+export function alertsToFeed(alerts: FarmerAlert[]): FeedItemDraft[] {
+  return alerts
+    .filter((alert) => alert.status === 'active')
+    .map((alert) => ({
+      id: `alert:${alert.id}`,
+      kind: 'alert',
+      title: alert.title || alert.message,
+      place: alert.parcelName ?? alert.farmName,
+      icon: ALERT_ICON[alert.type] ?? 'rain',
+      advice: alert.recommendedAction,
+      at: alert.createdAt,
+      severity: SEVERITY[alert.severity] ?? 'info',
+      target: alert.parcelId
+        ? `/domaines/${alert.farmId}/parcelles/${alert.parcelId}`
+        : `/domaines/${alert.farmId}`,
+    }));
 }

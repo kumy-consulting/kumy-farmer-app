@@ -67,6 +67,8 @@ export interface FarmerAlert {
   status: string;
   title: string;
   message: string;
+  /** « Que faire » côté agronome — présent dans le DTO, affiché tel quel sur la carte. */
+  recommendedAction?: string;
   createdAt: string;
 }
 
