@@ -11,6 +11,7 @@ import {
   itkToFeed,
   toActivities,
   toDomainAlerts,
+  visitsToFeed,
   type NameIndex,
   type ParcelItk,
   type ParcelItkSource,
@@ -407,5 +408,54 @@ describe('itkToFeed', () => {
 
     expect(items[0].kind).toBe('window');
     expect(items[0].advice).toBe('Jusqu’au 21/08');
+  });
+});
+
+describe('visitsToFeed', () => {
+  it('reconstitue une visite depuis les consignes qui en sont issues', () => {
+    const items = visitsToFeed(
+      [
+        task({ id: 'a', visitId: 'v1', createdAt: '2026-08-12T09:00:00.000Z', status: 'done' }),
+        task({ id: 'b', visitId: 'v1', createdAt: '2026-08-12T09:05:00.000Z', status: 'planned' }),
+        task({ id: 'c', visitId: 'v1', createdAt: '2026-08-12T09:10:00.000Z', status: 'done' }),
+      ],
+      names,
+      NOW,
+    );
+
+    expect(items).toHaveLength(1);
+    expect(items[0].id).toBe('visit:v1');
+    expect(items[0].kind).toBe('visit');
+    expect(items[0].title).toBe('Visite de Dr Camara');
+    expect(items[0].place).toBe('Kaporo 2');
+    expect(items[0].icon).toBe('visit');
+    expect(items[0].at).toBe('2026-08-12T09:00:00.000Z');
+    expect(items[0].advice).toBe('3 consignes · 2 faites');
+    expect(items[0].visit).toEqual({
+      id: 'v1',
+      author: 'Dr Camara',
+      date: '2026-08-12T09:00:00.000Z',
+      total: 3,
+      done: 2,
+    });
+  });
+
+  it('ignore les consignes sans visite et les visites de plus de 21 jours', () => {
+    const items = visitsToFeed(
+      [
+        task({ id: 'x', visitId: null }),
+        task({ id: 'y', visitId: 'vieux', createdAt: '2026-07-01T09:00:00.000Z' }),
+      ],
+      names,
+      NOW,
+    );
+
+    expect(items).toEqual([]);
+  });
+
+  it('reste lisible quand le nom de l’encadreur est absent', () => {
+    const items = visitsToFeed([task({ id: 'z', visitId: 'v2', createdByName: null })], names, NOW);
+
+    expect(items[0].title).toBe('Visite de votre encadreur');
   });
 });

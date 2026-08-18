@@ -309,3 +309,53 @@ export function itkToFeed(sources: ParcelItkSource[], ctx: ItkFeedContext): Feed
 
   return items;
 }
+
+/** Au-delà, un compte rendu n'a plus sa place sur l'accueil. */
+const VISIT_MAX_AGE_DAYS = 21;
+
+/**
+ * Comptes rendus de visite, reconstitués depuis les consignes.
+ *
+ * Aucun endpoint de visite n'est ouvert au rôle FARMER : on regroupe les
+ * consignes par `visitId`, la date de visite étant la plus ancienne création du
+ * groupe. La carte est un récapitulatif en lecture — les consignes elles-mêmes
+ * restent dans le fil à leur place d'urgence, une consigne en retard ne doit pas
+ * être enterrée dans un compte rendu.
+ */
+export function visitsToFeed(tasks: FieldTask[], names: NameIndex, now: Dayjs = dayjs()): FeedItemDraft[] {
+  const byVisit = new Map<string, FieldTask[]>();
+
+  for (const task of tasks) {
+    if (!task.visitId) continue;
+    const bucket = byVisit.get(task.visitId);
+    if (bucket) bucket.push(task);
+    else byVisit.set(task.visitId, [task]);
+  }
+
+  const items: FeedItemDraft[] = [];
+
+  for (const [visitId, group] of byVisit) {
+    const sorted = [...group].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    const first = sorted[0];
+    if (now.diff(dayjs(first.createdAt), 'day') > VISIT_MAX_AGE_DAYS) continue;
+
+    const done = group.filter((t) => t.status === 'done').length;
+    const author = first.createdByName ?? 'votre encadreur';
+    const parcelName = first.parcelId ? names.parcels.get(first.parcelId) : undefined;
+
+    items.push({
+      id: `visit:${visitId}`,
+      kind: 'visit',
+      title: `Visite de ${author}`,
+      place: parcelName ?? names.farms.get(first.farmId) ?? 'Mon exploitation',
+      icon: 'visit',
+      advice: `${group.length} consignes · ${done} faites`,
+      at: first.createdAt,
+      author: first.createdByName ?? undefined,
+      visit: { id: visitId, author, date: first.createdAt, total: group.length, done },
+      target: `/domaines/${first.farmId}`,
+    });
+  }
+
+  return items;
+}
