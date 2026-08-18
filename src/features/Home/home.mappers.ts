@@ -2,7 +2,7 @@ import dayjs, { type Dayjs } from 'dayjs';
 
 import type { FarmerAlert } from '@/features/Domaines/domaines.types';
 import type { FieldTask, FieldTaskType } from '@/features/FieldTasks/fieldTasks.types';
-import type { ItkParcelTasks } from '@/features/Parcelle/parcelle.types';
+import type { ItkParcelTasks, ItkTask } from '@/features/Parcelle/parcelle.types';
 
 import type {
   ActivityStatus,
@@ -197,4 +197,113 @@ export function alertsToFeed(alerts: FarmerAlert[]): FeedItemDraft[] {
         ? `/domaines/${alert.farmId}/parcelles/${alert.parcelId}`
         : `/domaines/${alert.farmId}`,
     }));
+}
+
+/** Plan ITK d'une parcelle, avec de quoi nommer et router la carte. */
+export interface ParcelItkSource {
+  itk: ItkParcelTasks;
+  parcelName: string;
+  farmId: string;
+}
+
+export interface ItkFeedContext {
+  now: Dayjs;
+  /** Domaines dont le kit mesure de la pluie ou du vent fort en ce moment. */
+  unfavourableFarmIds: Set<string>;
+}
+
+/** Types de tâches ITK qui méritent une fenêtre de traitement. */
+const WINDOW_TYPES = new Set(['treatment', 'fertilisation', 'fertilization', 'weeding', 'irrigation']);
+
+/** Type de tâche ITK → pictogramme. */
+const ITK_ICON: Record<string, FeedIcon> = {
+  observation: 'inspection',
+  monitoring: 'inspection',
+  fertilisation: 'treatment',
+  fertilization: 'treatment',
+  weeding: 'treatment',
+  treatment: 'treatment',
+  harvest: 'harvest',
+  planting: 'sowing',
+  sowing: 'sowing',
+  irrigation: 'irrigation',
+};
+
+/** « Urée 150 kg/ha · KCl 50 kg/ha » — vide si la tâche n'a pas d'intrant. */
+function inputsSummary(task: ItkTask): string {
+  return task.inputs.map((input) => `${input.product} ${input.dosePerHa} ${input.unit}/ha`).join(' · ');
+}
+
+/**
+ * Tâches ITK du **stade courant** → éléments du fil.
+ *
+ * Une tâche à intrants dont la fenêtre est ouverte (ou s'ouvre sous 24 h) et se
+ * ferme sous 7 jours est **promue** en carte « fenêtre de traitement » : elle
+ * n'apparaît donc jamais deux fois. On ne prédit rien — la prévision météo est
+ * inaccessible au rôle FARMER — on se contente de dater la fenêtre agronomique
+ * et de mentionner ce que le kit mesure à l'instant.
+ */
+export function itkToFeed(sources: ParcelItkSource[], ctx: ItkFeedContext): FeedItemDraft[] {
+  const items: FeedItemDraft[] = [];
+
+  for (const { itk, parcelName, farmId } of sources) {
+    if (!itk.hasActiveCampaign) continue;
+    const stage = itk.stages.find((s) => s.stageCode === itk.currentStage?.stageCode);
+    if (!stage) continue;
+
+    const target = `/domaines/${farmId}/parcelles/${itk.parcelId}`;
+
+    for (const task of [...stage.tasks.mandatory, ...stage.tasks.recommended]) {
+      if (task.state === 'completed') continue;
+
+      const at = task.windowStart ?? task.windowEnd ?? stage.expectedStart;
+      if (!at) continue;
+
+      const icon = ITK_ICON[task.type] ?? 'inspection';
+      const end = task.windowEnd ? dayjs(task.windowEnd) : null;
+      const start = task.windowStart ? dayjs(task.windowStart) : null;
+      const inputs = inputsSummary(task);
+
+      const isOpenWindow =
+        WINDOW_TYPES.has(task.type) &&
+        end !== null &&
+        end.isAfter(ctx.now) &&
+        end.diff(ctx.now, 'day') <= 7 &&
+        (start === null || start.diff(ctx.now, 'hour') <= 24);
+
+      if (isOpenWindow && end) {
+        const closingSoon = end.diff(ctx.now, 'hour') < 48;
+        items.push({
+          id: `window:${itk.parcelId}:${task.taskId}`,
+          kind: 'window',
+          title: task.title,
+          place: parcelName,
+          icon: 'window',
+          advice: [`Jusqu’au ${end.format('DD/MM')}`, inputs].filter(Boolean).join(' · '),
+          note: ctx.unfavourableFarmIds.has(farmId)
+            ? 'Conditions défavorables en ce moment — mesuré par le kit'
+            : undefined,
+          at: task.windowEnd as string,
+          urgentNow: closingSoon || undefined,
+          target,
+        });
+        continue;
+      }
+
+      const missed = end !== null && end.isBefore(ctx.now);
+      items.push({
+        id: `itk:${itk.parcelId}:${task.taskId}`,
+        kind: 'itk',
+        title: task.title,
+        place: parcelName,
+        icon,
+        advice: missed ? 'Fenêtre dépassée' : inputs || task.timing || undefined,
+        at,
+        urgentNow: missed || undefined,
+        target,
+      });
+    }
+  }
+
+  return items;
 }

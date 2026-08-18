@@ -3,15 +3,17 @@ import { describe, expect, it } from 'vitest';
 
 import type { FarmerAlert } from '@/features/Domaines/domaines.types';
 import type { FieldTask } from '@/features/FieldTasks/fieldTasks.types';
-import type { ItkParcelTasks } from '@/features/Parcelle/parcelle.types';
+import type { ItkParcelTasks, ItkTask } from '@/features/Parcelle/parcelle.types';
 
 import {
   alertsToFeed,
   fieldTasksToFeed,
+  itkToFeed,
   toActivities,
   toDomainAlerts,
   type NameIndex,
   type ParcelItk,
+  type ParcelItkSource,
 } from './home.mappers';
 
 const baseAlert = (over: Partial<FarmerAlert>): FarmerAlert => ({
@@ -242,5 +244,107 @@ describe('alertsToFeed', () => {
         },
       ]),
     ).toEqual([]);
+  });
+});
+
+const itkTask = (over: Partial<ItkTask> = {}): ItkTask => ({
+  taskId: 'it1',
+  type: 'fertilisation',
+  title: 'Apport urée',
+  description: '',
+  timing: 'J+15',
+  windowStart: '2026-08-18T00:00:00.000Z',
+  windowEnd: '2026-08-20T00:00:00.000Z',
+  state: 'pending',
+  inputs: [{ product: 'Urée', dosePerHa: 150, unit: 'kg' }],
+  ...over,
+});
+
+const itkSource = (tasks: ItkTask[]): ParcelItkSource => ({
+  farmId: 'f1',
+  parcelName: 'Kaporo 1',
+  itk: {
+    parcelId: 'p1',
+    hasActiveCampaign: true,
+    daysAfterSowing: 15,
+    currentStage: { stageCode: 'S2', stageName: 'Croissance', order: 2 },
+    itkValidationStatus: 'web_provisional',
+    stages: [
+      {
+        stageCode: 'S2',
+        stageName: 'Croissance',
+        order: 2,
+        expectedStart: '2026-08-10T00:00:00.000Z',
+        expectedEnd: '2026-09-10T00:00:00.000Z',
+        status: 'inProgress',
+        dayStart: 10,
+        dayEnd: 40,
+        description: '',
+        critical: false,
+        tasks: { mandatory: tasks, recommended: [] },
+        risks: [],
+      },
+    ],
+  } as ItkParcelTasks,
+});
+
+describe('itkToFeed', () => {
+  const ctx = { now: NOW, unfavourableFarmIds: new Set<string>() };
+
+  it('promeut une tâche d’intrant en fenêtre de traitement, urgente si elle se ferme sous 48 h', () => {
+    const items = itkToFeed([itkSource([itkTask()])], ctx);
+
+    expect(items).toHaveLength(1);
+    expect(items[0].kind).toBe('window');
+    expect(items[0].id).toBe('window:p1:it1');
+    expect(items[0].icon).toBe('window');
+    expect(items[0].at).toBe('2026-08-20T00:00:00.000Z');
+    expect(items[0].urgentNow).toBe(true);
+    expect(items[0].advice).toContain('Jusqu’au 20/08');
+    expect(items[0].target).toBe('/domaines/f1/parcelles/p1');
+  });
+
+  it('signale les conditions défavorables mesurées par le kit du domaine', () => {
+    const items = itkToFeed([itkSource([itkTask()])], { now: NOW, unfavourableFarmIds: new Set(['f1']) });
+
+    expect(items[0].note).toBe('Conditions défavorables en ce moment — mesuré par le kit');
+  });
+
+  it('laisse une tâche sans intrant ni fenêtre datée en simple tâche ITK', () => {
+    const items = itkToFeed(
+      [itkSource([itkTask({ taskId: 'it2', type: 'observation', title: 'Observation ravageurs', inputs: [], windowStart: '2026-08-22T00:00:00.000Z', windowEnd: null })])],
+      ctx,
+    );
+
+    expect(items[0].kind).toBe('itk');
+    expect(items[0].id).toBe('itk:p1:it2');
+    expect(items[0].icon).toBe('inspection');
+    expect(items[0].at).toBe('2026-08-22T00:00:00.000Z');
+    expect(items[0].urgentNow).toBeUndefined();
+  });
+
+  it('épingle une tâche ITK dont la fenêtre est dépassée', () => {
+    const items = itkToFeed(
+      [itkSource([itkTask({ taskId: 'it3', type: 'observation', inputs: [], windowStart: '2026-08-10T00:00:00.000Z', windowEnd: '2026-08-14T00:00:00.000Z' })])],
+      ctx,
+    );
+
+    expect(items[0].kind).toBe('itk');
+    expect(items[0].urgentNow).toBe(true);
+    expect(items[0].advice).toBe('Fenêtre dépassée');
+  });
+
+  it('écarte les tâches faites et les parcelles sans campagne active', () => {
+    const done = itkToFeed([itkSource([itkTask({ state: 'completed' })])], ctx);
+    expect(done).toEqual([]);
+
+    const noCampaign = itkSource([itkTask()]);
+    noCampaign.itk.hasActiveCampaign = false;
+    expect(itkToFeed([noCampaign], ctx)).toEqual([]);
+  });
+
+  it('résume les intrants comme conseil de la fenêtre', () => {
+    const items = itkToFeed([itkSource([itkTask()])], ctx);
+    expect(items[0].advice).toContain('Urée 150 kg/ha');
   });
 });
