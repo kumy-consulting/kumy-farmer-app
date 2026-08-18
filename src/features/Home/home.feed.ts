@@ -1,10 +1,12 @@
 import dayjs, { type Dayjs } from 'dayjs';
 
+import type { AlertSeverity } from '@/features/Domaines/domaines.types';
+
 import type { FeedBucket, FeedGroup, FeedItem, FeedItemDraft } from './home.feed.types';
 
 const BUCKET_LABEL: Record<FeedBucket, string> = {
   now: 'À traiter maintenant',
-  today: 'Aujourd\'hui',
+  today: 'Aujourd’hui',
   week: 'Cette semaine',
   later: 'À venir',
 };
@@ -12,7 +14,7 @@ const BUCKET_LABEL: Record<FeedBucket, string> = {
 const BUCKET_ORDER: FeedBucket[] = ['now', 'today', 'week', 'later'];
 
 /** Absence de sévérité = rang 3 : une simple tâche passe après une info. */
-const SEVERITY_RANK: Record<string, number> = { critical: 0, warning: 1, info: 2 };
+const SEVERITY_RANK: Record<AlertSeverity, number> = { critical: 0, warning: 1, info: 2 };
 
 /**
  * Groupe d'un élément. Trois raisons d'être épinglé en tête, et elles seules :

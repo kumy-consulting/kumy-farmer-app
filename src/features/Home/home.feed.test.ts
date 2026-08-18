@@ -33,7 +33,7 @@ describe('buildFeed', () => {
     expect(groups[1].items.map((i) => i.id)).toEqual(['d']);
   });
 
-  it('range le reste par horizon : aujourd\'hui, cette semaine, à venir', () => {
+  it('range le reste par horizon : aujourd’hui, cette semaine, à venir', () => {
     const groups = buildFeed(
       [
         draft({ id: 'today', at: '2026-08-19T18:00:00.000Z' }),
@@ -44,7 +44,7 @@ describe('buildFeed', () => {
     );
 
     expect(groups.map((g) => g.bucket)).toEqual(['today', 'week', 'later']);
-    expect(groups.map((g) => g.label)).toEqual(['Aujourd\'hui', 'Cette semaine', 'À venir']);
+    expect(groups.map((g) => g.label)).toEqual(['Aujourd’hui', 'Cette semaine', 'À venir']);
   });
 
   it('trie par gravité, puis retard décroissant, puis échéance croissante', () => {
