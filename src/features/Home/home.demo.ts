@@ -209,6 +209,13 @@ export const demoTasks: FieldTask[] = [
     dueDate: day(5),
     status: 'planned',
   }),
+  task('t7', {
+    title: 'Curage des drains de la parcelle basse',
+    type: 'other',
+    parcelId: 'p-riz-bas-fond',
+    dueDate: day(6),
+    status: 'planned',
+  }),
   task('t6', {
     title: 'Contrôle du paillage',
     type: 'other',

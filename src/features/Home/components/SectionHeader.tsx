@@ -10,7 +10,7 @@ interface SectionHeaderProps {
 }
 
 export const SectionHeader: FunctionComponent<SectionHeaderProps> = ({ title, count, actionLabel, onAction }) => (
-  <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.25 }}>
+  <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
     <Stack direction="row" alignItems="center" spacing={0.9}>
       <Typography
         sx={{

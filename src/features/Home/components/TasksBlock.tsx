@@ -68,7 +68,7 @@ export const TasksBlock: FunctionComponent<TasksBlockProps> = ({ tasks, isOnline
           spacing={0.75}
           alignItems="flex-start"
           sx={{
-            mt: 1.5,
+            mt: 1.25,
             p: '14px 16px',
             borderRadius: '18px',
             background: 'rgba(1,134,117,0.04)',
@@ -79,14 +79,14 @@ export const TasksBlock: FunctionComponent<TasksBlockProps> = ({ tasks, isOnline
           {next && (
             <Button
               onClick={() => select(next)}
-              sx={{ textTransform: 'none', px: 0, minWidth: 0, fontSize: 13, fontWeight: 600 }}
+              sx={{ textTransform: 'none', px: 0, py: 0.25, minWidth: 0, minHeight: 0, fontSize: 13, fontWeight: 600 }}
             >
               {SUGGESTION_LABEL[next](tasks.counts[next])}
             </Button>
           )}
         </Stack>
       ) : (
-        <Stack spacing={1.25} sx={{ mt: 1.5 }}>
+        <Stack spacing={1.25} sx={{ mt: 1.25 }}>
           {visible.map((item) => (
             <FeedCard key={item.id} item={item} isOnline={isOnline} onSelect={onSelect} onAction={onAction} />
           ))}
@@ -94,13 +94,13 @@ export const TasksBlock: FunctionComponent<TasksBlockProps> = ({ tasks, isOnline
       )}
 
       {hidden > 0 && (
-        <Button onClick={() => setExpanded(true)} sx={{ textTransform: 'none', alignSelf: 'center', mt: 0.5 }}>
+        <Button onClick={() => setExpanded(true)} sx={{ textTransform: 'none', alignSelf: 'center', mt: 1, py: 0.25, minHeight: 0, fontSize: 13, fontWeight: 600 }}>
           Voir les {items.length} tâches
         </Button>
       )}
 
       {tasks.doneToday.length > 0 && (
-        <Stack spacing={1.25} sx={{ mt: 1.5 }}>
+        <Stack spacing={1.25} sx={{ mt: 1.75 }}>
           <Typography sx={{ fontSize: 12, fontWeight: 600, color: 'rgba(55,75,70,0.55)' }}>
             Fait aujourd’hui
           </Typography>

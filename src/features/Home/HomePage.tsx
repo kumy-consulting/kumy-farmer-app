@@ -88,7 +88,7 @@ export const HomePage: FunctionComponent = () => {
         />
       </Reveal>
 
-      <Stack spacing={3.5} sx={{ px: 2.5, mt: 2, pb: 5 }}>
+      <Stack spacing={2.75} sx={{ px: 2.5, mt: 2, pb: 4 }}>
         {isDemoMode() && (
           <Typography
             sx={{

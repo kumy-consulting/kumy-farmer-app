@@ -27,11 +27,9 @@ export const TaskSegments: FunctionComponent<TaskSegmentsProps> = ({ counts, act
       display: 'grid',
       gridTemplateColumns: 'repeat(3, 1fr)',
       gap: 0.75,
-      p: 0.75,
+      p: 0.5,
       borderRadius: '20px',
-      background: '#FFFFFF',
-      border: '1px solid rgba(55,75,70,0.07)',
-      boxShadow: '0 6px 18px rgba(1,134,117,0.06)',
+      background: 'rgba(55,75,70,0.07)',
     }}
   >
     {TASK_SEGMENTS.map((segment) => {
@@ -54,11 +52,11 @@ export const TaskSegments: FunctionComponent<TaskSegmentsProps> = ({ counts, act
             alignItems: 'center',
             gap: 0.15,
             py: 1.1,
-            borderRadius: '15px',
-            background: isActive ? tone.fill : 'transparent',
+            borderRadius: '16px',
+            background: isActive ? '#FFFFFF' : 'transparent',
             // Le segment actif s'ancre sur la liste qui le suit : le trait le
             // relie à son contenu, comme un onglet ouvert.
-            boxShadow: isActive ? `inset 0 -3px 0 ${tone.text}` : 'none',
+            boxShadow: isActive ? `inset 0 -3px 0 ${tone.text}, 0 2px 10px rgba(1,134,117,0.10)` : 'none',
             transition: 'background 0.18s ease, box-shadow 0.18s ease',
             '&:focus-visible': { outline: `2px solid ${tone.text}`, outlineOffset: 2 },
           }}
@@ -70,7 +68,7 @@ export const TaskSegments: FunctionComponent<TaskSegmentsProps> = ({ counts, act
               fontWeight: 700,
               lineHeight: 1.05,
               fontVariantNumeric: 'tabular-nums',
-              color: counts[segment] > 0 ? tone.text : 'rgba(55,75,70,0.35)',
+              color: counts[segment] > 0 ? tone.text : 'rgba(55,75,70,0.32)',
             }}
           >
             {counts[segment]}
@@ -79,7 +77,7 @@ export const TaskSegments: FunctionComponent<TaskSegmentsProps> = ({ counts, act
             sx={{
               fontSize: 11.5,
               fontWeight: isActive ? 700 : 500,
-              color: isActive ? tone.text : 'rgba(55,75,70,0.6)',
+              color: isActive ? tone.text : 'rgba(55,75,70,0.58)',
             }}
           >
             {TASK_SEGMENT_LABEL[segment]}
