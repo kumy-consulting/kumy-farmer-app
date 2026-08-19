@@ -28,7 +28,9 @@ function timingLabel(item: FeedItem): string {
  */
 export const FeedCard: FunctionComponent<FeedCardProps> = ({ item, isOnline, onSelect, onAction }) => {
   const tone = item.severity ? SEVERITY_TONE[item.severity] : KIND_TONE[item.kind];
-  const status = item.status ? TASK_STATUS[item.status] : null;
+  // « À faire » est l'état par défaut : le segment ouvert le dit déjà, la carte
+  // n'affiche que ce qui sort de l'ordinaire.
+  const status = item.status && item.status !== 'planned' ? TASK_STATUS[item.status] : null;
 
   return (
     <Box

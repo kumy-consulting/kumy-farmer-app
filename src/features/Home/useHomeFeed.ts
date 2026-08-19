@@ -9,6 +9,15 @@ import type { FieldTask } from '@/features/FieldTasks/fieldTasks.types';
 import { parcelleApi } from '@/features/Parcelle/parcelle.api';
 import { useAuthStore } from '@/shared/stores/authStore';
 
+import {
+  demoAlerts,
+  demoItkDrafts,
+  demoNames,
+  demoRecap,
+  demoTasks,
+  demoWeather,
+  isDemoMode,
+} from './home.demo';
 import type { FeedItemDraft } from './home.feed.types';
 import {
   alertsToFeed,
@@ -108,6 +117,20 @@ export function useHomeFeed(): HomeFeedState {
   const reload = useCallback(() => setReloadKey((key) => key + 1), []);
 
   useEffect(() => {
+    // Mode démo (`?demo=1`, dev uniquement) : on remplace le réseau, pas la
+    // logique — mappers, sections et actions optimistes tournent normalement.
+    if (isDemoMode()) {
+      setTasks(demoTasks);
+      setAlerts(demoAlerts);
+      setItkDrafts(demoItkDrafts);
+      setNames(demoNames);
+      setRecap(demoRecap);
+      setWeather(demoWeather);
+      setIsLoading(false);
+      setIsEnriching(false);
+      return;
+    }
+
     if (!farmerId) {
       setIsLoading(false);
       setIsEnriching(false);
@@ -271,6 +294,9 @@ export function useHomeFeed(): HomeFeedState {
           : task,
       ),
     );
+
+    // En démo, la mise à jour optimiste EST le résultat : aucun serveur à appeler.
+    if (isDemoMode()) return;
 
     try {
       const updated = await fieldTasksApi.transition(taskId, action);

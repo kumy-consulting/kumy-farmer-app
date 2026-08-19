@@ -13,13 +13,14 @@ interface TaskActionsProps {
 }
 
 const base = {
-  flex: 1,
-  borderRadius: '12px',
+  borderRadius: '999px',
   textTransform: 'none',
   fontFamily: "'Ubuntu', sans-serif",
-  fontSize: 13,
+  fontSize: 12.5,
   fontWeight: 600,
-  py: 0.75,
+  px: 1.6,
+  py: 0.5,
+  minWidth: 0,
 } as const;
 
 /**
@@ -31,8 +32,8 @@ export const TaskActions: FunctionComponent<TaskActionsProps> = ({ item, isOnlin
   if (item.status === 'done') return null;
 
   return (
-    <Stack spacing={0.75} sx={{ mt: 1.25 }}>
-      <Stack direction="row" spacing={1}>
+    <Stack spacing={0.5} alignItems="flex-end" sx={{ mt: 1 }}>
+      <Stack direction="row" spacing={0.75}>
         {item.status === 'planned' && (
           <Button
             variant="outlined"
@@ -42,7 +43,7 @@ export const TaskActions: FunctionComponent<TaskActionsProps> = ({ item, isOnlin
               event.stopPropagation();
               onAction(item.id, 'start');
             }}
-            sx={{ ...base, borderColor: 'rgba(1,134,117,0.35)', color: '#016557' }}
+            sx={{ ...base, borderColor: 'rgba(1,134,117,0.3)', color: '#016557' }}
           >
             Démarrer
           </Button>

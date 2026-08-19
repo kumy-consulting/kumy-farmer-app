@@ -14,6 +14,7 @@ import { HomeSkeleton } from './components/HomeSkeleton';
 import { RecapBar } from './components/RecapBar';
 import { TasksBlock } from './components/TasksBlock';
 import { VisitsBlock } from './components/VisitsBlock';
+import { isDemoMode } from './home.demo';
 import type { FeedItem } from './home.feed.types';
 import { useHomeFeed } from './useHomeFeed';
 
@@ -82,6 +83,25 @@ export const HomePage: FunctionComponent = () => {
       </Reveal>
 
       <Stack spacing={3.5} sx={{ px: 2.5, mt: 2, pb: 5 }}>
+        {isDemoMode() && (
+          <Typography
+            sx={{
+              alignSelf: 'flex-start',
+              px: 1.1,
+              py: 0.35,
+              borderRadius: 999,
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              color: '#8C5000',
+              background: 'rgba(198,138,26,0.16)',
+            }}
+          >
+            Données de démonstration
+          </Typography>
+        )}
+
         {recap && (
           <Reveal sx={{ animationDelay: '0.05s' }}>
             <RecapBar recap={recap} onClick={() => navigate('/domaines')} />

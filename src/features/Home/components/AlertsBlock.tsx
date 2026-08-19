@@ -68,7 +68,7 @@ export const AlertsBlock: FunctionComponent<AlertsBlockProps> = ({ alerts, onSel
 
       {hidden > 0 && (
         <Button onClick={() => setExpanded(true)} sx={{ textTransform: 'none', alignSelf: 'center', mt: 0.5 }}>
-          Voir les {alerts.fresh.length} alertes
+          Voir {hidden > 1 ? `les ${hidden} autres alertes` : 'l’autre alerte'}
         </Button>
       )}
 

@@ -190,7 +190,7 @@ describe('HomePage (fil d’exploitation)', () => {
     expect(await screen.findByText('Alerte 0')).toBeDefined();
     expect(screen.queryByText('Alerte 4')).toBeNull();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Voir les 5 alertes' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Voir les 2 autres alertes' }));
 
     expect(await screen.findByText('Alerte 4')).toBeDefined();
   });

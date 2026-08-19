@@ -83,7 +83,9 @@ export function fieldTasksToFeed(tasks: FieldTask[], names: NameIndex, now: Dayj
         place: parcelName ?? farmName ?? 'Mon exploitation',
         icon: TASK_ICON[task.type] ?? 'inspection',
         advice: task.description || undefined,
-        at: `${task.dueDate}T00:00:00`,
+        // Une consigne cochée se lit à l'heure où elle a été faite ; les autres
+        // à leur échéance, qui est un jour et non un instant.
+        at: task.status === 'done' && task.completedAt ? task.completedAt : `${task.dueDate}T00:00:00`,
         status: task.status,
         overdue: task.overdue,
         daysOverdue: task.daysOverdue,
