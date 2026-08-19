@@ -2,9 +2,10 @@ import dayjs from 'dayjs';
 
 import type { FarmerAlert } from '@/features/Domaines/domaines.types';
 import type { FieldTask } from '@/features/FieldTasks/fieldTasks.types';
+import type { ItkParcelTasks } from '@/features/Parcelle/parcelle.types';
 
 import type { FeedItemDraft } from './home.feed.types';
-import type { NameIndex } from './home.mappers';
+import { itkToFeed, type NameIndex, type ParcelItkSource } from './home.mappers';
 import type { HomeRecap, HomeWeather } from './useHomeFeed';
 
 /**
@@ -36,14 +37,30 @@ export const demoNames: NameIndex = {
   ]),
 };
 
+/** Dernières mesures du kit du domaine — source unique de la puce ET des conditions. */
+const demoStationMeasures = { temperature: 31, rain: 4, wind: 9 };
+
+/** Au-delà, un traitement part en dérive : même seuil que le hook. */
+const WIND_LIMIT_KMH = 20;
+
 export const demoWeather: HomeWeather = {
   farmId: FARM_ID,
   farmName: 'Domaine de Kaporo',
-  tempC: 31,
+  tempC: demoStationMeasures.temperature,
   online: true,
   observedAt: iso(now().subtract(4, 'minute')),
   hasKit: true,
 };
+
+/**
+ * Domaines où le kit **en ligne** relève des conditions défavorables — même
+ * règle que la vague 2 du hook : pluie en cours ou vent trop fort.
+ */
+const demoUnfavourableFarmIds = new Set(
+  demoWeather.online && (demoStationMeasures.rain > 0 || demoStationMeasures.wind > WIND_LIMIT_KMH)
+    ? [FARM_ID]
+    : [],
+);
 
 export const demoRecap: HomeRecap = {
   domains: 3,
@@ -204,32 +221,103 @@ export const demoTasks: FieldTask[] = [
 ];
 
 /**
- * Éléments issus de l'ITK — déjà sous forme de `FeedItemDraft`, comme ce que la
- * vague 3 produit en production.
+ * Plans ITK de démonstration. Ils traversent le VRAI mapper : la promotion en
+ * fenêtre de traitement, l'échéance et la mention météo sont dérivées ici comme
+ * en production, pas écrites à la main.
  */
-export const demoItkDrafts: FeedItemDraft[] = [
+const demoItkSources: ParcelItkSource[] = [
   {
-    id: 'window:p-riz-bas-fond:w1',
-    kind: 'window',
-    title: 'Désherbage chimique du riz',
-    place: 'Riz Bas-fond',
-    icon: 'window',
-    advice: `Jusqu’au ${now().add(1, 'day').format('DD/MM')} · Bispyribac 25 g/ha`,
-    at: iso(now().add(30, 'hour')),
-    urgentNow: true,
-    target: `/domaines/${FARM_ID}/parcelles/p-riz-bas-fond`,
+    farmId: FARM_ID,
+    parcelName: 'Riz Bas-fond',
+    itk: {
+      parcelId: 'p-riz-bas-fond',
+      hasActiveCampaign: true,
+      cropType: 'Riz',
+      daysAfterSowing: 28,
+      currentStage: { stageCode: 'TALLAGE', stageName: 'Tallage', order: 3 },
+      itkValidationStatus: 'irag_validated',
+      stages: [
+        {
+          stageCode: 'TALLAGE',
+          stageName: 'Tallage',
+          order: 3,
+          expectedStart: iso(now().subtract(10, 'day')),
+          expectedEnd: iso(now().add(12, 'day')),
+          status: 'inProgress',
+          dayStart: 20,
+          dayEnd: 45,
+          description: '',
+          critical: true,
+          tasks: {
+            mandatory: [
+              {
+                taskId: 'w1',
+                type: 'weeding',
+                title: 'Désherbage chimique du riz',
+                description: '',
+                timing: 'J+25 à J+30',
+                windowStart: iso(now().subtract(1, 'day')),
+                windowEnd: iso(now().add(30, 'hour')),
+                state: 'pending',
+                inputs: [{ product: 'Bispyribac', dosePerHa: 25, unit: 'g' }],
+              },
+            ],
+            recommended: [],
+          },
+          risks: [],
+        },
+      ],
+    } as ItkParcelTasks,
   },
   {
-    id: 'itk:p-ananas-nord:i1',
-    kind: 'itk',
-    title: 'Observation des ravageurs',
-    place: 'Ananas Nord',
-    icon: 'inspection',
-    advice: 'J+45 après plantation',
-    at: iso(now().add(3, 'day')),
-    target: `/domaines/${FARM_ID}/parcelles/p-ananas-nord`,
+    farmId: FARM_ID,
+    parcelName: 'Ananas Nord',
+    itk: {
+      parcelId: 'p-ananas-nord',
+      hasActiveCampaign: true,
+      cropType: 'Ananas',
+      daysAfterSowing: 45,
+      currentStage: { stageCode: 'CROISSANCE', stageName: 'Croissance', order: 2 },
+      itkValidationStatus: 'web_provisional',
+      stages: [
+        {
+          stageCode: 'CROISSANCE',
+          stageName: 'Croissance',
+          order: 2,
+          expectedStart: iso(now().subtract(20, 'day')),
+          expectedEnd: iso(now().add(30, 'day')),
+          status: 'inProgress',
+          dayStart: 30,
+          dayEnd: 90,
+          description: '',
+          critical: false,
+          tasks: {
+            mandatory: [
+              {
+                taskId: 'i1',
+                type: 'observation',
+                title: 'Observation des ravageurs',
+                description: '',
+                timing: 'J+45',
+                windowStart: iso(now().add(3, 'day')),
+                windowEnd: null,
+                state: 'pending',
+                inputs: [],
+              },
+            ],
+            recommended: [],
+          },
+          risks: [],
+        },
+      ],
+    } as ItkParcelTasks,
   },
 ];
+
+export const demoItkDrafts: FeedItemDraft[] = itkToFeed(demoItkSources, {
+  now: now(),
+  unfavourableFarmIds: demoUnfavourableFarmIds,
+});
 
 /** `?demo=1` en développement — jamais actif dans un build de production. */
 export function isDemoMode(): boolean {
