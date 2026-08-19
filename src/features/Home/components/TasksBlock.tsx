@@ -20,8 +20,20 @@ const PREVIEW = 3;
 
 const EMPTY_SEGMENT: Record<TaskSegment, string> = {
   inProgress: 'Aucune tâche démarrée.',
-  overdue: 'Rien en retard — tout est à jour.',
+  overdue: 'Rien en retard, tout est à jour.',
   planned: 'Rien de prévu pour l’instant.',
+};
+
+/** Vers quoi renvoyer quand le segment ouvert est vide : le travail qui attend. */
+function suggestion(counts: Record<TaskSegment, number>, active: TaskSegment): TaskSegment | null {
+  const order: TaskSegment[] = ['overdue', 'inProgress', 'planned'];
+  return order.find((segment) => segment !== active && counts[segment] > 0) ?? null;
+}
+
+const SUGGESTION_LABEL: Record<TaskSegment, (count: number) => string> = {
+  overdue: (count) => (count > 1 ? `Voir les ${count} en retard` : 'Voir la tâche en retard'),
+  inProgress: (count) => (count > 1 ? `Voir les ${count} en cours` : 'Voir la tâche en cours'),
+  planned: (count) => (count > 1 ? `Voir les ${count} prévues` : 'Voir la tâche prévue'),
 };
 
 /**
@@ -38,6 +50,8 @@ export const TasksBlock: FunctionComponent<TasksBlockProps> = ({ tasks, isOnline
   const visible = expanded ? items : items.slice(0, PREVIEW);
   const hidden = items.length - visible.length;
 
+  const next = suggestion(tasks.counts, active);
+
   const select = (segment: TaskSegment) => {
     setChosen(segment);
     setExpanded(false);
@@ -50,7 +64,27 @@ export const TasksBlock: FunctionComponent<TasksBlockProps> = ({ tasks, isOnline
       <TaskSegments counts={tasks.counts} active={active} onChange={select} />
 
       {items.length === 0 ? (
-        <Typography sx={{ fontSize: 13, color: 'rgba(55,75,70,0.6)', mt: 1.5 }}>{EMPTY_SEGMENT[active]}</Typography>
+        <Stack
+          spacing={0.75}
+          alignItems="flex-start"
+          sx={{
+            mt: 1.5,
+            p: '14px 16px',
+            borderRadius: '18px',
+            background: 'rgba(1,134,117,0.04)',
+            border: '1px dashed rgba(1,134,117,0.2)',
+          }}
+        >
+          <Typography sx={{ fontSize: 13, color: 'rgba(55,75,70,0.72)' }}>{EMPTY_SEGMENT[active]}</Typography>
+          {next && (
+            <Button
+              onClick={() => select(next)}
+              sx={{ textTransform: 'none', px: 0, minWidth: 0, fontSize: 13, fontWeight: 600 }}
+            >
+              {SUGGESTION_LABEL[next](tasks.counts[next])}
+            </Button>
+          )}
+        </Stack>
       ) : (
         <Stack spacing={1.25} sx={{ mt: 1.5 }}>
           {visible.map((item) => (

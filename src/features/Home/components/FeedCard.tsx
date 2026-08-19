@@ -80,11 +80,9 @@ export const FeedCard: FunctionComponent<FeedCardProps> = ({ item, isOnline, onS
             <Typography
               sx={{
                 fontFamily: "'Ubuntu', sans-serif",
-                fontSize: 11,
-                fontWeight: 700,
-                letterSpacing: '0.02em',
-                color: tone.main,
-                textTransform: 'uppercase',
+                fontSize: 11.5,
+                fontWeight: 500,
+                color: 'rgba(55,75,70,0.62)',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
@@ -113,11 +111,12 @@ export const FeedCard: FunctionComponent<FeedCardProps> = ({ item, isOnline, onS
           <Typography
             sx={{
               fontFamily: "'Ubuntu', sans-serif",
-              fontSize: 14,
-              fontWeight: 600,
-              color: 'rgba(26,43,39,0.92)',
-              lineHeight: 1.3,
-              mt: 0.25,
+              fontSize: 15,
+              fontWeight: 700,
+              color: '#16241F',
+              lineHeight: 1.28,
+              letterSpacing: '-0.006em',
+              mt: 0.1,
             }}
           >
             {item.title}

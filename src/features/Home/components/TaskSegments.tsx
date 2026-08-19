@@ -56,16 +56,20 @@ export const TaskSegments: FunctionComponent<TaskSegmentsProps> = ({ counts, act
             py: 1.1,
             borderRadius: '15px',
             background: isActive ? tone.fill : 'transparent',
-            transition: 'background 0.18s ease',
+            // Le segment actif s'ancre sur la liste qui le suit : le trait le
+            // relie à son contenu, comme un onglet ouvert.
+            boxShadow: isActive ? `inset 0 -3px 0 ${tone.text}` : 'none',
+            transition: 'background 0.18s ease, box-shadow 0.18s ease',
             '&:focus-visible': { outline: `2px solid ${tone.text}`, outlineOffset: 2 },
           }}
         >
           <Typography
             sx={{
               fontFamily: "'Ubuntu', sans-serif",
-              fontSize: 22,
+              fontSize: 23,
               fontWeight: 700,
-              lineHeight: 1.1,
+              lineHeight: 1.05,
+              fontVariantNumeric: 'tabular-nums',
               color: counts[segment] > 0 ? tone.text : 'rgba(55,75,70,0.35)',
             }}
           >

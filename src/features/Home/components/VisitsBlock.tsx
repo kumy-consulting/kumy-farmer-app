@@ -86,11 +86,11 @@ export const VisitsBlock: FunctionComponent<VisitsBlockProps> = ({ visits, onSel
                 mt: 0.2,
               }}
             >
-              {last ? last.title : 'Aucune visite enregistrée'}
+              {last ? last.title : 'Aucune visite pour l’instant'}
             </Typography>
-            {last?.advice && (
-              <Typography sx={{ fontSize: 12.5, color: 'rgba(36,63,56,0.75)', mt: 0.25 }}>{last.advice}</Typography>
-            )}
+            <Typography sx={{ fontSize: 12.5, color: 'rgba(36,63,56,0.75)', mt: 0.25 }}>
+              {last?.advice ?? 'Les consignes laissées par votre encadreur apparaîtront ici.'}
+            </Typography>
           </Box>
 
           {last && <ChevronRightRounded sx={{ color: 'rgba(55,75,70,0.35)', flexShrink: 0 }} />}

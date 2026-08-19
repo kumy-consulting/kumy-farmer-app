@@ -81,7 +81,7 @@ export const HomePage: FunctionComponent = () => {
         <HomeHeader firstName={firstName} weather={weather} onWeatherClick={(id) => navigate(`/domaines/${id}`)} />
       </Reveal>
 
-      <Stack spacing={2.5} sx={{ px: 2.5, mt: 2, pb: 4 }}>
+      <Stack spacing={3.5} sx={{ px: 2.5, mt: 2, pb: 5 }}>
         {recap && (
           <Reveal sx={{ animationDelay: '0.05s' }}>
             <RecapBar recap={recap} onClick={() => navigate('/domaines')} />

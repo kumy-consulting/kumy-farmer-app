@@ -155,6 +155,19 @@ describe('HomePage (fil d’exploitation)', () => {
     expect(screen.queryByText('Sarclage manuel')).toBeNull();
   });
 
+  it('propose le travail qui attend quand le segment ouvert est vide', async () => {
+    mockedFieldTasks.list.mockResolvedValue([consigne]);
+
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: /En cours/ }));
+    expect(await screen.findByText('Aucune tâche démarrée.')).toBeDefined();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Voir la tâche en retard' }));
+
+    expect(await screen.findByText('Sarclage manuel')).toBeDefined();
+  });
+
   it('montre les trois alertes les plus récentes puis déplie le reste', async () => {
     const many: FarmerAlert[] = Array.from({ length: 5 }, (_, index) => ({
       id: `al${index}`,
@@ -204,7 +217,7 @@ describe('HomePage (fil d’exploitation)', () => {
     expect(await screen.findByText('Aucune alerte récente sur vos parcelles.')).toBeDefined();
     expect(screen.queryByText('NDVI en chute')).toBeNull();
 
-    fireEvent.click(await screen.findByRole('button', { name: '1 alerte plus ancienne' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Voir l’ancienne' }));
 
     expect(await screen.findByText('NDVI en chute')).toBeDefined();
   });

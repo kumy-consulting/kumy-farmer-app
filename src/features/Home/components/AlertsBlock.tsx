@@ -32,10 +32,30 @@ export const AlertsBlock: FunctionComponent<AlertsBlockProps> = ({ alerts, onSel
 
   return (
     <Stack>
-      <SectionHeader title="Alertes" count={alerts.fresh.length} />
+      <SectionHeader
+        title="Alertes"
+        count={alerts.fresh.length}
+        actionLabel={
+          alerts.stale.length > 0 && !showStale
+            ? alerts.stale.length > 1
+              ? `Voir les ${alerts.stale.length} anciennes`
+              : 'Voir l’ancienne'
+            : undefined
+        }
+        onAction={() => setShowStale(true)}
+      />
 
       {alerts.fresh.length === 0 ? (
-        <Typography sx={{ fontSize: 13, color: 'rgba(55,75,70,0.6)', mb: alerts.stale.length > 0 ? 0.5 : 0 }}>
+        <Typography
+          sx={{
+            fontSize: 13,
+            color: 'rgba(55,75,70,0.72)',
+            p: '14px 16px',
+            borderRadius: '18px',
+            background: 'rgba(1,134,117,0.04)',
+            border: '1px dashed rgba(1,134,117,0.2)',
+          }}
+        >
           Aucune alerte récente sur vos parcelles.
         </Typography>
       ) : (
@@ -52,17 +72,11 @@ export const AlertsBlock: FunctionComponent<AlertsBlockProps> = ({ alerts, onSel
         </Button>
       )}
 
-      {alerts.stale.length > 0 && !showStale && (
-        <Button
-          onClick={() => setShowStale(true)}
-          sx={{ textTransform: 'none', alignSelf: 'center', mt: 0.5, color: 'rgba(55,75,70,0.6)', fontSize: 12.5 }}
-        >
-          {alerts.stale.length} {alerts.stale.length > 1 ? 'alertes plus anciennes' : 'alerte plus ancienne'}
-        </Button>
-      )}
-
       {showStale && (
-        <Stack spacing={1.25} sx={{ mt: 1.25, opacity: 0.62 }}>
+        <Stack spacing={1.25} sx={{ mt: 1.25, opacity: 0.6 }}>
+          <Typography sx={{ fontSize: 11.5, fontWeight: 600, color: 'rgba(55,75,70,0.55)' }}>
+            Sans suite depuis plus d’une semaine
+          </Typography>
           {alerts.stale.map((item) => (
             <FeedCard key={item.id} item={item} isOnline onSelect={onSelect} onAction={noop} />
           ))}
