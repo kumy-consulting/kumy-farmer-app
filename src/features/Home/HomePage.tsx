@@ -11,7 +11,6 @@ import { AlertsBlock } from './components/AlertsBlock';
 import { EmptyState } from './components/EmptyState';
 import { HomeHeader } from './components/HomeHeader';
 import { HomeSkeleton } from './components/HomeSkeleton';
-import { RecapBar } from './components/RecapBar';
 import { TasksBlock } from './components/TasksBlock';
 import { VisitsBlock } from './components/VisitsBlock';
 import { isDemoMode } from './home.demo';
@@ -79,7 +78,14 @@ export const HomePage: FunctionComponent = () => {
   return (
     <Page>
       <Reveal>
-        <HomeHeader firstName={firstName} weather={weather} onWeatherClick={(id) => navigate(`/domaines/${id}`)} />
+        <HomeHeader
+          firstName={firstName}
+          weather={weather}
+          recap={recap}
+          alerts={{ fresh: sections.alerts.fresh.length, stale: sections.alerts.stale.length }}
+          onWeatherClick={(id) => navigate(`/domaines/${id}`)}
+          onRecapClick={() => navigate('/domaines')}
+        />
       </Reveal>
 
       <Stack spacing={3.5} sx={{ px: 2.5, mt: 2, pb: 5 }}>
@@ -100,12 +106,6 @@ export const HomePage: FunctionComponent = () => {
           >
             Données de démonstration
           </Typography>
-        )}
-
-        {recap && (
-          <Reveal sx={{ animationDelay: '0.05s' }}>
-            <RecapBar recap={recap} onClick={() => navigate('/domaines')} />
-          </Reveal>
         )}
 
         {error && (

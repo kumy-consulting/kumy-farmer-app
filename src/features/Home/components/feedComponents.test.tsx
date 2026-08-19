@@ -4,7 +4,6 @@ import { describe, expect, it, vi } from 'vitest';
 import type { FeedItem } from '../home.feed.types';
 import { FeedCard } from './FeedCard';
 import { HomeHeader } from './HomeHeader';
-import { RecapBar } from './RecapBar';
 
 const item = (over: Partial<FeedItem> = {}): FeedItem => ({
   id: 'task:ft1',
@@ -125,7 +124,10 @@ describe('HomeHeader', () => {
           observedAt: '2026-08-19T08:56:00.000Z',
           hasKit: true,
         }}
+        recap={null}
+        alerts={{ fresh: 0, stale: 0 }}
         onWeatherClick={vi.fn()}
+        onRecapClick={vi.fn()}
       />,
     );
 
@@ -147,7 +149,10 @@ describe('HomeHeader', () => {
           observedAt: null,
           hasKit: false,
         }}
+        recap={null}
+        alerts={{ fresh: 0, stale: 0 }}
         onWeatherClick={vi.fn()}
+        onRecapClick={vi.fn()}
       />,
     );
 
@@ -155,20 +160,71 @@ describe('HomeHeader', () => {
   });
 
   it('reste affichable sans aucune donnée météo', () => {
-    render(<HomeHeader firstName="Mamadou" weather={null} onWeatherClick={vi.fn()} />);
+    render(
+      <HomeHeader
+        firstName="Mamadou"
+        weather={null}
+        recap={null}
+        alerts={{ fresh: 0, stale: 0 }}
+        onWeatherClick={vi.fn()}
+        onRecapClick={vi.fn()}
+      />,
+    );
     expect(screen.getByText(/Bonjour, Mamadou/)).toBeDefined();
   });
 });
 
-describe('RecapBar', () => {
-  it('résume l’exploitation en une ligne et signale la santé', () => {
-    const onClick = vi.fn();
-    render(<RecapBar recap={{ domains: 3, parcels: 7, areaHa: 12.5, health: 'attention' }} onClick={onClick} />);
+describe('HomeHeader — récap et jauge de santé', () => {
+  const recap = { domains: 3, parcels: 7, areaHa: 12.5, health: 'attention' as const };
+
+  it('affiche l’exploitation en chiffres et le verdict de santé avec son motif', () => {
+    const onRecapClick = vi.fn();
+    render(
+      <HomeHeader
+        firstName="Mamadou"
+        weather={null}
+        recap={recap}
+        alerts={{ fresh: 2, stale: 0 }}
+        onWeatherClick={vi.fn()}
+        onRecapClick={onRecapClick}
+      />,
+    );
 
     expect(screen.getByText('3 domaines · 7 parcelles · 12,5 ha')).toBeDefined();
-    expect(screen.getByText('Santé : attention')).toBeDefined();
+    expect(screen.getByText('À surveiller')).toBeDefined();
+    expect(screen.getByText('Santé de l’exploitation · 2 alertes récentes')).toBeDefined();
 
-    fireEvent.click(screen.getByRole('button'));
-    expect(onClick).toHaveBeenCalled();
+    fireEvent.click(screen.getByText('3 domaines · 7 parcelles · 12,5 ha'));
+    expect(onRecapClick).toHaveBeenCalled();
+  });
+
+  it('remplit la jauge selon l’état : un cran sur trois quand c’est critique', () => {
+    const { rerender } = render(
+      <HomeHeader
+        firstName="Mamadou"
+        weather={null}
+        recap={{ ...recap, health: 'critical' }}
+        alerts={{ fresh: 1, stale: 2 }}
+        onWeatherClick={vi.fn()}
+        onRecapClick={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('meter').getAttribute('aria-valuenow')).toBe('1');
+    expect(screen.getByText('Santé de l’exploitation · 1 alerte récente · 2 anciennes')).toBeDefined();
+
+    rerender(
+      <HomeHeader
+        firstName="Mamadou"
+        weather={null}
+        recap={{ ...recap, health: 'good' }}
+        alerts={{ fresh: 0, stale: 0 }}
+        onWeatherClick={vi.fn()}
+        onRecapClick={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('meter').getAttribute('aria-valuenow')).toBe('3');
+    expect(screen.getByText('Santé de l’exploitation · aucune alerte récente')).toBeDefined();
   });
 });

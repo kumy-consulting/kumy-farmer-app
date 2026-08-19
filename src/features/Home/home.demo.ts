@@ -62,13 +62,6 @@ const demoUnfavourableFarmIds = new Set(
     : [],
 );
 
-export const demoRecap: HomeRecap = {
-  domains: 3,
-  parcels: 12,
-  areaHa: 18.4,
-  health: 'attention',
-};
-
 const alert = (
   id: string,
   over: Partial<FarmerAlert> & Pick<FarmerAlert, 'type' | 'severity' | 'title' | 'createdAt'>,
@@ -135,6 +128,13 @@ export const demoAlerts: FarmerAlert[] = [
     createdAt: iso(now().subtract(41, 'day')),
   }),
 ];
+
+export const demoRecap: HomeRecap = {
+  domains: 3,
+  parcels: 12,
+  areaHa: 18.4,
+  health: 'attention',
+};
 
 const task = (
   id: string,

@@ -160,7 +160,12 @@ describe('useHomeFeed', () => {
     expect(ids).toContain('task:ft1');
     expect(ids).toContain('alert:al1');
     expect(ids).toContain('itk:p1:it1');
-    expect(result.current.recap).toEqual({ domains: 3, parcels: 7, areaHa: 12.5, health: 'critical' });
+    expect(result.current.recap).toEqual({
+      domains: 3,
+      parcels: 7,
+      areaHa: 12.5,
+      health: 'critical',
+    });
     expect(result.current.weather?.tempC).toBe(29);
     expect(result.current.weather?.farmName).toBe('Domaine Kaporo');
   });
