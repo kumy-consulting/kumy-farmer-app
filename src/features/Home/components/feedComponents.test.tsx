@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { FeedItem } from '../home.feed.types';
 import { FeedCard } from './FeedCard';
+import { HomeHeader } from './HomeHeader';
+import { RecapBar } from './RecapBar';
 
 const item = (over: Partial<FeedItem> = {}): FeedItem => ({
   id: 'task:ft1',
@@ -108,5 +110,66 @@ describe('FeedCard', () => {
 
     expect(screen.getByText('Visite de Dr Camara')).toBeDefined();
     expect(screen.getByText('3 consignes · 2 faites')).toBeDefined();
+  });
+});
+
+describe('HomeHeader', () => {
+  it('salue l’agriculteur et résume la météo du kit en une ligne', () => {
+    render(
+      <HomeHeader
+        firstName="Mamadou"
+        weather={{
+          farmId: 'f1',
+          farmName: 'Domaine Kaporo',
+          tempC: 29,
+          online: true,
+          observedAt: '2026-08-19T08:56:00.000Z',
+          hasKit: true,
+        }}
+        onWeatherClick={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/Bonjour, Mamadou/)).toBeDefined();
+    expect(screen.getByText(/Domaine Kaporo/)).toBeDefined();
+    expect(screen.getByText(/29°/)).toBeDefined();
+    expect(screen.getByText(/kit en direct/)).toBeDefined();
+  });
+
+  it('annonce une météo régionale estimée quand le domaine n’a pas de kit', () => {
+    render(
+      <HomeHeader
+        firstName="Mamadou"
+        weather={{
+          farmId: 'f1',
+          farmName: 'Domaine Kaporo',
+          tempC: null,
+          online: false,
+          observedAt: null,
+          hasKit: false,
+        }}
+        onWeatherClick={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/météo régionale estimée/)).toBeDefined();
+  });
+
+  it('reste affichable sans aucune donnée météo', () => {
+    render(<HomeHeader firstName="Mamadou" weather={null} onWeatherClick={vi.fn()} />);
+    expect(screen.getByText(/Bonjour, Mamadou/)).toBeDefined();
+  });
+});
+
+describe('RecapBar', () => {
+  it('résume l’exploitation en une ligne et signale la santé', () => {
+    const onClick = vi.fn();
+    render(<RecapBar recap={{ domains: 3, parcels: 7, areaHa: 12.5, health: 'attention' }} onClick={onClick} />);
+
+    expect(screen.getByText('3 domaines · 7 parcelles · 12,5 ha')).toBeDefined();
+    expect(screen.getByText('Santé : attention')).toBeDefined();
+
+    fireEvent.click(screen.getByRole('button'));
+    expect(onClick).toHaveBeenCalled();
   });
 });
