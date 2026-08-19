@@ -65,6 +65,39 @@ describe('buildFeed', () => {
     expect(groups).toHaveLength(1);
     expect(groups[0].bucket).toBe('later');
   });
+
+  it('bucketise les éléments rétrospectifs (visite, alerte non critique) sur leur âge, pas leur échéance', () => {
+    const groups = buildFeed(
+      [
+        // Visite reconstituée à partir de sa plus ancienne consigne : jusqu'à 21 j dans le passé.
+        draft({ id: 'visit-today', at: NOW.toISOString(), kind: 'visit' }),
+        draft({ id: 'visit-seven', at: NOW.subtract(7, 'day').toISOString(), kind: 'visit' }),
+        draft({ id: 'visit-eight', at: NOW.subtract(8, 'day').toISOString(), kind: 'visit' }),
+        // Alerte non critique ancienne : même bascule ; une alerte critique est déjà épinglée en `now`.
+        draft({ id: 'alert-seven', at: NOW.subtract(7, 'day').toISOString(), kind: 'alert', severity: 'warning' }),
+        draft({ id: 'alert-eight', at: NOW.subtract(8, 'day').toISOString(), kind: 'alert', severity: 'info' }),
+      ],
+      NOW,
+    );
+
+    const bucketOfId = (id: string) => groups.find((g) => g.items.some((i) => i.id === id))?.bucket;
+
+    expect(bucketOfId('visit-today')).toBe('today');
+    expect(bucketOfId('visit-seven')).toBe('week');
+    expect(bucketOfId('visit-eight')).toBe('later');
+    expect(bucketOfId('alert-seven')).toBe('week');
+    expect(bucketOfId('alert-eight')).toBe('later');
+  });
+
+  it('garde une consigne à échéance passée dans « Aujourd’hui » — elle appelle encore une action', () => {
+    const groups = buildFeed(
+      [draft({ id: 'task-old', at: NOW.subtract(12, 'day').toISOString(), kind: 'task' })],
+      NOW,
+    );
+
+    expect(groups[0].bucket).toBe('today');
+    expect(groups[0].items.map((i) => i.id)).toEqual(['task-old']);
+  });
 });
 
 describe('takeFirst', () => {

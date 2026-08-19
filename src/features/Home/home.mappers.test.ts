@@ -356,4 +356,10 @@ describe('visitsToFeed', () => {
 
     expect(items[0].title).toBe('Visite de votre encadreur');
   });
+
+  it('accorde « consigne » et « faite » au singulier pour une visite à consigne unique', () => {
+    const items = visitsToFeed([task({ id: 'unique', visitId: 'v3', status: 'planned' })], names, NOW);
+
+    expect(items[0].advice).toBe('1 consigne · 0 faite');
+  });
 });

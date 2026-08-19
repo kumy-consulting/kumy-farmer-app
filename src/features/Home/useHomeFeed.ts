@@ -14,7 +14,9 @@ import type { FeedGroup, FeedItemDraft } from './home.feed.types';
 import {
   alertsToFeed,
   fieldTasksToFeed,
+  isActiveAlert,
   itkToFeed,
+  normalizeSeverity,
   visitsToFeed,
   type NameIndex,
   type ParcelItkSource,
@@ -63,10 +65,15 @@ const isItkActive = (parcel: Parcel): boolean =>
   Boolean(parcel.currentStageCode) ||
   parcel.itkMaterializationStatus?.status === 'success';
 
-/** Même règle que `useDomaines.summariseAlerts` : on ne réinvente pas la santé. */
+/**
+ * Même liste normalisée et filtrée que `alertsToFeed` — le bandeau récap ne doit
+ * jamais contredire le fil (une alerte `high` active est rouge dans le fil, elle
+ * doit aussi compter comme critique ici ; une alerte résolue ne doit compter nulle part).
+ */
 function healthOf(alerts: FarmerAlert[]): HomeRecap['health'] {
-  if (alerts.some((a) => a.severity === 'critical')) return 'critical';
-  if (alerts.some((a) => a.severity === 'warning')) return 'attention';
+  const severities = alerts.filter(isActiveAlert).map((alert) => normalizeSeverity(alert.severity));
+  if (severities.includes('critical')) return 'critical';
+  if (severities.includes('warning')) return 'attention';
   return 'good';
 }
 
@@ -174,7 +181,10 @@ export function useHomeFeed(): HomeFeedState {
 
       const unfavourableFarmIds = new Set<string>();
       for (const { farm, station } of kits) {
-        const measures = station?.measures;
+        // Un kit hors ligne ne mesure plus rien « en ce moment » : sa dernière lecture
+        // ne doit pas continuer à peindre les fenêtres du domaine en défavorables.
+        if (station?.online !== true) continue;
+        const measures = station.measures;
         if ((measures?.rain ?? 0) > 0 || (measures?.wind ?? 0) > WIND_LIMIT_KMH) {
           unfavourableFarmIds.add(farm.id);
         }

@@ -203,6 +203,63 @@ describe('useHomeFeed', () => {
     expect(result.current.actionError).toBe('Action non enregistrée, réessayez');
   });
 
+  it('aligne la santé du récap sur la sévérité normalisée d’une alerte active', async () => {
+    mockedDomaines.alerts.mockResolvedValue([
+      { ...alerts[0], id: 'al-high', severity: 'high' as FarmerAlert['severity'], status: 'active' },
+    ]);
+
+    const { result } = renderHook(() => useHomeFeed());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.recap?.health).toBe('critical');
+  });
+
+  it('ignore une alerte critique résolue dans le calcul de santé du récap', async () => {
+    mockedDomaines.alerts.mockResolvedValue([{ ...alerts[0], id: 'al-resolved', status: 'resolved' }]);
+
+    const { result } = renderHook(() => useHomeFeed());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.recap?.health).toBe('good');
+  });
+
+  it('ne marque pas de conditions défavorables quand le kit qui les mesure est hors ligne', async () => {
+    mockedDomaines.liveStation.mockResolvedValue({
+      station: { online: false, lastSeenAt: '2026-08-16T08:00:00.000Z', measures: { temperature: 22, rain: 12, wind: 5 } },
+    });
+    mockedParcelle.itkTasks.mockResolvedValue({
+      ...itk,
+      stages: [
+        {
+          ...itk.stages[0],
+          tasks: {
+            mandatory: [
+              {
+                taskId: 'itWindow',
+                type: 'treatment',
+                title: 'Traitement fongicide',
+                description: '',
+                timing: 'J+15',
+                windowStart: '2026-08-18T00:00:00.000Z',
+                windowEnd: '2026-08-22T00:00:00.000Z',
+                state: 'pending',
+                inputs: [],
+              },
+            ],
+            recommended: [],
+          },
+        },
+      ],
+    } as ItkParcelTasks);
+
+    const { result } = renderHook(() => useHomeFeed());
+    await waitFor(() => expect(result.current.isEnriching).toBe(false));
+
+    const windowItem = result.current.groups.flatMap((g) => g.items).find((i) => i.id === 'window:p1:itWindow');
+    expect(windowItem).toBeDefined();
+    expect(windowItem?.note).toBeUndefined();
+  });
+
   it('efface le message d’échec via dismissActionError', async () => {
     mockedFieldTasks.transition.mockRejectedValue(new Error('409'));
 

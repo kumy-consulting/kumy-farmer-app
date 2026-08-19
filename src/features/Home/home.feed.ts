@@ -17,6 +17,16 @@ const BUCKET_ORDER: FeedBucket[] = ['now', 'today', 'week', 'later'];
 const SEVERITY_RANK: Record<AlertSeverity, number> = { critical: 0, warning: 1, info: 2 };
 
 /**
+ * Éléments rétrospectifs : leur `at` n'est pas une échéance à venir mais une trace
+ * du passé (création de la plus ancienne consigne d'une visite, création d'une
+ * alerte). Une alerte critique est de toute façon déjà épinglée en `now` plus bas —
+ * seule la non-critique passe ici.
+ */
+function isRetrospective(item: FeedItemDraft): boolean {
+  return item.kind === 'visit' || item.kind === 'alert';
+}
+
+/**
  * Groupe d'un élément. Trois raisons d'être épinglé en tête, et elles seules :
  * un retard, une alerte critique, une urgence métier calculée par le mapper
  * (fenêtre qui se ferme sous 48 h, tâche ITK dépassée).
@@ -25,6 +35,15 @@ export function bucketOf(item: FeedItemDraft, now: Dayjs): FeedBucket {
   if (item.overdue || item.severity === 'critical' || item.urgentNow) return 'now';
 
   const at = dayjs(item.at);
+
+  if (isRetrospective(item)) {
+    // Bucketisé sur l'âge, pas sur l'échéance : une visite vieille de 12 j reste
+    // une trace du passé, elle n'a pas sa place sous « Aujourd'hui ».
+    if (at.isSame(now, 'day')) return 'today';
+    if (now.diff(at, 'day') <= 7) return 'week';
+    return 'later';
+  }
+
   if (at.isBefore(now, 'day') || at.isSame(now, 'day')) return 'today';
   if (at.diff(now, 'day') <= 7) return 'week';
   return 'later';

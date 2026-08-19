@@ -20,6 +20,20 @@ const SEVERITY: Record<string, AlertSeverity> = {
   low: 'info',
 };
 
+/**
+ * Normalise une sévérité backend vers les 3 tons connus de l'app (défaut `info`).
+ * Source de vérité unique — `useHomeFeed.healthOf` la consomme aussi, pour que le
+ * bandeau récap ne puisse jamais contredire le fil.
+ */
+export function normalizeSeverity(severity: string): AlertSeverity {
+  return SEVERITY[severity] ?? 'info';
+}
+
+/** Alerte encore active — même filtre que `alertsToFeed`, à réutiliser partout où on lit les alertes. */
+export function isActiveAlert(alert: FarmerAlert): boolean {
+  return alert.status === 'active';
+}
+
 /** Index des noms lisibles, alimenté au fil des vagues de chargement. */
 export interface NameIndex {
   parcels: Map<string, string>;
@@ -87,7 +101,7 @@ export function fieldTasksToFeed(tasks: FieldTask[], names: NameIndex, now: Dayj
  */
 export function alertsToFeed(alerts: FarmerAlert[]): FeedItemDraft[] {
   return alerts
-    .filter((alert) => alert.status === 'active')
+    .filter(isActiveAlert)
     .map((alert) => ({
       id: `alert:${alert.id}`,
       kind: 'alert',
@@ -96,7 +110,7 @@ export function alertsToFeed(alerts: FarmerAlert[]): FeedItemDraft[] {
       icon: ALERT_ICON[alert.type] ?? 'rain',
       advice: alert.recommendedAction,
       at: alert.createdAt,
-      severity: SEVERITY[alert.severity] ?? 'info',
+      severity: normalizeSeverity(alert.severity),
       target: alert.parcelId
         ? `/domaines/${alert.farmId}/parcelles/${alert.parcelId}`
         : `/domaines/${alert.farmId}`,
@@ -246,6 +260,9 @@ export function visitsToFeed(tasks: FieldTask[], names: NameIndex, now: Dayjs = 
     const done = group.filter((t) => t.status === 'done').length;
     const author = first.createdByName ?? 'votre encadreur';
     const parcelName = first.parcelId ? names.parcels.get(first.parcelId) : undefined;
+    // Accord en nombre : singulier pour 0 et 1, pluriel au-delà (0 faite, 1 consigne, 2 consignes).
+    const consigneLabel = group.length > 1 ? 'consignes' : 'consigne';
+    const doneLabel = done > 1 ? 'faites' : 'faite';
 
     items.push({
       id: `visit:${visitId}`,
@@ -253,7 +270,7 @@ export function visitsToFeed(tasks: FieldTask[], names: NameIndex, now: Dayjs = 
       title: `Visite de ${author}`,
       place: parcelName ?? names.farms.get(first.farmId) ?? 'Mon exploitation',
       icon: 'visit',
-      advice: `${group.length} consignes · ${done} faites`,
+      advice: `${group.length} ${consigneLabel} · ${done} ${doneLabel}`,
       at: first.createdAt,
       author: first.createdByName ?? undefined,
       visit: { id: visitId, author, date: first.createdAt, total: group.length, done },
