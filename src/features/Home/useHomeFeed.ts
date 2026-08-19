@@ -48,6 +48,7 @@ export interface HomeFeedState {
   actionError: string | null;
   reload: () => void;
   runTaskAction: (id: string, action: 'start' | 'complete') => Promise<void>;
+  dismissActionError: () => void;
 }
 
 /** Vent au-delà duquel un traitement n'a pas de sens (dérive de pulvérisation). */
@@ -280,6 +281,9 @@ export function useHomeFeed(): HomeFeedState {
     }
   }, []);
 
+  /** Ferme le bandeau d'échec d'action — au clic ou à l'expiration du minuteur. */
+  const dismissActionError = useCallback(() => setActionError(null), []);
+
   return {
     groups,
     totalItems,
@@ -291,5 +295,6 @@ export function useHomeFeed(): HomeFeedState {
     actionError,
     reload,
     runTaskAction,
+    dismissActionError,
   };
 }

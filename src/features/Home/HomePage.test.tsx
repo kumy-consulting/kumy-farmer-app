@@ -135,4 +135,34 @@ describe('HomePage (fil d’exploitation)', () => {
 
     expect(await screen.findByText(/Rien d’urgent aujourd’hui/)).toBeDefined();
   });
+
+  it('déplie « Voir tout » sans perdre d’éléments au-delà du plafond', async () => {
+    const manyAlerts: FarmerAlert[] = Array.from({ length: 9 }, (_, index) => ({
+      id: `al${index}`,
+      farmId: 'f1',
+      farmName: 'Domaine Kaporo',
+      parcelId: 'p1',
+      parcelName: 'Kaporo 2',
+      type: 'weather',
+      severity: 'critical',
+      status: 'active',
+      title: `Alerte ${index}`,
+      message: '',
+      recommendedAction: '',
+      createdAt: `2026-08-19T0${index}:00:00.000Z`,
+    }));
+    mockedFieldTasks.list.mockResolvedValue([]);
+    mockedDomaines.alerts.mockResolvedValue(manyAlerts);
+
+    renderPage();
+
+    expect(await screen.findByText('Alerte 0')).toBeDefined();
+    expect(screen.queryByText('Alerte 8')).toBeNull();
+    const seeAll = await screen.findByRole('button', { name: 'Voir tout (1)' });
+
+    fireEvent.click(seeAll);
+
+    expect(await screen.findByText('Alerte 8')).toBeDefined();
+    expect(screen.queryByRole('button', { name: /Voir tout/ })).toBeNull();
+  });
 });

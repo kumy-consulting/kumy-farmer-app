@@ -59,7 +59,8 @@ const useIsOnline = (): boolean => {
 };
 
 export const HomePage: FunctionComponent = () => {
-  const { groups, totalItems, recap, weather, isLoading, error, actionError, reload, runTaskAction } = useHomeFeed();
+  const { groups, totalItems, recap, weather, isLoading, error, actionError, reload, runTaskAction, dismissActionError } =
+    useHomeFeed();
   const firstName = useFirstName();
   const isOnline = useIsOnline();
   const navigate = useNavigate();
@@ -123,7 +124,7 @@ export const HomePage: FunctionComponent = () => {
         )}
       </Stack>
 
-      <Snackbar open={actionError !== null} autoHideDuration={4000}>
+      <Snackbar open={actionError !== null} autoHideDuration={4000} onClose={dismissActionError}>
         <Alert severity="warning" variant="filled">
           {actionError}
         </Alert>

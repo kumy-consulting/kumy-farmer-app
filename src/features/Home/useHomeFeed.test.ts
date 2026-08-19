@@ -202,4 +202,18 @@ describe('useHomeFeed', () => {
     expect(item?.status).toBe('planned');
     expect(result.current.actionError).toBe('Action non enregistrée, réessayez');
   });
+
+  it('efface le message d’échec via dismissActionError', async () => {
+    mockedFieldTasks.transition.mockRejectedValue(new Error('409'));
+
+    const { result } = renderHook(() => useHomeFeed());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => { await result.current.runTaskAction('task:ft1', 'complete'); });
+    expect(result.current.actionError).toBe('Action non enregistrée, réessayez');
+
+    act(() => { result.current.dismissActionError(); });
+
+    expect(result.current.actionError).toBeNull();
+  });
 });
