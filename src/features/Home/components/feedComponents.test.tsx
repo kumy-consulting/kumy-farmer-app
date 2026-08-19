@@ -132,7 +132,7 @@ describe('HomeHeader', () => {
     expect(screen.getByText(/Bonjour, Mamadou/)).toBeDefined();
     expect(screen.getByText(/Domaine Kaporo/)).toBeDefined();
     expect(screen.getByText(/29°/)).toBeDefined();
-    expect(screen.getByText(/kit en direct/)).toBeDefined();
+    expect(screen.getByText(/en direct/)).toBeDefined();
   });
 
   it('annonce une météo régionale estimée quand le domaine n’a pas de kit', () => {

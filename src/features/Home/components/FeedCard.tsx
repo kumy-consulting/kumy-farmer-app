@@ -36,14 +36,27 @@ export const FeedCard: FunctionComponent<FeedCardProps> = ({ item, isOnline, onS
     <Box
       data-kind={item.kind}
       sx={{
+        position: 'relative',
         boxSizing: 'border-box',
         width: '100%',
-        p: '12px 14px',
+        p: '12px 14px 12px 20px',
         borderRadius: '18px',
         background: '#FFFFFF',
         border: '1px solid rgba(55,75,70,0.07)',
         boxShadow: '0 6px 18px rgba(1,134,117,0.06)',
-        borderLeft: `4px solid ${tone.main}`,
+        // Repère de sévérité : un jalon aux extrémités arrondies, posé à
+        // l'intérieur de la carte — un `border-left` suivrait l'arrondi et se
+        // lirait comme une barre décalée.
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          left: 8,
+          top: 12,
+          bottom: 12,
+          width: 4,
+          borderRadius: 999,
+          background: tone.main,
+        },
       }}
     >
       <Box

@@ -2,7 +2,7 @@ import type { ReactElement } from 'react';
 
 import AcUnitRounded from '@mui/icons-material/AcUnitRounded';
 import AgricultureRounded from '@mui/icons-material/AgricultureRounded';
-import LocalFireDepartmentRounded from '@mui/icons-material/LocalFireDepartmentRounded';
+import EnergySavingsLeafRounded from '@mui/icons-material/EnergySavingsLeafRounded';
 import PersonPinCircleRounded from '@mui/icons-material/PersonPinCircleRounded';
 import PestControlRounded from '@mui/icons-material/PestControlRounded';
 import SanitizerRounded from '@mui/icons-material/SanitizerRounded';
@@ -22,7 +22,7 @@ import type { FeedIcon, FeedKind } from '../home.feed.types';
 /** Pictogramme d'une carte du fil. */
 export const feedIcon = (icon: FeedIcon): ReactElement =>
   ({
-    drought: <LocalFireDepartmentRounded />,
+    drought: <EnergySavingsLeafRounded />,
     frost: <AcUnitRounded />,
     disease: <PestControlRounded />,
     sensor_offline: <SensorsOffRounded />,
