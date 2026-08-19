@@ -9,8 +9,7 @@ import type { FieldTask } from '@/features/FieldTasks/fieldTasks.types';
 import { parcelleApi } from '@/features/Parcelle/parcelle.api';
 import { useAuthStore } from '@/shared/stores/authStore';
 
-import { buildFeed } from './home.feed';
-import type { FeedGroup, FeedItemDraft } from './home.feed.types';
+import type { FeedItemDraft } from './home.feed.types';
 import {
   alertsToFeed,
   fieldTasksToFeed,
@@ -21,6 +20,7 @@ import {
   type NameIndex,
   type ParcelItkSource,
 } from './home.mappers';
+import { buildSections, type HomeSections } from './home.sections';
 
 export interface HomeRecap {
   domains: number;
@@ -40,8 +40,7 @@ export interface HomeWeather {
 }
 
 export interface HomeFeedState {
-  groups: FeedGroup[];
-  totalItems: number;
+  sections: HomeSections;
   recap: HomeRecap | null;
   weather: HomeWeather | null;
   isLoading: boolean;
@@ -236,9 +235,9 @@ export function useHomeFeed(): HomeFeedState {
     };
   }, [farmerId, reloadKey]);
 
-  const groups = useMemo(() => {
+  const sections = useMemo(() => {
     const now = dayjs();
-    return buildFeed(
+    return buildSections(
       [
         ...fieldTasksToFeed(tasks, names, now),
         ...alertsToFeed(alerts),
@@ -248,8 +247,6 @@ export function useHomeFeed(): HomeFeedState {
       now,
     );
   }, [tasks, alerts, itkDrafts, names]);
-
-  const totalItems = useMemo(() => groups.reduce((count, group) => count + group.items.length, 0), [groups]);
 
   /**
    * Transition optimiste d'une consigne : l'UI avance tout de suite, l'appel
@@ -295,8 +292,7 @@ export function useHomeFeed(): HomeFeedState {
   const dismissActionError = useCallback(() => setActionError(null), []);
 
   return {
-    groups,
-    totalItems,
+    sections,
     recap,
     weather,
     isLoading,

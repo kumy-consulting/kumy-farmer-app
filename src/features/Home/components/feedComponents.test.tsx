@@ -18,7 +18,6 @@ const item = (over: Partial<FeedItem> = {}): FeedItem => ({
   daysOverdue: 2,
   actionable: true,
   author: 'Dr Camara',
-  bucket: 'now',
   score: 298,
   ...over,
 });

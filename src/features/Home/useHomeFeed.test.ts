@@ -9,7 +9,19 @@ import { parcelleApi } from '@/features/Parcelle/parcelle.api';
 import type { ItkParcelTasks } from '@/features/Parcelle/parcelle.types';
 import { useAuthStore } from '@/shared/stores/authStore';
 
-import { useHomeFeed } from './useHomeFeed';
+import { useHomeFeed, type HomeFeedState } from './useHomeFeed';
+
+/** Tous les éléments du fil, sections confondues — les tests raisonnent par id. */
+const allItems = (sections: HomeFeedState['sections']) => [
+  ...sections.alerts.fresh,
+  ...sections.alerts.stale,
+  ...sections.tasks.bySegment.inProgress,
+  ...sections.tasks.bySegment.overdue,
+  ...sections.tasks.bySegment.planned,
+  ...sections.tasks.doneToday,
+  ...(sections.visits.last ? [sections.visits.last] : []),
+];
+
 
 vi.mock('@/features/Domaines/domaines.api', () => ({
   domainesApi: { alerts: vi.fn(), farms: vi.fn(), parcels: vi.fn(), summary: vi.fn(), liveStation: vi.fn() },
@@ -144,7 +156,7 @@ describe('useHomeFeed', () => {
 
     await waitFor(() => expect(result.current.isEnriching).toBe(false));
 
-    const ids = result.current.groups.flatMap((g) => g.items).map((i) => i.id);
+    const ids = allItems(result.current.sections).map((i) => i.id);
     expect(ids).toContain('task:ft1');
     expect(ids).toContain('alert:al1');
     expect(ids).toContain('itk:p1:it1');
@@ -161,7 +173,7 @@ describe('useHomeFeed', () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.isEnriching).toBe(true);
-    expect(result.current.groups.flatMap((g) => g.items).map((i) => i.id)).toContain('task:ft1');
+    expect(allItems(result.current.sections).map((i) => i.id)).toContain('task:ft1');
 
     await act(async () => { resolveParcels(parcels); });
   });
@@ -173,7 +185,7 @@ describe('useHomeFeed', () => {
     const { result } = renderHook(() => useHomeFeed());
     await waitFor(() => expect(result.current.isEnriching).toBe(false));
 
-    const ids = result.current.groups.flatMap((g) => g.items).map((i) => i.id);
+    const ids = allItems(result.current.sections).map((i) => i.id);
     expect(ids).toEqual(['alert:al1']);
     expect(result.current.error).toBeNull();
   });
@@ -184,7 +196,7 @@ describe('useHomeFeed', () => {
 
     await act(async () => { await result.current.runTaskAction('task:ft1', 'complete'); });
 
-    const item = result.current.groups.flatMap((g) => g.items).find((i) => i.id === 'task:ft1');
+    const item = allItems(result.current.sections).find((i) => i.id === 'task:ft1');
     expect(mockedFieldTasks.transition).toHaveBeenCalledWith('ft1', 'complete');
     expect(item?.status).toBe('done');
     expect(result.current.actionError).toBeNull();
@@ -198,7 +210,7 @@ describe('useHomeFeed', () => {
 
     await act(async () => { await result.current.runTaskAction('task:ft1', 'complete'); });
 
-    const item = result.current.groups.flatMap((g) => g.items).find((i) => i.id === 'task:ft1');
+    const item = allItems(result.current.sections).find((i) => i.id === 'task:ft1');
     expect(item?.status).toBe('planned');
     expect(result.current.actionError).toBe('Action non enregistrée, réessayez');
   });
@@ -255,7 +267,7 @@ describe('useHomeFeed', () => {
     const { result } = renderHook(() => useHomeFeed());
     await waitFor(() => expect(result.current.isEnriching).toBe(false));
 
-    const windowItem = result.current.groups.flatMap((g) => g.items).find((i) => i.id === 'window:p1:itWindow');
+    const windowItem = allItems(result.current.sections).find((i) => i.id === 'window:p1:itWindow');
     expect(windowItem).toBeDefined();
     expect(windowItem?.note).toBeUndefined();
   });

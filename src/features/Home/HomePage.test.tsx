@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import dayjs from 'dayjs';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -33,7 +34,7 @@ const consigne: FieldTask = {
   type: 'weeding',
   title: 'Sarclage manuel',
   description: '',
-  dueDate: '2026-08-17',
+  dueDate: dayjs().subtract(2, 'day').format('YYYY-MM-DD'),
   status: 'planned',
   overdue: true,
   daysOverdue: 2,
@@ -42,8 +43,8 @@ const consigne: FieldTask = {
   visitId: null,
   startedAt: null,
   completedAt: null,
-  createdAt: '2026-08-12T08:00:00.000Z',
-  updatedAt: '2026-08-12T08:00:00.000Z',
+  createdAt: dayjs().subtract(7, 'day').toISOString(),
+  updatedAt: dayjs().subtract(7, 'day').toISOString(),
 };
 
 const alerts: FarmerAlert[] = [
@@ -59,7 +60,7 @@ const alerts: FarmerAlert[] = [
     title: 'Fortes pluies attendues',
     message: '',
     recommendedAction: 'Reporter l’apport d’urée',
-    createdAt: '2026-08-19T06:00:00.000Z',
+    createdAt: dayjs().subtract(3, 'hour').toISOString(),
   },
 ];
 
@@ -103,13 +104,15 @@ describe('HomePage (fil d’exploitation)', () => {
     vi.clearAllMocks();
   });
 
-  it('affiche l’en-tête, le récap et le fil groupé par urgence', async () => {
+  it('range l’accueil en trois sections : alertes, tâches, visites', async () => {
     renderPage();
 
     expect(await screen.findByText(/Bonjour, Awa/)).toBeDefined();
-    expect(await screen.findByText('À traiter maintenant')).toBeDefined();
-    expect(await screen.findByText('Sarclage manuel')).toBeDefined();
+    expect(await screen.findByText('Alertes')).toBeDefined();
+    expect(await screen.findByText('Tâches')).toBeDefined();
+    expect(await screen.findByText('Visites')).toBeDefined();
     expect(await screen.findByText('Fortes pluies attendues')).toBeDefined();
+    expect(await screen.findByText('Sarclage manuel')).toBeDefined();
     expect(await screen.findByText('3 domaines · 7 parcelles · 12,5 ha')).toBeDefined();
 
     // Plus aucune trace du tableau de bord météo
@@ -117,7 +120,14 @@ describe('HomePage (fil d’exploitation)', () => {
     expect(screen.queryByText('Vos domaines')).toBeNull();
   });
 
-  it('valide une consigne depuis le fil', async () => {
+  it('annonce une prochaine visite inconnue plutôt que d’en inventer une', async () => {
+    renderPage();
+
+    expect(await screen.findByText('Prochaine')).toBeDefined();
+    expect(await screen.findByText('Non planifiée')).toBeDefined();
+  });
+
+  it('valide une consigne depuis la section Tâches', async () => {
     renderPage();
     const done = await screen.findByRole('button', { name: 'Terminé' });
 
@@ -127,17 +137,26 @@ describe('HomePage (fil d’exploitation)', () => {
     expect(await screen.findByText('Fait')).toBeDefined();
   });
 
-  it('annonce un fil vide sans rien inventer', async () => {
-    mockedFieldTasks.list.mockResolvedValue([]);
-    mockedDomaines.alerts.mockResolvedValue([]);
+  it('ouvre sur le segment le plus urgent et filtre au changement de compteur', async () => {
+    mockedFieldTasks.list.mockResolvedValue([
+      consigne,
+      { ...consigne, id: 'ft2', title: 'Apport urée', overdue: false, daysOverdue: 0, dueDate: dayjs().add(3, 'day').format('YYYY-MM-DD') },
+    ]);
 
     renderPage();
 
-    expect(await screen.findByText(/Rien d’urgent aujourd’hui/)).toBeDefined();
+    // Segment « En retard » ouvert par défaut : la consigne en retard est visible, pas l'autre.
+    expect(await screen.findByText('Sarclage manuel')).toBeDefined();
+    expect(screen.queryByText('Apport urée')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: /Prévu/ }));
+
+    expect(await screen.findByText('Apport urée')).toBeDefined();
+    expect(screen.queryByText('Sarclage manuel')).toBeNull();
   });
 
-  it('déplie « Voir tout » sans perdre d’éléments au-delà du plafond', async () => {
-    const manyAlerts: FarmerAlert[] = Array.from({ length: 9 }, (_, index) => ({
+  it('montre les trois alertes les plus récentes puis déplie le reste', async () => {
+    const many: FarmerAlert[] = Array.from({ length: 5 }, (_, index) => ({
       id: `al${index}`,
       farmId: 'f1',
       farmName: 'Domaine Kaporo',
@@ -149,20 +168,53 @@ describe('HomePage (fil d’exploitation)', () => {
       title: `Alerte ${index}`,
       message: '',
       recommendedAction: '',
-      createdAt: `2026-08-19T0${index}:00:00.000Z`,
+      createdAt: dayjs().subtract(index, 'hour').toISOString(),
     }));
-    mockedFieldTasks.list.mockResolvedValue([]);
-    mockedDomaines.alerts.mockResolvedValue(manyAlerts);
+    mockedDomaines.alerts.mockResolvedValue(many);
 
     renderPage();
 
     expect(await screen.findByText('Alerte 0')).toBeDefined();
-    expect(screen.queryByText('Alerte 8')).toBeNull();
-    const seeAll = await screen.findByRole('button', { name: 'Voir tout (1)' });
+    expect(screen.queryByText('Alerte 4')).toBeNull();
 
-    fireEvent.click(seeAll);
+    fireEvent.click(await screen.findByRole('button', { name: 'Voir les 5 alertes' }));
 
-    expect(await screen.findByText('Alerte 8')).toBeDefined();
-    expect(screen.queryByRole('button', { name: /Voir tout/ })).toBeNull();
+    expect(await screen.findByText('Alerte 4')).toBeDefined();
+  });
+
+  it('écarte les alertes périmées du décompte tout en les gardant consultables', async () => {
+    mockedDomaines.alerts.mockResolvedValue([
+      {
+        id: 'vieille',
+        farmId: 'f1',
+        farmName: 'Domaine Kaporo',
+        parcelId: 'p1',
+        parcelName: 'Kaporo 2',
+        type: 'ndvi',
+        severity: 'critical',
+        status: 'active',
+        title: 'NDVI en chute',
+        message: '',
+        createdAt: dayjs().subtract(66, 'day').toISOString(),
+      },
+    ]);
+
+    renderPage();
+
+    expect(await screen.findByText('Aucune alerte récente sur vos parcelles.')).toBeDefined();
+    expect(screen.queryByText('NDVI en chute')).toBeNull();
+
+    fireEvent.click(await screen.findByRole('button', { name: '1 alerte plus ancienne' }));
+
+    expect(await screen.findByText('NDVI en chute')).toBeDefined();
+  });
+
+  it('annonce un accueil vide sans rien inventer', async () => {
+    mockedFieldTasks.list.mockResolvedValue([]);
+    mockedDomaines.alerts.mockResolvedValue([]);
+
+    renderPage();
+
+    expect(await screen.findByText(/Rien d’urgent aujourd’hui/)).toBeDefined();
   });
 });

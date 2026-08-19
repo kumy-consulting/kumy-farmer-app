@@ -5,13 +5,11 @@ import type { FieldTaskStatus } from '@/features/FieldTasks/fieldTasks.types';
  * Contrat du fil d'exploitation de l'accueil.
  *
  * Toutes les sources (consignes, alertes, tâches ITK, fenêtres de traitement,
- * visites) sont normalisées en `FeedItemDraft` par les mappers, puis rangées par
- * `buildFeed`. Les composants ne connaissent QUE ce contrat.
+ * visites) sont normalisées en `FeedItemDraft` par les mappers, puis réparties
+ * en sections par `buildSections`. Les composants ne connaissent QUE ce contrat.
  */
 
 export type FeedKind = 'alert' | 'task' | 'itk' | 'window' | 'visit';
-
-export type FeedBucket = 'now' | 'today' | 'week' | 'later';
 
 /** Pictogramme de la carte — choisi par le mapper, rendu par `feedVisuals`. */
 export type FeedIcon =
@@ -67,18 +65,12 @@ export interface FeedItemDraft {
   target?: string;
   /**
    * Urgence propre au métier (fenêtre qui se ferme, tâche ITK dépassée). Le
-   * mapper la connaît, `buildFeed` se contente de la respecter.
+   * mapper la connaît, les sections se contentent de la respecter.
    */
   urgentNow?: boolean;
 }
 
 export interface FeedItem extends FeedItemDraft {
-  bucket: FeedBucket;
+  /** Rang d'urgence calculé — plus petit = plus haut dans sa section. */
   score: number;
-}
-
-export interface FeedGroup {
-  bucket: FeedBucket;
-  label: string;
-  items: FeedItem[];
 }

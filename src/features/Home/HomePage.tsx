@@ -7,12 +7,13 @@ import { useNavigate } from 'react-router-dom';
 
 import { useAuthStore } from '@/shared/stores/authStore';
 
+import { AlertsBlock } from './components/AlertsBlock';
 import { EmptyState } from './components/EmptyState';
-import { FeedSection } from './components/FeedSection';
 import { HomeHeader } from './components/HomeHeader';
 import { HomeSkeleton } from './components/HomeSkeleton';
 import { RecapBar } from './components/RecapBar';
-import { takeFirst } from './home.feed';
+import { TasksBlock } from './components/TasksBlock';
+import { VisitsBlock } from './components/VisitsBlock';
 import type { FeedItem } from './home.feed.types';
 import { useHomeFeed } from './useHomeFeed';
 
@@ -30,9 +31,6 @@ const Reveal = styled(Box)({
   },
   '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
 });
-
-/** Nombre d'éléments montrés avant « Voir tout ». */
-const VISIBLE_ITEMS = 8;
 
 /** Prénom depuis la session (premier mot du displayName), repli neutre. */
 const useFirstName = (): string => {
@@ -59,12 +57,11 @@ const useIsOnline = (): boolean => {
 };
 
 export const HomePage: FunctionComponent = () => {
-  const { groups, totalItems, recap, weather, isLoading, error, actionError, reload, runTaskAction, dismissActionError } =
+  const { sections, recap, weather, isLoading, error, actionError, reload, runTaskAction, dismissActionError } =
     useHomeFeed();
   const firstName = useFirstName();
   const isOnline = useIsOnline();
   const navigate = useNavigate();
-  const [expanded, setExpanded] = useState(false);
 
   if (isLoading) {
     return (
@@ -73,10 +70,6 @@ export const HomePage: FunctionComponent = () => {
       </Page>
     );
   }
-
-  const { groups: visibleGroups, hidden } = expanded
-    ? { groups, hidden: 0 }
-    : takeFirst(groups, VISIBLE_ITEMS);
 
   const openItem = (item: FeedItem) => {
     if (item.target) navigate(item.target);
@@ -104,23 +97,32 @@ export const HomePage: FunctionComponent = () => {
           </Stack>
         )}
 
-        {!error && totalItems === 0 && (
+        {!error && sections.isEmpty && (
           <EmptyState
             icon={<TaskAltRounded />}
             message="Rien d’urgent aujourd’hui — aucune consigne ni alerte en attente sur vos parcelles."
           />
         )}
 
-        {visibleGroups.map((group, index) => (
-          <Reveal key={group.bucket} sx={{ animationDelay: `${0.1 + index * 0.06}s` }}>
-            <FeedSection group={group} isOnline={isOnline} onSelect={openItem} onAction={runTaskAction} />
-          </Reveal>
-        ))}
+        {!sections.isEmpty && (
+          <>
+            <Reveal sx={{ animationDelay: '0.1s' }}>
+              <AlertsBlock alerts={sections.alerts} onSelect={openItem} />
+            </Reveal>
 
-        {hidden > 0 && (
-          <Button onClick={() => setExpanded(true)} sx={{ textTransform: 'none', alignSelf: 'center' }}>
-            Voir tout ({hidden})
-          </Button>
+            <Reveal sx={{ animationDelay: '0.16s' }}>
+              <TasksBlock
+                tasks={sections.tasks}
+                isOnline={isOnline}
+                onSelect={openItem}
+                onAction={runTaskAction}
+              />
+            </Reveal>
+
+            <Reveal sx={{ animationDelay: '0.22s' }}>
+              <VisitsBlock visits={sections.visits} onSelect={openItem} />
+            </Reveal>
+          </>
         )}
       </Stack>
 
