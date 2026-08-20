@@ -192,13 +192,13 @@ describe('HomeHeader — récap et jauge de santé', () => {
 
     expect(screen.getByText('3 domaines · 7 parcelles · 12,5 ha')).toBeDefined();
     expect(screen.getByText('À surveiller')).toBeDefined();
-    expect(screen.getByText('Santé de l’exploitation · 2 alertes récentes')).toBeDefined();
+    expect(screen.getByText('2 alertes récentes')).toBeDefined();
 
     fireEvent.click(screen.getByText('3 domaines · 7 parcelles · 12,5 ha'));
     expect(onRecapClick).toHaveBeenCalled();
   });
 
-  it('remplit la jauge selon l’état : un cran sur trois quand c’est critique', () => {
+  it('place le curseur sur l’échelle de vigilance : dernier palier quand c’est critique', () => {
     const { rerender } = render(
       <HomeHeader
         firstName="Mamadou"
@@ -210,8 +210,9 @@ describe('HomeHeader — récap et jauge de santé', () => {
       />,
     );
 
-    expect(screen.getByRole('meter').getAttribute('aria-valuenow')).toBe('1');
-    expect(screen.getByText('Santé de l’exploitation · 1 alerte récente · 2 anciennes')).toBeDefined();
+    expect(screen.getByRole('meter').getAttribute('aria-valuenow')).toBe('3');
+    expect(screen.getByRole('meter').getAttribute('aria-valuetext')).toBe('Critique');
+    expect(screen.getByText('1 alerte récente, 2 anciennes')).toBeDefined();
 
     rerender(
       <HomeHeader
@@ -224,7 +225,8 @@ describe('HomeHeader — récap et jauge de santé', () => {
       />,
     );
 
-    expect(screen.getByRole('meter').getAttribute('aria-valuenow')).toBe('3');
-    expect(screen.getByText('Santé de l’exploitation · aucune alerte récente')).toBeDefined();
+    expect(screen.getByRole('meter').getAttribute('aria-valuenow')).toBe('1');
+    expect(screen.getByRole('meter').getAttribute('aria-valuetext')).toBe('Bonne');
+    expect(screen.getByText('aucune alerte récente')).toBeDefined();
   });
 });

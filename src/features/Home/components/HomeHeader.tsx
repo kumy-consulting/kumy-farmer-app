@@ -1,7 +1,7 @@
 import type { FunctionComponent } from 'react';
 
+import ArrowForwardRounded from '@mui/icons-material/ArrowForwardRounded';
 import CellTowerRounded from '@mui/icons-material/CellTowerRounded';
-import ChevronRightRounded from '@mui/icons-material/ChevronRightRounded';
 import PublicRounded from '@mui/icons-material/PublicRounded';
 import { Box, Stack, Typography } from '@mui/material';
 import { styled } from '@mui/material/styles';
@@ -22,13 +22,21 @@ interface HomeHeaderProps {
 }
 
 /**
- * En-tête compact : la météo n'est plus le sujet de l'accueil, elle tient en une
- * puce d'une ligne qui renvoie vers l'écran domaine.
+ * En-tête de l'accueil : un bulletin d'état, pas une page de bienvenue.
+ *
+ * L'état de l'exploitation tient la plus grosse typo parce que c'est la réponse
+ * à la question qu'on se pose en ouvrant l'app. La salutation redevient une
+ * étiquette — elle situe, elle n'informe pas — et les deux sources de détail
+ * (le kit, les chiffres) deviennent deux rangées jumelles, tapables.
  */
 const Header = styled(Box)({
   position: 'relative',
   overflow: 'hidden',
-  padding: 'calc(env(safe-area-inset-top, 0px) + 20px) 24px 20px',
+  // `max()` plutôt qu'une somme : sur un téléphone à encoche la safe-area
+  // commande (env + 12), et le plancher de 52 px protège les contextes qui
+  // ignorent `env()` — navigateur de bureau, aperçu en cadre — où l'étiquette
+  // passerait sinon sous l'encoche. Le plancher ne coûte rien sur mobile.
+  padding: 'max(calc(env(safe-area-inset-top, 0px) + 12px), 52px) 24px 20px',
   background: 'linear-gradient(155deg, #0A6656 0%, #05463A 70%, #04382F 100%)',
   borderBottomLeftRadius: 26,
   borderBottomRightRadius: 26,
@@ -36,48 +44,62 @@ const Header = styled(Box)({
   boxShadow: '0 12px 28px rgba(0,40,32,0.24)',
 });
 
-const WeatherChip = styled('button')({
+/**
+ * La mesure du kit : une pilule, parce qu'elle est vivante et datée — elle
+ * change toute la journée, contrairement au reste de l'en-tête.
+ */
+const KitPill = styled('button')({
   all: 'unset',
-  cursor: 'pointer',
+  boxSizing: 'border-box',
   display: 'inline-flex',
   alignItems: 'center',
   gap: 6,
-  marginTop: 12,
+  maxWidth: '100%',
+  cursor: 'pointer',
   padding: '6px 12px',
   borderRadius: 999,
-  background: 'rgba(255,255,255,0.14)',
-  border: '1px solid rgba(147,244,224,0.28)',
+  background: 'rgba(255,255,255,0.13)',
+  border: '1px solid rgba(147,244,224,0.26)',
   fontFamily: "'Ubuntu', sans-serif",
   fontSize: 12.5,
   fontWeight: 600,
   color: '#EAF7F1',
-  maxWidth: '100%',
   whiteSpace: 'nowrap',
   '&:active': { background: 'rgba(255,255,255,0.22)' },
   '&:focus-visible': { outline: '2px solid #93F4E0', outlineOffset: 2 },
   '& svg': { fontSize: 16, flexShrink: 0 },
 });
 
-const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
-
 /**
- * Fraîcheur compacte : « 4 min » plutôt que « il y a 4 min ». Collée à « en
- * direct », la durée se lit comme l'âge de la mesure sans le dire deux fois.
+ * L'exploitation en chiffres : traitée comme l'identité du domaine — une
+ * référence cadastrale en petites capitales — et non comme une entrée de menu.
  */
-const age = (iso: string): string => formatRelative(iso).replace(/^il y a /, '');
-
-/** Le récap tient dans l'en-tête : l'exploitation en chiffres, puis son état. */
-const RecapRow = styled('button')({
+const HoldingLine = styled('button')({
   all: 'unset',
   boxSizing: 'border-box',
-  display: 'block',
-  width: '100%',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 8,
+  maxWidth: '100%',
   cursor: 'pointer',
-  marginTop: 18,
-  paddingTop: 14,
-  borderTop: '1px solid rgba(147,244,224,0.18)',
-  '&:focus-visible': { outline: '2px solid #93F4E0', outlineOffset: 3, borderRadius: 8 },
+  fontFamily: "'Ubuntu', sans-serif",
+  fontSize: 11,
+  fontWeight: 700,
+  letterSpacing: '0.1em',
+  textTransform: 'uppercase',
+  color: 'rgba(234,247,241,0.72)',
+  whiteSpace: 'nowrap',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  '&:active': { color: '#FFFFFF' },
+  '&:focus-visible': { outline: '2px solid #93F4E0', outlineOffset: 3, borderRadius: 4 },
+  '& svg': { fontSize: 15, flexShrink: 0, opacity: 0.65 },
 });
+
+const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
+
+/** Fraîcheur compacte : « 4 min » plutôt que « il y a 4 min ». */
+const age = (iso: string): string => formatRelative(iso).replace(/^il y a /, '');
 
 export const HomeHeader: FunctionComponent<HomeHeaderProps> = ({
   firstName,
@@ -88,50 +110,49 @@ export const HomeHeader: FunctionComponent<HomeHeaderProps> = ({
   onRecapClick,
 }) => (
   <Header>
-    <Typography sx={{ fontSize: 12.5, fontWeight: 500, opacity: 0.8 }}>
-      {capitalize(dayjs().format('dddd D MMMM'))}
-    </Typography>
-    <Typography sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 24, fontWeight: 700, mt: 0.25 }}>
-      Bonjour, {firstName} 👋
+    <Typography
+      sx={{
+        fontSize: 10.5,
+        fontWeight: 700,
+        letterSpacing: '0.13em',
+        textTransform: 'uppercase',
+        color: 'rgba(234,247,241,0.55)',
+        mb: 1.75,
+      }}
+    >
+      {capitalize(dayjs().format('ddd D MMMM'))} · Bonjour, {firstName}
     </Typography>
 
-    {weather && (
-      <WeatherChip type="button" onClick={() => onWeatherClick(weather.farmId)}>
-        {weather.hasKit ? <CellTowerRounded /> : <PublicRounded />}
-        {/* Le nom du domaine est le seul fragment qui cède : la mesure et l'état
-            du kit restent lisibles quel que soit l'écran. */}
-        <Box component="span" sx={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {weather.farmName}
-        </Box>
-        <Box component="span" sx={{ flexShrink: 0, opacity: 0.9 }}>
-          {weather.tempC !== null && `· ${Math.round(weather.tempC)}° `}
-          {weather.hasKit ? `· ${weather.online ? 'en direct' : 'hors ligne'}` : '· météo régionale estimée'}
-          {weather.observedAt && ` · ${age(weather.observedAt)}`}
-        </Box>
-        <ChevronRightRounded sx={{ flexShrink: 0 }} />
-      </WeatherChip>
+    {recap ? (
+      <HealthGauge health={recap.health} fresh={alerts.fresh} stale={alerts.stale} />
+    ) : (
+      <Typography sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 26, fontWeight: 700, lineHeight: 1 }}>
+        Votre exploitation
+      </Typography>
     )}
 
-    {recap && (
-      <RecapRow type="button" onClick={onRecapClick}>
-        <Stack direction="row" alignItems="center" spacing={1}>
-          <Typography
-            sx={{
-              flex: 1,
-              fontFamily: "'Ubuntu', sans-serif",
-              fontSize: 14,
-              fontWeight: 700,
-              color: '#EAF7F1',
-            }}
-          >
-            {recap.domains} domaines · {recap.parcels} parcelles ·{' '}
-            {recap.areaHa.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} ha
-          </Typography>
-          <ChevronRightRounded sx={{ color: 'rgba(234,247,241,0.5)', flexShrink: 0 }} />
-        </Stack>
+    <Stack spacing={1.25} alignItems="flex-start" sx={{ mt: 2.25 }}>
+      {weather && (
+        <KitPill type="button" onClick={() => onWeatherClick(weather.farmId)}>
+          {weather.hasKit ? <CellTowerRounded /> : <PublicRounded />}
+          <Box component="span" sx={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {weather.farmName}
+          </Box>
+          <Box component="span" sx={{ flexShrink: 0, opacity: 0.88 }}>
+            {weather.tempC !== null && `· ${Math.round(weather.tempC)}° `}
+            {weather.hasKit ? `· ${weather.online ? 'en direct' : 'hors ligne'}` : '· météo régionale estimée'}
+            {weather.observedAt && ` · ${age(weather.observedAt)}`}
+          </Box>
+        </KitPill>
+      )}
 
-        <HealthGauge health={recap.health} fresh={alerts.fresh} stale={alerts.stale} />
-      </RecapRow>
-    )}
+      {recap && (
+        <HoldingLine type="button" onClick={onRecapClick}>
+          {recap.domains} domaines · {recap.parcels} parcelles ·{' '}
+          {recap.areaHa.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} ha
+          <ArrowForwardRounded />
+        </HoldingLine>
+      )}
+    </Stack>
   </Header>
 );
