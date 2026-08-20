@@ -1,14 +1,15 @@
 import { useState, type FunctionComponent, type ReactNode } from 'react';
 
-import ChevronLeftRounded from '@mui/icons-material/ChevronLeftRounded';
 import ReplayRounded from '@mui/icons-material/ReplayRounded';
-import { Box, CircularProgress, IconButton, Stack, Typography } from '@mui/material';
+import { Box, CircularProgress, Stack, Typography } from '@mui/material';
 import { keyframes } from '@mui/material/styles';
 import { useNavigate, useParams } from 'react-router-dom';
 
+import { BackButton } from '@/shared/components/BackButton';
 import { NAV_HEIGHT } from '@/shared/components/BottomNav';
 import { DraggableBottomSheet } from '@/shared/components/DraggableBottomSheet';
 
+import { CarnetTabContent } from './components/CarnetTab/CarnetTabContent';
 import { ConseilsTabContent } from './components/ConseilsTab/ConseilsTabContent';
 import { ItkTabContent } from './components/ItkTab/ItkTabContent';
 import { OverviewTabContent } from './components/OverviewTab/OverviewTabContent';
@@ -19,7 +20,10 @@ import { useParcelDetail } from './useParcelDetail';
 const HEADER_OVERLAY_PX = 96;
 const SHEET_SNAPS: (number | string)[] = [120, '45vh', '85vh'];
 const CONTENT_BOTTOM_PADDING = NAV_HEIGHT + 40;
-const TABS = ["Vue d'ensemble", 'Calendrier', 'Conseils'];
+// « Carnet » et non « Suivi » ou « Historique » : le carnet de terrain est un
+// objet que l'encadrement agricole tient réellement, et le mot dit ce qu'on y
+// trouve — des pages datées, écrites par quelqu'un.
+const TABS = ["Vue d'ensemble", 'Calendrier', 'Conseils', 'Carnet'];
 
 /** Fondu doux au changement d'onglet. */
 const tabIn = keyframes`
@@ -27,29 +31,10 @@ const tabIn = keyframes`
   to { opacity: 1; transform: translateY(0); }
 `;
 
-const BackButton: FunctionComponent<{ onClick: () => void }> = ({ onClick }) => (
-  <IconButton
-    onClick={onClick}
-    aria-label="Retour"
-    sx={{
-      width: 38,
-      height: 38,
-      flexShrink: 0,
-      background: 'rgba(0,0,0,0.28)',
-      backdropFilter: 'blur(14px)',
-      WebkitBackdropFilter: 'blur(14px)',
-      border: '1px solid rgba(255,255,255,0.18)',
-      '&:hover': { background: 'rgba(0,0,0,0.38)' },
-    }}
-  >
-    <ChevronLeftRounded sx={{ color: '#FFFFFF' }} />
-  </IconButton>
-);
-
 /**
- * Retour des états transitoires. Même place que celui de l'overlay carte, mais
- * posé sur la surface claire : pas de scrim ni de fond translucide sombre — il
- * n'y a aucune image satellite à assombrir tant que la carte n'est pas là.
+ * Retour des états transitoires : même bouton que sur l'overlay carte, à la
+ * même place. La pastille opaque tient aussi bien sur la surface claire que
+ * sur l'image satellite — il n'y a plus deux variantes à maintenir.
  */
 const PlainBack: FunctionComponent<{ onClick: () => void }> = ({ onClick }) => (
   <Box
@@ -60,19 +45,7 @@ const PlainBack: FunctionComponent<{ onClick: () => void }> = ({ onClick }) => (
       zIndex: 1000,
     }}
   >
-    <IconButton
-      onClick={onClick}
-      aria-label="Retour"
-      sx={{
-        width: 38,
-        height: 38,
-        background: '#FFFFFF',
-        border: '1px solid #E2E3E1',
-        '&:hover': { background: '#F3FFFA' },
-      }}
-    >
-      <ChevronLeftRounded sx={{ color: '#1A1C1B' }} />
-    </IconButton>
+    <BackButton onClick={onClick} />
   </Box>
 );
 
@@ -318,8 +291,10 @@ export const ParcelDetailPage: FunctionComponent = () => {
             <OverviewTabContent detail={detail} />
           ) : activeTab === 1 ? (
             <ItkTabContent itk={detail.itk} />
-          ) : (
+          ) : activeTab === 2 ? (
             <ConseilsTabContent itk={detail.itk} ndvi={detail.ndvi} indicators={detail.indicators} />
+          ) : (
+            <CarnetTabContent visites={detail.carnet} />
           )}
         </Box>
       </DraggableBottomSheet>

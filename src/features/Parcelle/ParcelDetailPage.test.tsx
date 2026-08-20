@@ -1,8 +1,9 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { Parcel } from '@/features/Domaines/domaines.types';
+import { fieldTasksApi } from '@/features/FieldTasks/fieldTasks.api';
 
 import { ParcelDetailPage } from './ParcelDetailPage';
 import { parcelleApi } from './parcelle.api';
@@ -18,11 +19,15 @@ vi.mock('./parcelle.api', () => ({
 }));
 
 // La carte Leaflet ne s'initialise pas sous jsdom → stub.
+vi.mock('@/features/FieldTasks/fieldTasks.api', () => ({
+  fieldTasksApi: { list: vi.fn(), transition: vi.fn() },
+}));
 vi.mock('./components/ParcelMapHero', () => ({
   ParcelMapHero: () => <div data-testid="parcel-map" />,
 }));
 
 const mocked = vi.mocked(parcelleApi);
+const mockedTaches = vi.mocked(fieldTasksApi);
 
 const parcel: Parcel = {
   id: 'p1',
@@ -154,22 +159,24 @@ describe('ParcelDetailPage', () => {
     mocked.itkTasks.mockResolvedValue(itk);
     mocked.indicators.mockResolvedValue(indicators);
     mocked.yieldEstimate.mockResolvedValue(yieldEstimate);
+    mockedTaches.list.mockResolvedValue([]);
   });
 
   afterEach(() => {
     vi.clearAllMocks();
   });
 
-  it('affiche l’en-tête, les 3 onglets et la vue d’ensemble par défaut', async () => {
+  it('affiche l’en-tête, les 4 onglets et la vue d’ensemble par défaut', async () => {
     renderPage();
 
     // En-tête : nom de la parcelle + culture en sous-titre.
     expect(await screen.findByText('Ananas 2')).toBeDefined();
 
-    // Onglets Vue d'ensemble + Calendrier + Conseils.
+    // Onglets Vue d'ensemble + Calendrier + Conseils + Carnet.
     expect(screen.getByText("Vue d'ensemble")).toBeDefined();
     expect(screen.getByText('Calendrier')).toBeDefined();
     expect(screen.getByText('Conseils')).toBeDefined();
+    expect(screen.getByText('Carnet')).toBeDefined();
 
     // Vue d'ensemble par défaut : infos générales + estimation de rendement.
     expect(screen.getByText('Informations générales')).toBeDefined();
@@ -246,6 +253,49 @@ describe('ParcelDetailPage', () => {
     getByText('Calendrier').click();
 
     expect(await findByText('Calendrier en préparation')).toBeDefined();
+  });
+
+  it('bascule sur Carnet et montre le passage de l’encadreur, photos comprises', async () => {
+    mocked.itkTasks.mockResolvedValue({
+      ...itk,
+      stages: [
+        {
+          ...itk.stages[0],
+          tasks: {
+            mandatory: [
+              {
+                ...itk.stages[0].tasks.mandatory[0],
+                taskId: 'tLog',
+                title: 'Contrôle du paillage',
+                state: 'completed',
+                completedLog: {
+                  logId: 'l1',
+                  completedAt: '2026-08-13T10:00:00.000Z',
+                  completedBy: { uid: 'e1', role: 'engineer', displayName: 'Dr Camara' },
+                  notes: 'Paillage trop mince près du drain',
+                  photoUrls: ['gs://bucket/p1.jpg'],
+                },
+              },
+            ],
+            recommended: [],
+          },
+        },
+      ],
+    });
+
+    renderPage();
+    fireEvent.click(await screen.findByText('Carnet'));
+
+    expect(await screen.findByText(/Paillage trop mince/)).toBeDefined();
+    expect(screen.getByText(/13 août · Dr Camara/)).toBeDefined();
+    expect(screen.getAllByRole('img').length).toBeGreaterThan(0);
+  });
+
+  it('annonce franchement un carnet vide plutôt que de laisser l’onglet muet', async () => {
+    renderPage();
+    fireEvent.click(await screen.findByText('Carnet'));
+
+    expect(await screen.findByText('Aucun passage enregistré')).toBeDefined();
   });
 
   it('affiche l’écran de nouvelle tentative en cas d’erreur', async () => {

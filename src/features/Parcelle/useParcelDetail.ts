@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import type { GeoBounds, Parcel } from '@/features/Domaines/domaines.types';
+import { fieldTasksApi } from '@/features/FieldTasks/fieldTasks.api';
 import { ApiRequestError } from '@/shared/api/client';
+import { useAuthStore } from '@/shared/stores/authStore';
 
+import { buildCarnet } from './carnet.mapper';
+import type { CarnetVisite } from './carnet.types';
 import { parcelleApi } from './parcelle.api';
 import type { IndicatorPoint, ItkParcelTasks, YieldEstimate } from './parcelle.types';
 
@@ -34,6 +38,11 @@ export interface ParcelDetail {
   daysAfterSowing?: number;
   /** Plan ITK complet (null si indisponible / pas de campagne). */
   itk: ItkParcelTasks | null;
+  /**
+   * Le carnet de la parcelle : ce que l'encadreur y a vu et demandé, passage par
+   * passage. Dérivé des journaux ITK et des consignes rattachées à une visite.
+   */
+  carnet: CarnetVisite[];
   /** Série NDVI (courbe onglet Conseils). */
   indicators: IndicatorPoint[];
   /** Estimation de rendement (null si pas encore calculée / 404). */
@@ -74,10 +83,8 @@ const deriveExpectedHarvest = (itk: ItkParcelTasks | null): string | undefined =
   return asValidDate(last.expectedEnd);
 };
 
-export function useParcelDetail(
-  farmId: string | undefined,
-  parcelId: string | undefined,
-): ParcelDetailState {
+export function useParcelDetail(farmId: string | undefined, parcelId: string | undefined): ParcelDetailState {
+  const farmerId = useAuthStore((s) => s.user?.uid);
   const [detail, setDetail] = useState<ParcelDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -101,14 +108,18 @@ export function useParcelDetail(
       parcelleApi.itkTasks(parcelId),
       parcelleApi.indicators(parcelId, 6),
       parcelleApi.yieldEstimate(parcelId),
+      // Consignes de l'agriculteur, filtrées ensuite sur cette parcelle :
+      // `GET /field-tasks` ne prend pas de `parcelId`, seulement un `farmerId`.
+      farmerId ? fieldTasksApi.list(farmerId) : Promise.resolve([]),
     ])
-      .then(([parcelRes, itkRes, indicatorsRes, yieldRes]) => {
+      .then(([parcelRes, itkRes, indicatorsRes, yieldRes, tasksRes]) => {
         if (!active) return;
 
         const parcel = parcelRes.status === 'fulfilled' ? parcelRes.value : undefined;
         const itk = itkRes.status === 'fulfilled' ? itkRes.value : null;
         const indicators = indicatorsRes.status === 'fulfilled' ? indicatorsRes.value : [];
         const yieldEstimate = yieldRes.status === 'fulfilled' ? yieldRes.value : null;
+        const taches = tasksRes.status === 'fulfilled' ? tasksRes.value.filter((t) => t.parcelId === parcelId) : [];
 
         // La parcelle doit exister quelque part (méta ou plan ITK), sinon erreur.
         if (!parcel && !itk) {
@@ -136,6 +147,7 @@ export function useParcelDetail(
         const expectedHarvestDate = officialHarvest ?? derivedHarvest;
 
         setDetail({
+          carnet: buildCarnet(itk, taches),
           parcelName: parcel?.name ?? 'Parcelle',
           cropLabel: cropLabel || undefined,
           cropType: cropType || undefined,
@@ -166,7 +178,7 @@ export function useParcelDetail(
     return () => {
       active = false;
     };
-  }, [farmId, parcelId, reloadKey]);
+  }, [farmId, parcelId, farmerId, reloadKey]);
 
   return { detail, isLoading, error, reload };
 }
