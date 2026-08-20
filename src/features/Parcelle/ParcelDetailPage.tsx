@@ -46,13 +46,48 @@ const BackButton: FunctionComponent<{ onClick: () => void }> = ({ onClick }) => 
   </IconButton>
 );
 
+/**
+ * Retour des états transitoires. Même place que celui de l'overlay carte, mais
+ * posé sur la surface claire : pas de scrim ni de fond translucide sombre — il
+ * n'y a aucune image satellite à assombrir tant que la carte n'est pas là.
+ */
+const PlainBack: FunctionComponent<{ onClick: () => void }> = ({ onClick }) => (
+  <Box
+    sx={{
+      position: 'absolute',
+      top: 'calc(env(safe-area-inset-top, 0px) + 14px)',
+      left: 16,
+      zIndex: 1000,
+    }}
+  >
+    <IconButton
+      onClick={onClick}
+      aria-label="Retour"
+      sx={{
+        width: 38,
+        height: 38,
+        background: '#FFFFFF',
+        border: '1px solid #E2E3E1',
+        '&:hover': { background: '#F3FFFA' },
+      }}
+    >
+      <ChevronLeftRounded sx={{ color: '#1A1C1B' }} />
+    </IconButton>
+  </Box>
+);
+
 const FullScreen: FunctionComponent<{ children: ReactNode }> = ({ children }) => (
   <Box
     sx={{
       position: 'fixed',
       inset: 0,
       overflow: 'hidden',
-      background: 'linear-gradient(150deg, #0A6656 0%, #04382F 100%)',
+      // La surface de l'app, pas une couleur à elle : une transition doit être
+      // invisible. L'ancien dégradé vert sombre peignait tout l'écran le temps
+      // du chargement, si bien que naviguer depuis l'accueil clair coupait vers
+      // un autre monde puis revenait. En état chargé la carte couvre ce fond —
+      // il ne se voit que pendant la transition, où il ne doit rien dire.
+      backgroundColor: 'background.default',
     }}
   >
     {children}
@@ -145,9 +180,9 @@ export const ParcelDetailPage: FunctionComponent = () => {
     return (
       <FullScreen>
         <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <CircularProgress sx={{ color: '#93F4E0' }} />
+          <CircularProgress sx={{ color: '#018675' }} />
         </Box>
-        <HeaderOverlay crumb="" title="" onBack={backToDomaine} />
+        <PlainBack onClick={backToDomaine} />
       </FullScreen>
     );
   }
@@ -155,7 +190,7 @@ export const ParcelDetailPage: FunctionComponent = () => {
   if (error || !detail) {
     return (
       <FullScreen>
-        <HeaderOverlay crumb="" title="" onBack={backToDomaine} />
+        <PlainBack onClick={backToDomaine} />
         <Box
           sx={{
             position: 'absolute',
@@ -168,10 +203,10 @@ export const ParcelDetailPage: FunctionComponent = () => {
             px: 3,
           }}
         >
-          <Typography sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 18, fontWeight: 700, color: '#FFFFFF' }}>
+          <Typography sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 18, fontWeight: 700, color: '#1A1C1B' }}>
             Chargement impossible
           </Typography>
-          <Typography sx={{ fontSize: 14, color: 'rgba(255,255,255,0.85)', mt: 1, maxWidth: 300 }}>
+          <Typography sx={{ fontSize: 14, color: '#5C5F5E', mt: 1, maxWidth: 300 }}>
             {error ?? 'Parcelle introuvable'}
           </Typography>
           <Stack
@@ -181,19 +216,27 @@ export const ParcelDetailPage: FunctionComponent = () => {
             spacing={0.75}
             onClick={reload}
             sx={{
-              all: 'unset',
+              // Resets ciblés plutôt que `all: 'unset'` : ce dernier remettait
+              // aussi `display` à `inline`, ce qui annulait le flex du Stack et
+              // empilait l'icône au-dessus du libellé.
+              appearance: 'none',
+              border: 0,
+              font: 'inherit',
+              textAlign: 'inherit',
               cursor: 'pointer',
               mt: 2,
               px: 2.5,
               py: 1,
               borderRadius: 999,
-              background: '#FFFFFF',
-              color: '#016557',
+              background: '#018675',
+              color: '#FFFFFF',
               '& svg': { fontSize: 18 },
             }}
           >
             <ReplayRounded />
-            <Typography sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 14, fontWeight: 700 }}>Réessayer</Typography>
+            <Typography sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 14, fontWeight: 700 }}>
+              Réessayer
+            </Typography>
           </Stack>
         </Box>
       </FullScreen>
@@ -216,7 +259,12 @@ export const ParcelDetailPage: FunctionComponent = () => {
 
       <HeaderOverlay crumb="Parcelle" title={detail.parcelName} subtitle={detail.cropLabel} onBack={backToDomaine} />
 
-      <DraggableBottomSheet snapPoints={SHEET_SNAPS} initialSnap={1} contentBottomPadding={CONTENT_BOTTOM_PADDING} zIndex={900}>
+      <DraggableBottomSheet
+        snapPoints={SHEET_SNAPS}
+        initialSnap={1}
+        contentBottomPadding={CONTENT_BOTTOM_PADDING}
+        zIndex={900}
+      >
         <ParcelKpiRow
           ndvi={detail.ndvi}
           area={detail.area}
