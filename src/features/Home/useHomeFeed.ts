@@ -9,15 +9,7 @@ import type { FieldTask } from '@/features/FieldTasks/fieldTasks.types';
 import { parcelleApi } from '@/features/Parcelle/parcelle.api';
 import { useAuthStore } from '@/shared/stores/authStore';
 
-import {
-  demoAlerts,
-  demoItkDrafts,
-  demoNames,
-  demoRecap,
-  demoTasks,
-  demoWeather,
-  isDemoMode,
-} from './home.demo';
+import { demoAlerts, demoItkDrafts, demoNames, demoRecap, demoTasks, demoWeather, isDemoMode } from './home.demo';
 import type { FeedItemDraft } from './home.feed.types';
 import {
   alertsToFeed,
@@ -206,8 +198,11 @@ export function useHomeFeed(): HomeFeedState {
         // Un kit hors ligne ne mesure plus rien « en ce moment » : sa dernière lecture
         // ne doit pas continuer à peindre les fenêtres du domaine en défavorables.
         if (station?.online !== true) continue;
-        const measures = station.measures;
-        if ((measures?.rain ?? 0) > 0 || (measures?.wind ?? 0) > WIND_LIMIT_KMH) {
+        // `rainRate` (mm/h) et non `rainfall` : ce dernier est le compteur
+        // cumulatif brut de la station, quasi toujours > 0 — s'en servir aurait
+        // marqué tout domaine équipé comme défavorable en permanence.
+        const live = station.live;
+        if ((live.rainRate?.value ?? 0) > 0 || (live.windSpeed?.value ?? 0) > WIND_LIMIT_KMH) {
           unfavourableFarmIds.add(farm.id);
         }
       }
@@ -219,9 +214,9 @@ export function useHomeFeed(): HomeFeedState {
         setWeather({
           farmId: equipped.farm.id,
           farmName: equipped.farm.name,
-          tempC: equipped.station.measures?.temperature ?? null,
-          online: equipped.station.online ?? false,
-          observedAt: equipped.station.lastSeenAt ?? null,
+          tempC: equipped.station.live.temperature?.value ?? null,
+          online: equipped.station.online,
+          observedAt: equipped.station.lastSeen,
           hasKit: true,
         });
       } else if (farms[0]) {
@@ -239,9 +234,7 @@ export function useHomeFeed(): HomeFeedState {
       const itkParcels = parcelsByFarm.flatMap(({ farmId: id, parcels }) =>
         parcels.filter(isItkActive).map((parcel) => ({ farmId: id, parcel })),
       );
-      const itkResults = await Promise.allSettled(
-        itkParcels.map(({ parcel }) => parcelleApi.itkTasks(parcel.id)),
-      );
+      const itkResults = await Promise.allSettled(itkParcels.map(({ parcel }) => parcelleApi.itkTasks(parcel.id)));
       if (!active) return;
 
       const sources: ParcelItkSource[] = itkResults.flatMap((result, index) =>

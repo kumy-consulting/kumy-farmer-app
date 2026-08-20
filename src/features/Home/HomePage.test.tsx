@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { domainesApi } from '@/features/Domaines/domaines.api';
-import type { Domain, DomainsSummary, FarmerAlert, Parcel } from '@/features/Domaines/domaines.types';
+import type { Domain, DomainsSummary, FarmerAlert, FarmLiveStation, Parcel } from '@/features/Domaines/domaines.types';
 import { fieldTasksApi } from '@/features/FieldTasks/fieldTasks.api';
 import type { FieldTask } from '@/features/FieldTasks/fieldTasks.types';
 import { parcelleApi } from '@/features/Parcelle/parcelle.api';
@@ -81,6 +81,33 @@ const renderPage = () =>
     </MemoryRouter>,
   );
 
+/**
+ * Station au format réel de `GET /farms/:id/live-station` : mesures sous `live`,
+ * chacune enveloppée dans { value, unit, at }, fraîcheur dans `lastSeen`.
+ */
+const liveStation = (o: {
+  online: boolean;
+  lastSeen: string;
+  temperature?: number;
+  rainRate?: number;
+  windSpeed?: number;
+}): FarmLiveStation['station'] => {
+  const at = o.lastSeen;
+  return {
+    id: 'st1',
+    stationId: 'ST-1',
+    label: 'Kit Kaporo',
+    online: o.online,
+    status: o.online ? 'active' : 'inactive',
+    lastSeen: o.lastSeen,
+    live: {
+      ...(o.temperature !== undefined && { temperature: { value: o.temperature, unit: '\u00B0C', at } }),
+      ...(o.rainRate !== undefined && { rainRate: { value: o.rainRate, unit: 'mm/h', at } }),
+      ...(o.windSpeed !== undefined && { windSpeed: { value: o.windSpeed, unit: 'km/h', at } }),
+    },
+  };
+};
+
 describe('HomePage (fil d’exploitation)', () => {
   beforeEach(() => {
     useAuthStore.setState({
@@ -94,9 +121,22 @@ describe('HomePage (fil d’exploitation)', () => {
     mockedDomaines.summary.mockResolvedValue(summary);
     mockedDomaines.parcels.mockResolvedValue([{ id: 'p1', name: 'Kaporo 2' }] as unknown as Parcel[]);
     mockedDomaines.liveStation.mockResolvedValue({
-      station: { online: true, lastSeenAt: '2026-08-19T08:56:00.000Z', measures: { temperature: 29, rain: 0, wind: 8 } },
+      station: liveStation({
+        online: true,
+        lastSeen: '2026-08-19T08:56:00.000Z',
+        temperature: 29,
+        rainRate: 0,
+        windSpeed: 8,
+      }),
     });
-    mockedParcelle.itkTasks.mockResolvedValue({ parcelId: 'p1', hasActiveCampaign: false, daysAfterSowing: 0, currentStage: null, itkValidationStatus: 'web_provisional', stages: [] });
+    mockedParcelle.itkTasks.mockResolvedValue({
+      parcelId: 'p1',
+      hasActiveCampaign: false,
+      daysAfterSowing: 0,
+      currentStage: null,
+      itkValidationStatus: 'web_provisional',
+      stages: [],
+    });
   });
 
   afterEach(() => {
@@ -140,7 +180,14 @@ describe('HomePage (fil d’exploitation)', () => {
   it('ouvre sur le segment le plus urgent et filtre au changement de compteur', async () => {
     mockedFieldTasks.list.mockResolvedValue([
       consigne,
-      { ...consigne, id: 'ft2', title: 'Apport urée', overdue: false, daysOverdue: 0, dueDate: dayjs().add(3, 'day').format('YYYY-MM-DD') },
+      {
+        ...consigne,
+        id: 'ft2',
+        title: 'Apport urée',
+        overdue: false,
+        daysOverdue: 0,
+        dueDate: dayjs().add(3, 'day').format('YYYY-MM-DD'),
+      },
     ]);
 
     renderPage();
@@ -149,7 +196,7 @@ describe('HomePage (fil d’exploitation)', () => {
     expect(await screen.findByText('Sarclage manuel')).toBeDefined();
     expect(screen.queryByText('Apport urée')).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: /Prévu/ }));
+    fireEvent.click(screen.getByRole('button', { name: /prévues/i }));
 
     expect(await screen.findByText('Apport urée')).toBeDefined();
     expect(screen.queryByText('Sarclage manuel')).toBeNull();
@@ -160,7 +207,7 @@ describe('HomePage (fil d’exploitation)', () => {
 
     renderPage();
 
-    fireEvent.click(await screen.findByRole('button', { name: /En cours/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /en cours/i }));
     expect(await screen.findByText('Aucune tâche démarrée.')).toBeDefined();
 
     fireEvent.click(screen.getByRole('button', { name: 'Voir la tâche en retard' }));

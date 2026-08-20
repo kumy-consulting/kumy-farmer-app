@@ -2,7 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { domainesApi } from '@/features/Domaines/domaines.api';
-import type { Domain, DomainsSummary, FarmerAlert, Parcel } from '@/features/Domaines/domaines.types';
+import type { Domain, DomainsSummary, FarmerAlert, FarmLiveStation, Parcel } from '@/features/Domaines/domaines.types';
 import { fieldTasksApi } from '@/features/FieldTasks/fieldTasks.api';
 import type { FieldTask } from '@/features/FieldTasks/fieldTasks.types';
 import { parcelleApi } from '@/features/Parcelle/parcelle.api';
@@ -21,7 +21,6 @@ const allItems = (sections: HomeFeedState['sections']) => [
   ...sections.tasks.doneToday,
   ...(sections.visits.last ? [sections.visits.last] : []),
 ];
-
 
 vi.mock('@/features/Domaines/domaines.api', () => ({
   domainesApi: { alerts: vi.fn(), farms: vi.fn(), parcels: vi.fn(), summary: vi.fn(), liveStation: vi.fn() },
@@ -126,6 +125,33 @@ const itk = {
   ],
 } as ItkParcelTasks;
 
+/**
+ * Station au format réel de `GET /farms/:id/live-station` : mesures sous `live`,
+ * chacune enveloppée dans { value, unit, at }, fraîcheur dans `lastSeen`.
+ */
+const liveStation = (o: {
+  online: boolean;
+  lastSeen: string;
+  temperature?: number;
+  rainRate?: number;
+  windSpeed?: number;
+}): FarmLiveStation['station'] => {
+  const at = o.lastSeen;
+  return {
+    id: 'st1',
+    stationId: 'ST-1',
+    label: 'Kit Kaporo',
+    online: o.online,
+    status: o.online ? 'active' : 'inactive',
+    lastSeen: o.lastSeen,
+    live: {
+      ...(o.temperature !== undefined && { temperature: { value: o.temperature, unit: '\u00B0C', at } }),
+      ...(o.rainRate !== undefined && { rainRate: { value: o.rainRate, unit: 'mm/h', at } }),
+      ...(o.windSpeed !== undefined && { windSpeed: { value: o.windSpeed, unit: 'km/h', at } }),
+    },
+  };
+};
+
 describe('useHomeFeed', () => {
   beforeEach(() => {
     useAuthStore.setState({
@@ -139,7 +165,13 @@ describe('useHomeFeed', () => {
     mockedDomaines.summary.mockResolvedValue(summary);
     mockedDomaines.parcels.mockResolvedValue(parcels);
     mockedDomaines.liveStation.mockResolvedValue({
-      station: { online: true, lastSeenAt: '2026-08-19T08:56:00.000Z', measures: { temperature: 29, rain: 0, wind: 8 } },
+      station: liveStation({
+        online: true,
+        lastSeen: '2026-08-19T08:56:00.000Z',
+        temperature: 29,
+        rainRate: 0,
+        windSpeed: 8,
+      }),
     });
     mockedParcelle.itkTasks.mockResolvedValue(itk);
   });
@@ -172,7 +204,11 @@ describe('useHomeFeed', () => {
 
   it('affiche déjà consignes et alertes à la fin de la première vague', async () => {
     let resolveParcels: (value: Parcel[]) => void = () => {};
-    mockedDomaines.parcels.mockReturnValue(new Promise<Parcel[]>((resolve) => { resolveParcels = resolve; }));
+    mockedDomaines.parcels.mockReturnValue(
+      new Promise<Parcel[]>((resolve) => {
+        resolveParcels = resolve;
+      }),
+    );
 
     const { result } = renderHook(() => useHomeFeed());
 
@@ -180,7 +216,9 @@ describe('useHomeFeed', () => {
     expect(result.current.isEnriching).toBe(true);
     expect(allItems(result.current.sections).map((i) => i.id)).toContain('task:ft1');
 
-    await act(async () => { resolveParcels(parcels); });
+    await act(async () => {
+      resolveParcels(parcels);
+    });
   });
 
   it('dégrade sans casser quand une source échoue', async () => {
@@ -199,7 +237,9 @@ describe('useHomeFeed', () => {
     const { result } = renderHook(() => useHomeFeed());
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    await act(async () => { await result.current.runTaskAction('task:ft1', 'complete'); });
+    await act(async () => {
+      await result.current.runTaskAction('task:ft1', 'complete');
+    });
 
     const item = allItems(result.current.sections).find((i) => i.id === 'task:ft1');
     expect(mockedFieldTasks.transition).toHaveBeenCalledWith('ft1', 'complete');
@@ -213,7 +253,9 @@ describe('useHomeFeed', () => {
     const { result } = renderHook(() => useHomeFeed());
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    await act(async () => { await result.current.runTaskAction('task:ft1', 'complete'); });
+    await act(async () => {
+      await result.current.runTaskAction('task:ft1', 'complete');
+    });
 
     const item = allItems(result.current.sections).find((i) => i.id === 'task:ft1');
     expect(item?.status).toBe('planned');
@@ -242,7 +284,13 @@ describe('useHomeFeed', () => {
 
   it('ne marque pas de conditions défavorables quand le kit qui les mesure est hors ligne', async () => {
     mockedDomaines.liveStation.mockResolvedValue({
-      station: { online: false, lastSeenAt: '2026-08-16T08:00:00.000Z', measures: { temperature: 22, rain: 12, wind: 5 } },
+      station: liveStation({
+        online: false,
+        lastSeen: '2026-08-16T08:00:00.000Z',
+        temperature: 22,
+        rainRate: 12,
+        windSpeed: 5,
+      }),
     });
     mockedParcelle.itkTasks.mockResolvedValue({
       ...itk,
@@ -277,16 +325,77 @@ describe('useHomeFeed', () => {
     expect(windowItem?.note).toBeUndefined();
   });
 
+  it('marque la fenêtre défavorable quand le kit en ligne mesure de la pluie', async () => {
+    // Le débit `rainRate` (mm/h) dit qu'il pleut MAINTENANT. `rainfall` est le
+    // compteur cumulatif de la station : le lire ici marquerait tout domaine
+    // équipé comme défavorable en permanence.
+    mockedDomaines.liveStation.mockResolvedValue({
+      station: liveStation({
+        online: true,
+        lastSeen: '2026-08-20T07:00:00.000Z',
+        temperature: 24,
+        rainRate: 3,
+        windSpeed: 5,
+      }),
+    });
+    mockedParcelle.itkTasks.mockResolvedValue({
+      ...itk,
+      stages: [
+        {
+          ...itk.stages[0],
+          tasks: {
+            mandatory: [
+              {
+                taskId: 'itWindow',
+                type: 'treatment',
+                title: 'Traitement fongicide',
+                description: '',
+                timing: 'J+15',
+                windowStart: '2026-08-18T00:00:00.000Z',
+                windowEnd: '2026-08-22T00:00:00.000Z',
+                state: 'pending',
+                inputs: [],
+              },
+            ],
+            recommended: [],
+          },
+        },
+      ],
+    } as ItkParcelTasks);
+
+    const { result } = renderHook(() => useHomeFeed());
+    await waitFor(() => expect(result.current.isEnriching).toBe(false));
+
+    const windowItem = allItems(result.current.sections).find((i) => i.id === 'window:p1:itWindow');
+    expect(windowItem?.note).toBe('Conditions défavorables en ce moment — mesuré par le kit');
+  });
+
+  it('lit la température et la fraîcheur de la puce météo au format réel de l’API', async () => {
+    const { result } = renderHook(() => useHomeFeed());
+    await waitFor(() => expect(result.current.isEnriching).toBe(false));
+
+    expect(result.current.weather).toMatchObject({
+      tempC: 29,
+      online: true,
+      observedAt: '2026-08-19T08:56:00.000Z',
+      hasKit: true,
+    });
+  });
+
   it('efface le message d’échec via dismissActionError', async () => {
     mockedFieldTasks.transition.mockRejectedValue(new Error('409'));
 
     const { result } = renderHook(() => useHomeFeed());
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    await act(async () => { await result.current.runTaskAction('task:ft1', 'complete'); });
+    await act(async () => {
+      await result.current.runTaskAction('task:ft1', 'complete');
+    });
     expect(result.current.actionError).toBe('Action non enregistrée, réessayez');
 
-    act(() => { result.current.dismissActionError(); });
+    act(() => {
+      result.current.dismissActionError();
+    });
 
     expect(result.current.actionError).toBeNull();
   });

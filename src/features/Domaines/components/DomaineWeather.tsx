@@ -45,7 +45,9 @@ export const DomaineWeather: FunctionComponent<DomaineWeatherProps> = ({ liveSta
           }}
         >
           <SensorsOffRounded />
-          <Typography sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 13.5, fontWeight: 500, color: 'rgba(55,75,70,0.72)' }}>
+          <Typography
+            sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 13.5, fontWeight: 500, color: 'rgba(55,75,70,0.72)' }}
+          >
             Aucune station météo installée sur ce domaine. La météo par capteur apparaîtra ici une fois le kit posé.
           </Typography>
         </Box>
@@ -53,7 +55,10 @@ export const DomaineWeather: FunctionComponent<DomaineWeatherProps> = ({ liveSta
     );
   }
 
-  const m = station.measures ?? {};
+  const live = station.live;
+  // La pluie affichée est le cumul 24 h calculé par l'API : `live.rainfall` est
+  // le compteur cumulatif brut de la station depuis sa pose, illisible ici.
+  const rain24h = live.rainfall24h?.valueMm;
 
   return (
     <Box sx={{ px: 2, py: 2.5 }}>
@@ -74,8 +79,11 @@ export const DomaineWeather: FunctionComponent<DomaineWeatherProps> = ({ liveSta
         >
           <CellTowerRounded sx={{ fontSize: 20, color: station.online ? '#018675' : '#8F9291' }} />
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 14, fontWeight: 700, color: '#1A1C1B' }} noWrap>
-              {station.name || station.stationCode || 'Station météo'}
+            <Typography
+              sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 14, fontWeight: 700, color: '#1A1C1B' }}
+              noWrap
+            >
+              {station.label || station.stationId || 'Station météo'}
             </Typography>
             <Typography sx={{ fontSize: 11.5, fontWeight: 500, color: station.online ? '#018675' : '#8F9291' }}>
               {station.online ? 'En ligne · mesures en direct' : 'Hors ligne'}
@@ -84,10 +92,10 @@ export const DomaineWeather: FunctionComponent<DomaineWeatherProps> = ({ liveSta
         </Stack>
 
         <Stack direction="row" sx={{ px: 1.5, py: 2 }}>
-          <Measure icon={<ThermostatRounded />} value={num(m.temperature, '°')} label="Température" />
-          <Measure icon={<WaterDropRounded />} value={num(m.humidity, '%')} label="Humidité" />
-          <Measure icon={<AirRounded />} value={num(m.wind, ' km/h')} label="Vent" />
-          <Measure icon={<UmbrellaRounded />} value={num(m.rain, ' mm')} label="Pluie" />
+          <Measure icon={<ThermostatRounded />} value={num(live.temperature?.value, '°')} label="Température" />
+          <Measure icon={<WaterDropRounded />} value={num(live.humidity?.value, '%')} label="Humidité" />
+          <Measure icon={<AirRounded />} value={num(live.windSpeed?.value, ' km/h')} label="Vent" />
+          <Measure icon={<UmbrellaRounded />} value={num(rain24h, ' mm')} label="Pluie 24 h" />
         </Stack>
       </Box>
     </Box>

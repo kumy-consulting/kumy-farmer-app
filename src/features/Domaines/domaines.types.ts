@@ -207,18 +207,41 @@ export interface DetailParcel {
 }
 
 /** Station météo live d'un domaine (GET /farms/:id/live-station). */
+/** Une mesure instantanée du kit : valeur, unité, horodatage de la lecture. */
+export interface StationLiveMeasure {
+  value: number;
+  unit: string;
+  at: string | null;
+}
+
+/**
+ * Réponse de `GET /farms/:id/live-station`.
+ *
+ * La forme suit le `FarmStationLiveResponseDto` du backoffice : les mesures sont
+ * sous `live`, chacune enveloppée dans { value, unit, at }, et la fraîcheur est
+ * `lastSeen`. Attention à `rainfall` : c'est le compteur cumulatif brut de la
+ * station, pas la pluie du moment — pour « il pleut maintenant » c'est `rainRate`
+ * (mm/h), et pour un cumul lisible c'est `rainfall24h`, que l'API calcule.
+ */
 export interface FarmLiveStation {
   station: {
-    stationCode?: string;
-    name?: string;
-    online?: boolean;
-    lastSeenAt?: string;
-    measures?: {
-      temperature?: number;
-      humidity?: number;
-      pressure?: number;
-      wind?: number;
-      rain?: number;
+    id: string;
+    stationId: string;
+    label: string | null;
+    online: boolean;
+    status: string;
+    lastSeen: string | null;
+    batteryLevel?: number | null;
+    signalStrength?: number | null;
+    live: {
+      temperature?: StationLiveMeasure;
+      humidity?: StationLiveMeasure;
+      pressure?: StationLiveMeasure;
+      windSpeed?: StationLiveMeasure;
+      windDir?: { value: number; label: string; at: string | null };
+      rainfall?: StationLiveMeasure;
+      rainRate?: StationLiveMeasure;
+      rainfall24h?: { valueMm: number; windowHours: number; at: string | null };
     };
   } | null;
 }
