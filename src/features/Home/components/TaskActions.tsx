@@ -12,15 +12,20 @@ interface TaskActionsProps {
   onAction: (id: string, action: 'start' | 'complete') => void;
 }
 
+/**
+ * Cible tactile d'au moins 44 px : ces deux boutons sont les seuls gestes que le
+ * backend autorise à l'agriculteur, et ils vivent sur une carte qui navigue au
+ * tap — une cible trop courte fait ouvrir la parcelle au lieu de clôturer.
+ */
 const base = {
   borderRadius: '999px',
   textTransform: 'none',
   fontFamily: "'Ubuntu', sans-serif",
-  fontSize: 12.5,
+  fontSize: 13,
   fontWeight: 600,
-  px: 1.6,
-  py: 0.5,
-  minWidth: 0,
+  px: 2,
+  minHeight: 44,
+  minWidth: 96,
 } as const;
 
 /**
@@ -32,8 +37,8 @@ export const TaskActions: FunctionComponent<TaskActionsProps> = ({ item, isOnlin
   if (item.status === 'done') return null;
 
   return (
-    <Stack spacing={0.5} alignItems="flex-end" sx={{ mt: 1 }}>
-      <Stack direction="row" spacing={0.75}>
+    <Stack spacing={0.5} alignItems="flex-end" sx={{ mt: 1.25 }}>
+      <Stack direction="row" spacing={1.5}>
         {item.status === 'planned' && (
           <Button
             variant="outlined"

@@ -24,9 +24,9 @@ export const ALERT_FRESH_DAYS = 7;
 export type TaskSegment = 'inProgress' | 'overdue' | 'planned';
 
 export const TASK_SEGMENT_LABEL: Record<TaskSegment, string> = {
-  inProgress: 'En cours',
-  overdue: 'En retard',
-  planned: 'Prévu',
+  inProgress: 'en cours',
+  overdue: 'en retard',
+  planned: 'prévues',
 };
 
 /** Ordre d'affichage des compteurs, et ordre de repli du segment ouvert par défaut. */
