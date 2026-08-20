@@ -1,9 +1,11 @@
 import { useState, type FunctionComponent } from 'react';
 
-import { Button, Stack, Typography } from '@mui/material';
+import { Stack, Typography } from '@mui/material';
 
 import type { FeedItem } from '../home.feed.types';
 import type { AlertsSection } from '../home.sections';
+import { useCollapsible } from '../useCollapsible';
+import { ExpandToggle } from './ExpandToggle';
 import { FeedCard } from './FeedCard';
 import { SectionHeader } from './SectionHeader';
 
@@ -24,25 +26,32 @@ const noop = () => {};
  * d'aujourd'hui, mais elles restent consultables plutôt que d'être escamotées.
  */
 export const AlertsBlock: FunctionComponent<AlertsBlockProps> = ({ alerts, onSelect }) => {
-  const [expanded, setExpanded] = useState(false);
+  const { sectionRef, expanded, toggle } = useCollapsible();
   const [showStale, setShowStale] = useState(false);
 
   const visible = expanded ? alerts.fresh : alerts.fresh.slice(0, PREVIEW);
-  const hidden = alerts.fresh.length - visible.length;
+  // Mesuré sur l'aperçu et non sur l'affiché : sinon le bouton s'efface dès
+  // qu'on déplie, et la liste ne se referme plus.
+  const overflow = alerts.fresh.length - PREVIEW;
 
   return (
-    <Stack>
+    <Stack ref={sectionRef}>
       <SectionHeader
         title="Alertes"
         count={alerts.fresh.length}
+        // Les anciennes se nomment dans les deux sens : « Voir moins » ici ne
+        // dirait pas moins de QUOI, entre les récentes et les anciennes.
         actionLabel={
-          alerts.stale.length > 0 && !showStale
-            ? alerts.stale.length > 1
-              ? `Voir les ${alerts.stale.length} anciennes`
-              : 'Voir l’ancienne'
-            : undefined
+          alerts.stale.length === 0
+            ? undefined
+            : showStale
+              ? 'Masquer les anciennes'
+              : alerts.stale.length > 1
+                ? `Voir les ${alerts.stale.length} anciennes`
+                : 'Voir l’ancienne'
         }
-        onAction={() => setShowStale(true)}
+        actionExpanded={alerts.stale.length > 0 ? showStale : undefined}
+        onAction={() => setShowStale((shown) => !shown)}
       />
 
       {alerts.fresh.length === 0 ? (
@@ -66,10 +75,12 @@ export const AlertsBlock: FunctionComponent<AlertsBlockProps> = ({ alerts, onSel
         </Stack>
       )}
 
-      {hidden > 0 && (
-        <Button onClick={() => setExpanded(true)} sx={{ textTransform: 'none', alignSelf: 'center', mt: 1, py: 0.25, minHeight: 0, fontSize: 13, fontWeight: 600 }}>
-          Voir {hidden > 1 ? `les ${hidden} autres alertes` : 'l’autre alerte'}
-        </Button>
+      {overflow > 0 && (
+        <ExpandToggle
+          expanded={expanded}
+          moreLabel={`Voir ${overflow > 1 ? `les ${overflow} autres alertes` : 'l’autre alerte'}`}
+          onToggle={toggle}
+        />
       )}
 
       {showStale && (

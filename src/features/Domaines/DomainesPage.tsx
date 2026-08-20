@@ -175,7 +175,16 @@ export const DomainesPage: FunctionComponent = () => {
               spacing={0.75}
               onClick={reload}
               sx={{
-                all: 'unset',
+                // Resets ciblés et non `all: 'unset'` : dans un `sx`, MUI hisse
+                // `color`/`background` comme system props et les émet AVANT les
+                // déclarations littérales, que l'expansion de `all` efface
+                // ensuite — le bouton perdait son vert et son texte blanc. Le
+                // reset annulait aussi `display`, ce qui empilait l'icône
+                // au-dessus du libellé.
+                appearance: 'none',
+                border: 0,
+                font: 'inherit',
+                textAlign: 'inherit',
                 cursor: 'pointer',
                 mt: 0.5,
                 px: 2.5,

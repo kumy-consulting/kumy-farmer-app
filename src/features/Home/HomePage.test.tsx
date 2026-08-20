@@ -240,6 +240,16 @@ describe('HomePage (fil d’exploitation)', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Voir les 2 autres alertes' }));
 
     expect(await screen.findByText('Alerte 4')).toBeDefined();
+
+    // Le retour : le bouton reste en place une fois déplié et referme la liste.
+    // Il disparaissait auparavant, la section ne se repliait donc jamais.
+    const collapse = screen.getByRole('button', { name: 'Voir moins' });
+    expect(collapse.getAttribute('aria-expanded')).toBe('true');
+
+    fireEvent.click(collapse);
+
+    await waitFor(() => expect(screen.queryByText('Alerte 4')).toBeNull());
+    expect(screen.getByRole('button', { name: 'Voir les 2 autres alertes' })).toBeDefined();
   });
 
   it('écarte les alertes périmées du décompte tout en les gardant consultables', async () => {
@@ -267,6 +277,35 @@ describe('HomePage (fil d’exploitation)', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Voir l’ancienne' }));
 
     expect(await screen.findByText('NDVI en chute')).toBeDefined();
+
+    // Les anciennes se renomment dans les deux sens plutôt que « Voir moins » :
+    // dans un en-tête, on ne saurait pas moins de quoi.
+    fireEvent.click(screen.getByRole('button', { name: 'Masquer les anciennes' }));
+
+    await waitFor(() => expect(screen.queryByText('NDVI en chute')).toBeNull());
+  });
+
+  it('ouvre et referme la liste des tâches', async () => {
+    const many: FieldTask[] = Array.from({ length: 5 }, (_, index) => ({
+      ...consigne,
+      id: `ft${index}`,
+      clientTaskId: `c${index}`,
+      title: `Consigne ${index}`,
+    }));
+    mockedFieldTasks.list.mockResolvedValue(many);
+
+    renderPage();
+
+    expect(await screen.findByText('Consigne 0')).toBeDefined();
+    expect(screen.queryByText('Consigne 4')).toBeNull();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Voir les 5 tâches' }));
+    expect(await screen.findByText('Consigne 4')).toBeDefined();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Voir moins' }));
+
+    await waitFor(() => expect(screen.queryByText('Consigne 4')).toBeNull());
+    expect(screen.getByRole('button', { name: 'Voir les 5 tâches' })).toBeDefined();
   });
 
   it('annonce un accueil vide sans rien inventer', async () => {

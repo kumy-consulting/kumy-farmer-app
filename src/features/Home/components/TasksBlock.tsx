@@ -4,6 +4,8 @@ import { Button, Stack, Typography } from '@mui/material';
 
 import type { FeedItem } from '../home.feed.types';
 import { defaultSegment, type TasksSection, type TaskSegment } from '../home.sections';
+import { useCollapsible } from '../useCollapsible';
+import { ExpandToggle } from './ExpandToggle';
 import { FeedCard } from './FeedCard';
 import { SectionHeader } from './SectionHeader';
 import { TaskSegments } from './TaskSegments';
@@ -43,23 +45,26 @@ const SUGGESTION_LABEL: Record<TaskSegment, (count: number) => string> = {
  */
 export const TasksBlock: FunctionComponent<TasksBlockProps> = ({ tasks, isOnline, onSelect, onAction }) => {
   const [chosen, setChosen] = useState<TaskSegment | null>(null);
-  const [expanded, setExpanded] = useState(false);
+  const { sectionRef, expanded, toggle, reset } = useCollapsible();
 
   const active = chosen ?? defaultSegment(tasks.counts);
   const items = tasks.bySegment[active];
   const visible = expanded ? items : items.slice(0, PREVIEW);
-  const hidden = items.length - visible.length;
+  // Se calcule sur l'aperçu, pas sur ce qui est affiché : une fois déplié il ne
+  // reste rien de caché, et l'ancienne condition `hidden > 0` faisait disparaître
+  // le bouton — la liste s'ouvrait donc sans pouvoir se refermer.
+  const overflow = items.length - PREVIEW;
 
   const next = suggestion(tasks.counts, active);
 
   const select = (segment: TaskSegment) => {
     setChosen(segment);
-    setExpanded(false);
+    reset();
   };
 
   return (
-    <Stack>
-      <SectionHeader title="Tâches" />
+    <Stack ref={sectionRef}>
+      <SectionHeader title="Tâches" count={tasks.total} />
 
       <TaskSegments counts={tasks.counts} active={active} onChange={select} />
 
@@ -93,17 +98,13 @@ export const TasksBlock: FunctionComponent<TasksBlockProps> = ({ tasks, isOnline
         </Stack>
       )}
 
-      {hidden > 0 && (
-        <Button onClick={() => setExpanded(true)} sx={{ textTransform: 'none', alignSelf: 'center', mt: 1, py: 0.25, minHeight: 0, fontSize: 13, fontWeight: 600 }}>
-          Voir les {items.length} tâches
-        </Button>
+      {overflow > 0 && (
+        <ExpandToggle expanded={expanded} moreLabel={`Voir les ${items.length} tâches`} onToggle={toggle} />
       )}
 
       {tasks.doneToday.length > 0 && (
         <Stack spacing={1.25} sx={{ mt: 1.75 }}>
-          <Typography sx={{ fontSize: 12, fontWeight: 600, color: 'rgba(55,75,70,0.55)' }}>
-            Fait aujourd’hui
-          </Typography>
+          <Typography sx={{ fontSize: 12, fontWeight: 600, color: 'rgba(55,75,70,0.55)' }}>Fait aujourd’hui</Typography>
           {tasks.doneToday.map((item) => (
             <FeedCard key={item.id} item={item} isOnline={isOnline} onSelect={onSelect} onAction={onAction} />
           ))}
