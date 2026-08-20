@@ -1,7 +1,7 @@
 import type { Parcel } from '@/features/Domaines/domaines.types';
 import { apiClient } from '@/shared/api/client';
 
-import type { IndicatorPoint, ItkParcelTasks, YieldEstimate } from './parcelle.types';
+import type { ClimateContext, IndicatorPoint, ItkParcelTasks, YieldEstimate } from './parcelle.types';
 
 /**
  * API de la feature Parcelle.
@@ -11,7 +11,9 @@ import type { IndicatorPoint, ItkParcelTasks, YieldEstimate } from './parcelle.t
  *
  * Tous les endpoints ci-dessous sont autorisés au rôle FARMER. Les endpoints OAD
  * (oad-snapshot, recommendations, alerts, forecast, fertilizer-window) sont
- * réservés aux rôles internes (403 pour FARMER) et ne sont donc jamais appelés.
+ * réservés aux rôles internes (403 pour FARMER) et ne sont donc jamais appelés —
+ * y compris `GET /farms/:id/forecast`, d'où le recours à `climate-context` pour
+ * la météo d'un domaine sans kit.
  */
 export const parcelleApi = {
   /** Méta d'une parcelle rattachée à un domaine (culture, surface, coords, NDVI). */
@@ -25,6 +27,15 @@ export const parcelleApi = {
     const { data } = await apiClient.get<ItkParcelTasks>(`/parcels/${parcelId}/itk-tasks`, {
       params: { stage: 'all' },
     });
+    return data;
+  },
+
+  /**
+   * Contexte climatique de la parcelle. Seule source météo ouverte au FARMER qui
+   * fonctionne sans station : elle retombe sur CHIRPS + NASA POWER.
+   */
+  async climateContext(parcelId: string): Promise<ClimateContext> {
+    const { data } = await apiClient.get<ClimateContext>(`/parcels/${parcelId}/climate-context`);
     return data;
   },
 

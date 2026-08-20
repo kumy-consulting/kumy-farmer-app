@@ -56,7 +56,9 @@ describe('FeedCard', () => {
     expect(screen.queryByRole('button', { name: 'Démarrer' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Terminé' })).toBeDefined();
 
-    rerender(<FeedCard item={item({ status: 'done', overdue: false })} onSelect={vi.fn()} onAction={vi.fn()} isOnline />);
+    rerender(
+      <FeedCard item={item({ status: 'done', overdue: false })} onSelect={vi.fn()} onAction={vi.fn()} isOnline />,
+    );
     expect(screen.queryByRole('button', { name: 'Terminé' })).toBeNull();
     expect(screen.getByText('Fait')).toBeDefined();
   });
@@ -123,6 +125,7 @@ describe('HomeHeader', () => {
           online: true,
           observedAt: '2026-08-19T08:56:00.000Z',
           hasKit: true,
+          climate: null,
         }}
         recap={null}
         alerts={{ fresh: 0, stale: 0 }}
@@ -137,7 +140,7 @@ describe('HomeHeader', () => {
     expect(screen.getByText(/en direct/)).toBeDefined();
   });
 
-  it('annonce une météo régionale estimée quand le domaine n’a pas de kit', () => {
+  it('montre le contexte climatique satellite quand le domaine n’a pas de kit', () => {
     render(
       <HomeHeader
         firstName="Mamadou"
@@ -148,6 +151,7 @@ describe('HomeHeader', () => {
           online: false,
           observedAt: null,
           hasKit: false,
+          climate: { avgTempC: 24.4, asOfDate: '2026-08-19' },
         }}
         recap={null}
         alerts={{ fresh: 0, stale: 0 }}
@@ -156,7 +160,34 @@ describe('HomeHeader', () => {
       />,
     );
 
-    expect(screen.getByText(/météo régionale estimée/)).toBeDefined();
+    // La fenêtre est nommée : `avg7dC` est une moyenne 7 j, pas un relevé de
+    // l'instant. L'ancienne mention « météo régionale estimée » promettait une
+    // estimation que l'écran ne montrait jamais.
+    expect(screen.getByText(/24° moy\. 7 j/)).toBeDefined();
+    expect(screen.queryByText(/météo régionale estimée/)).toBeNull();
+  });
+
+  it('dit franchement l’absence de kit quand aucun contexte climatique ne revient', () => {
+    render(
+      <HomeHeader
+        firstName="Mamadou"
+        weather={{
+          farmId: 'f1',
+          farmName: 'Domaine Kaporo',
+          tempC: null,
+          online: false,
+          observedAt: null,
+          hasKit: false,
+          climate: null,
+        }}
+        recap={null}
+        alerts={{ fresh: 0, stale: 0 }}
+        onWeatherClick={vi.fn()}
+        onRecapClick={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/pas de kit sur ce domaine/)).toBeDefined();
   });
 
   it('reste affichable sans aucune donnée météo', () => {

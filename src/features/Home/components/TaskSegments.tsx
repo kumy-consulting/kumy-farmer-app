@@ -2,6 +2,8 @@ import type { FunctionComponent } from 'react';
 
 import { Box, Stack, Typography } from '@mui/material';
 
+import { error } from '@/theme/colors';
+
 import { TASK_SEGMENT_LABEL, type TaskSegment } from '../home.sections';
 
 interface TaskSegmentsProps {
@@ -16,9 +18,15 @@ interface TaskSegmentsProps {
  */
 const ORDER: TaskSegment[] = ['overdue', 'inProgress', 'planned'];
 
-/** Le retard se voit de loin ; les deux autres restent dans le vert de la marque. */
+/**
+ * Le retard prend le rouge des alertes critiques du fil, pas un ambre à part :
+ * une consigne dépassée et une alerte grave demandent la même chose — d'agir
+ * maintenant. Un vocabulaire de couleur unique évite à l'agriculteur d'avoir à
+ * apprendre deux échelles de gravité sur le même écran. Les deux autres restent
+ * dans le vert de la marque.
+ */
 const TONE: Record<TaskSegment, { text: string; fill: string }> = {
-  overdue: { text: '#8C5000', fill: 'rgba(198,138,26,0.18)' },
+  overdue: { text: error[40], fill: 'rgba(186,26,26,0.13)' },
   inProgress: { text: '#016557', fill: 'rgba(1,134,117,0.14)' },
   planned: { text: '#4E635D', fill: 'rgba(78,99,93,0.12)' },
 };

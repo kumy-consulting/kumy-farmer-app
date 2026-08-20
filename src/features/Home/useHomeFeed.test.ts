@@ -25,7 +25,9 @@ const allItems = (sections: HomeFeedState['sections']) => [
 vi.mock('@/features/Domaines/domaines.api', () => ({
   domainesApi: { alerts: vi.fn(), farms: vi.fn(), parcels: vi.fn(), summary: vi.fn(), liveStation: vi.fn() },
 }));
-vi.mock('@/features/Parcelle/parcelle.api', () => ({ parcelleApi: { itkTasks: vi.fn() } }));
+vi.mock('@/features/Parcelle/parcelle.api', () => ({
+  parcelleApi: { itkTasks: vi.fn(), climateContext: vi.fn() },
+}));
 vi.mock('@/features/FieldTasks/fieldTasks.api', () => ({
   fieldTasksApi: { list: vi.fn(), transition: vi.fn() },
 }));
@@ -174,6 +176,7 @@ describe('useHomeFeed', () => {
       }),
     });
     mockedParcelle.itkTasks.mockResolvedValue(itk);
+    mockedParcelle.climateContext.mockRejectedValue(new Error('pas de contexte'));
   });
 
   afterEach(() => {
@@ -323,6 +326,52 @@ describe('useHomeFeed', () => {
     const windowItem = allItems(result.current.sections).find((i) => i.id === 'window:p1:itWindow');
     expect(windowItem).toBeDefined();
     expect(windowItem?.note).toBeUndefined();
+  });
+
+  it('marque la fenêtre défavorable sur un domaine sans kit, via le satellite', async () => {
+    // Aucun kit : sans contexte climatique, ce domaine n'aurait jamais le
+    // moindre avertissement sur ses fenêtres de traitement.
+    mockedDomaines.liveStation.mockResolvedValue({ station: null });
+    mockedParcelle.climateContext.mockResolvedValue({
+      parcelId: 'p1',
+      dataSource: 'external',
+      asOfDate: '2026-08-19',
+      temperature: { avg7dC: 24.4, expectedC: 26, deltaC: -1.6 },
+      wind: { avgKmh: 11, direction: 'SO', treatmentWindowOpen: false },
+      rainfall: { cumulMm: 120, expectedMm: 100, deltaPct: 20 },
+    });
+    mockedParcelle.itkTasks.mockResolvedValue({
+      ...itk,
+      stages: [
+        {
+          ...itk.stages[0],
+          tasks: {
+            mandatory: [
+              {
+                taskId: 'itWindow',
+                type: 'treatment',
+                title: 'Traitement fongicide',
+                description: '',
+                timing: 'J+15',
+                windowStart: '2026-08-18T00:00:00.000Z',
+                windowEnd: '2026-08-22T00:00:00.000Z',
+                state: 'pending',
+                inputs: [],
+              },
+            ],
+            recommended: [],
+          },
+        },
+      ],
+    } as ItkParcelTasks);
+
+    const { result } = renderHook(() => useHomeFeed());
+    await waitFor(() => expect(result.current.isEnriching).toBe(false));
+
+    const windowItem = allItems(result.current.sections).find((i) => i.id === 'window:p1:itWindow');
+    // La note nomme sa source : créditer le kit d'une estimation serait faux.
+    expect(windowItem?.note).toBe('Conditions défavorables aujourd’hui — estimation satellite');
+    expect(result.current.weather).toMatchObject({ hasKit: false, climate: { avgTempC: 24.4 } });
   });
 
   it('marque la fenêtre défavorable quand le kit en ligne mesure de la pluie', async () => {

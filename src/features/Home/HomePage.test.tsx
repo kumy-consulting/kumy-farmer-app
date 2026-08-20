@@ -15,7 +15,9 @@ import { HomePage } from './HomePage';
 vi.mock('@/features/Domaines/domaines.api', () => ({
   domainesApi: { alerts: vi.fn(), farms: vi.fn(), parcels: vi.fn(), summary: vi.fn(), liveStation: vi.fn() },
 }));
-vi.mock('@/features/Parcelle/parcelle.api', () => ({ parcelleApi: { itkTasks: vi.fn() } }));
+vi.mock('@/features/Parcelle/parcelle.api', () => ({
+  parcelleApi: { itkTasks: vi.fn(), climateContext: vi.fn() },
+}));
 vi.mock('@/features/FieldTasks/fieldTasks.api', () => ({
   fieldTasksApi: { list: vi.fn(), transition: vi.fn() },
 }));
@@ -137,6 +139,7 @@ describe('HomePage (fil d’exploitation)', () => {
       itkValidationStatus: 'web_provisional',
       stages: [],
     });
+    mockedParcelle.climateContext.mockRejectedValue(new Error('pas de contexte'));
   });
 
   afterEach(() => {

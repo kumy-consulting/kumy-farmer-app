@@ -5,7 +5,15 @@ import type { FarmerAlert } from '@/features/Domaines/domaines.types';
 import type { FieldTask } from '@/features/FieldTasks/fieldTasks.types';
 import type { ItkParcelTasks, ItkTask } from '@/features/Parcelle/parcelle.types';
 
-import { alertsToFeed, fieldTasksToFeed, itkToFeed, visitsToFeed, type NameIndex, type ParcelItkSource } from './home.mappers';
+import {
+  alertsToFeed,
+  fieldTasksToFeed,
+  itkToFeed,
+  visitsToFeed,
+  type NameIndex,
+  type ParcelItkSource,
+  type UnfavourableSource,
+} from './home.mappers';
 
 const NOW = dayjs('2026-08-19T09:00:00.000Z');
 
@@ -188,7 +196,7 @@ const itkSource = (tasks: ItkTask[]): ParcelItkSource => ({
 });
 
 describe('itkToFeed', () => {
-  const ctx = { now: NOW, unfavourableFarmIds: new Set<string>() };
+  const ctx = { now: NOW, unfavourable: new Map<string, UnfavourableSource>() };
 
   it('promeut une tâche d’intrant en fenêtre de traitement, urgente si elle se ferme sous 48 h', () => {
     const items = itkToFeed([itkSource([itkTask()])], ctx);
@@ -204,14 +212,28 @@ describe('itkToFeed', () => {
   });
 
   it('signale les conditions défavorables mesurées par le kit du domaine', () => {
-    const items = itkToFeed([itkSource([itkTask()])], { now: NOW, unfavourableFarmIds: new Set(['f1']) });
+    const items = itkToFeed([itkSource([itkTask()])], {
+      now: NOW,
+      unfavourable: new Map<string, UnfavourableSource>([['f1', 'kit']]),
+    });
 
     expect(items[0].note).toBe('Conditions défavorables en ce moment — mesuré par le kit');
   });
 
   it('laisse une tâche sans intrant ni fenêtre datée en simple tâche ITK', () => {
     const items = itkToFeed(
-      [itkSource([itkTask({ taskId: 'it2', type: 'observation', title: 'Observation ravageurs', inputs: [], windowStart: '2026-08-22T00:00:00.000Z', windowEnd: null })])],
+      [
+        itkSource([
+          itkTask({
+            taskId: 'it2',
+            type: 'observation',
+            title: 'Observation ravageurs',
+            inputs: [],
+            windowStart: '2026-08-22T00:00:00.000Z',
+            windowEnd: null,
+          }),
+        ]),
+      ],
       ctx,
     );
 
@@ -224,7 +246,17 @@ describe('itkToFeed', () => {
 
   it('épingle une tâche ITK dont la fenêtre est dépassée', () => {
     const items = itkToFeed(
-      [itkSource([itkTask({ taskId: 'it3', type: 'observation', inputs: [], windowStart: '2026-08-10T00:00:00.000Z', windowEnd: '2026-08-14T00:00:00.000Z' })])],
+      [
+        itkSource([
+          itkTask({
+            taskId: 'it3',
+            type: 'observation',
+            inputs: [],
+            windowStart: '2026-08-10T00:00:00.000Z',
+            windowEnd: '2026-08-14T00:00:00.000Z',
+          }),
+        ]),
+      ],
       ctx,
     );
 
@@ -280,7 +312,11 @@ describe('itkToFeed', () => {
     const atTwentyFour = itkToFeed(
       [
         itkSource([
-          itkTask({ taskId: 'itOpen24', windowStart: '2026-08-20T09:00:00.000Z', windowEnd: '2026-08-25T09:00:00.000Z' }),
+          itkTask({
+            taskId: 'itOpen24',
+            windowStart: '2026-08-20T09:00:00.000Z',
+            windowEnd: '2026-08-25T09:00:00.000Z',
+          }),
         ]),
       ],
       ctx,
@@ -290,7 +326,11 @@ describe('itkToFeed', () => {
     const beyondTwentyFour = itkToFeed(
       [
         itkSource([
-          itkTask({ taskId: 'itOpen25', windowStart: '2026-08-20T10:00:00.000Z', windowEnd: '2026-08-25T09:00:00.000Z' }),
+          itkTask({
+            taskId: 'itOpen25',
+            windowStart: '2026-08-20T10:00:00.000Z',
+            windowEnd: '2026-08-25T09:00:00.000Z',
+          }),
         ]),
       ],
       ctx,
@@ -300,7 +340,11 @@ describe('itkToFeed', () => {
 
   it('promeut par type même sans intrant, conseil limité à la date', () => {
     const items = itkToFeed(
-      [itkSource([itkTask({ taskId: 'itNoInput', inputs: [], windowStart: null, windowEnd: '2026-08-21T00:00:00.000Z' })])],
+      [
+        itkSource([
+          itkTask({ taskId: 'itNoInput', inputs: [], windowStart: null, windowEnd: '2026-08-21T00:00:00.000Z' }),
+        ]),
+      ],
       ctx,
     );
 
@@ -340,10 +384,7 @@ describe('visitsToFeed', () => {
 
   it('ignore les consignes sans visite et les visites de plus de 21 jours', () => {
     const items = visitsToFeed(
-      [
-        task({ id: 'x', visitId: null }),
-        task({ id: 'y', visitId: 'vieux', createdAt: '2026-07-01T09:00:00.000Z' }),
-      ],
+      [task({ id: 'x', visitId: null }), task({ id: 'y', visitId: 'vieux', createdAt: '2026-07-01T09:00:00.000Z' })],
       names,
       NOW,
     );

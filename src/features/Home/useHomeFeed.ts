@@ -20,6 +20,7 @@ import {
   visitsToFeed,
   type NameIndex,
   type ParcelItkSource,
+  type UnfavourableSource,
 } from './home.mappers';
 import { buildSections, type HomeSections } from './home.sections';
 
@@ -36,8 +37,14 @@ export interface HomeWeather {
   tempC: number | null;
   online: boolean;
   observedAt: string | null;
-  /** false = aucun kit assigné : la puce affiche « météo régionale estimée ». */
+  /** false = aucun kit assigné sur ce domaine. */
   hasKit: boolean;
+  /**
+   * Renseigné uniquement sans kit : le contexte climatique satellite d'une
+   * parcelle du domaine. Ce n'est jamais une mesure « en ce moment » — `avgTempC`
+   * est une moyenne sur sept jours — et la puce doit l'annoncer comme telle.
+   */
+  climate: { avgTempC: number | null; asOfDate: string | null } | null;
 }
 
 export interface HomeFeedState {
@@ -193,7 +200,7 @@ export function useHomeFeed(): HomeFeedState {
         return { farm, station: result.status === 'fulfilled' ? result.value.station : null };
       });
 
-      const unfavourableFarmIds = new Set<string>();
+      const unfavourable = new Map<string, UnfavourableSource>();
       for (const { farm, station } of kits) {
         // Un kit hors ligne ne mesure plus rien « en ce moment » : sa dernière lecture
         // ne doit pas continuer à peindre les fenêtres du domaine en défavorables.
@@ -203,13 +210,14 @@ export function useHomeFeed(): HomeFeedState {
         // marqué tout domaine équipé comme défavorable en permanence.
         const live = station.live;
         if ((live.rainRate?.value ?? 0) > 0 || (live.windSpeed?.value ?? 0) > WIND_LIMIT_KMH) {
-          unfavourableFarmIds.add(farm.id);
+          unfavourable.set(farm.id, 'kit');
         }
       }
 
       // La puce d'en-tête montre le premier domaine réellement équipé ; à défaut,
-      // le premier domaine, annoncé comme météo régionale estimée.
+      // le premier domaine, dont la météo viendra du contexte climatique.
       const equipped = kits.find((kit) => kit.station !== null);
+      const chipFarm = equipped?.farm ?? farms[0] ?? null;
       if (equipped?.station) {
         setWeather({
           farmId: equipped.farm.id,
@@ -218,22 +226,69 @@ export function useHomeFeed(): HomeFeedState {
           online: equipped.station.online,
           observedAt: equipped.station.lastSeen,
           hasKit: true,
+          climate: null,
         });
-      } else if (farms[0]) {
+      } else if (chipFarm) {
         setWeather({
-          farmId: farms[0].id,
-          farmName: farms[0].name,
+          farmId: chipFarm.id,
+          farmName: chipFarm.name,
           tempC: null,
           online: false,
           observedAt: null,
           hasKit: false,
+          climate: null,
         });
       }
 
-      // Vague 3 — plans ITK des parcelles réellement en campagne.
+      // Parcelles réellement sous suivi ITK : elles seules produisent des
+      // fenêtres de traitement, donc elles seules justifient un appel climat.
       const itkParcels = parcelsByFarm.flatMap(({ farmId: id, parcels }) =>
         parcels.filter(isItkActive).map((parcel) => ({ farmId: id, parcel })),
       );
+
+      // `climate-context` est la seule source météo ouverte au FARMER qui
+      // fonctionne sans station : elle retombe sur CHIRPS + NASA POWER. Un appel
+      // par domaine, jamais par parcelle — le contexte est climatique, il vaut
+      // pour tout le domaine. On n'interroge que les domaines qu'aucun kit en
+      // ligne ne couvre : ailleurs, la mesure du kit fait autorité et l'appel
+      // serait gaspillé. Sans lui, un domaine non équipé n'aurait jamais
+      // d'avertissement sur ses fenêtres de traitement.
+      const climateTargets = new Map<string, string>();
+      for (const { farmId: id, parcel } of itkParcels) {
+        if (unfavourable.get(id) === 'kit') continue;
+        if (kits.some((kit) => kit.farm.id === id && kit.station?.online === true)) continue;
+        if (!climateTargets.has(id)) climateTargets.set(id, parcel.id);
+      }
+      // Le domaine de la puce mérite son chiffre même sans parcelle sous ITK.
+      if (!equipped && chipFarm && !climateTargets.has(chipFarm.id)) {
+        const anyParcel = parcelsByFarm.find((entry) => entry.farmId === chipFarm.id)?.parcels[0];
+        if (anyParcel) climateTargets.set(chipFarm.id, anyParcel.id);
+      }
+
+      const targets = [...climateTargets];
+      const climates = await Promise.allSettled(targets.map(([, parcelId]) => parcelleApi.climateContext(parcelId)));
+      if (!active) return;
+
+      targets.forEach(([id], index) => {
+        const result = climates[index];
+        if (result.status !== 'fulfilled') return;
+        const context = result.value;
+
+        // `treatmentWindowOpen` vaut pour la journée (vent + humidité + pluie
+        // dans les seuils), là où le kit parle de l'instant. La note distingue
+        // les deux plutôt que de créditer le kit d'une estimation.
+        if (!context.wind.treatmentWindowOpen) unfavourable.set(id, 'satellite');
+
+        if (!equipped && chipFarm && id === chipFarm.id) {
+          setWeather((current) =>
+            current && current.farmId === id
+              ? { ...current, climate: { avgTempC: context.temperature.avg7dC, asOfDate: context.asOfDate } }
+              : current,
+          );
+        }
+      });
+
+      // Vague 3 — plans ITK des parcelles réellement en campagne.
       const itkResults = await Promise.allSettled(itkParcels.map(({ parcel }) => parcelleApi.itkTasks(parcel.id)));
       if (!active) return;
 
@@ -242,7 +297,7 @@ export function useHomeFeed(): HomeFeedState {
           ? [{ itk: result.value, parcelName: itkParcels[index].parcel.name, farmId: itkParcels[index].farmId }]
           : [],
       );
-      setItkDrafts(itkToFeed(sources, { now: dayjs(), unfavourableFarmIds }));
+      setItkDrafts(itkToFeed(sources, { now: dayjs(), unfavourable }));
       setIsEnriching(false);
     })();
 

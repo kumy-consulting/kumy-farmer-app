@@ -70,7 +70,9 @@ const ALERT_ICON: Record<string, FeedIcon> = {
  */
 export function fieldTasksToFeed(tasks: FieldTask[], names: NameIndex, now: Dayjs = dayjs()): FeedItemDraft[] {
   return tasks
-    .filter((task) => task.status !== 'done' || (task.completedAt != null && dayjs(task.completedAt).isSame(now, 'day')))
+    .filter(
+      (task) => task.status !== 'done' || (task.completedAt != null && dayjs(task.completedAt).isSame(now, 'day')),
+    )
     .map((task) => {
       const parcelName = task.parcelId ? names.parcels.get(task.parcelId) : undefined;
       const farmName = names.farms.get(task.farmId);
@@ -102,21 +104,17 @@ export function fieldTasksToFeed(tasks: FieldTask[], names: NameIndex, now: Dayj
  * `SEVERITY` déjà en place (le backend renvoie parfois `high|medium|low`).
  */
 export function alertsToFeed(alerts: FarmerAlert[]): FeedItemDraft[] {
-  return alerts
-    .filter(isActiveAlert)
-    .map((alert) => ({
-      id: `alert:${alert.id}`,
-      kind: 'alert',
-      title: alert.title || alert.message,
-      place: alert.parcelName ?? alert.farmName,
-      icon: ALERT_ICON[alert.type] ?? 'rain',
-      advice: alert.recommendedAction,
-      at: alert.createdAt,
-      severity: normalizeSeverity(alert.severity),
-      target: alert.parcelId
-        ? `/domaines/${alert.farmId}/parcelles/${alert.parcelId}`
-        : `/domaines/${alert.farmId}`,
-    }));
+  return alerts.filter(isActiveAlert).map((alert) => ({
+    id: `alert:${alert.id}`,
+    kind: 'alert',
+    title: alert.title || alert.message,
+    place: alert.parcelName ?? alert.farmName,
+    icon: ALERT_ICON[alert.type] ?? 'rain',
+    advice: alert.recommendedAction,
+    at: alert.createdAt,
+    severity: normalizeSeverity(alert.severity),
+    target: alert.parcelId ? `/domaines/${alert.farmId}/parcelles/${alert.parcelId}` : `/domaines/${alert.farmId}`,
+  }));
 }
 
 /** Plan ITK d'une parcelle, avec de quoi nommer et router la carte. */
@@ -126,11 +124,30 @@ export interface ParcelItkSource {
   farmId: string;
 }
 
+/** Ce qui a établi que les conditions sont défavorables sur un domaine. */
+export type UnfavourableSource = 'kit' | 'satellite';
+
+/**
+ * La source change ce que l'app a le droit d'affirmer : un kit mesure l'instant
+ * sur place, le satellite donne une estimation à la journée. Créditer le kit
+ * d'une estimation satellite serait faux — et un agriculteur qui n'a pas de kit
+ * ne comprendrait pas d'où sort la mention.
+ */
+const UNFAVOURABLE_NOTE: Record<UnfavourableSource, string> = {
+  kit: 'Conditions défavorables en ce moment — mesuré par le kit',
+  satellite: 'Conditions défavorables aujourd’hui — estimation satellite',
+};
+
 export interface ItkFeedContext {
   now: Dayjs;
-  /** Domaines dont le kit mesure de la pluie ou du vent fort en ce moment. */
-  unfavourableFarmIds: Set<string>;
+  /** Domaines aux conditions défavorables, et par quoi on le sait. */
+  unfavourable: Map<string, UnfavourableSource>;
 }
+
+const unfavourableNote = (ctx: ItkFeedContext, farmId: string): string | undefined => {
+  const source = ctx.unfavourable.get(farmId);
+  return source ? UNFAVOURABLE_NOTE[source] : undefined;
+};
 
 /** Types de tâches ITK qui méritent une fenêtre de traitement. */
 const WINDOW_TYPES = new Set(['treatment', 'fertilisation', 'fertilization', 'weeding', 'irrigation']);
@@ -202,9 +219,7 @@ export function itkToFeed(sources: ParcelItkSource[], ctx: ItkFeedContext): Feed
           place: parcelName,
           icon: 'window',
           advice: [`Jusqu’au ${end.format('DD/MM')}`, inputs].filter(Boolean).join(' · '),
-          note: ctx.unfavourableFarmIds.has(farmId)
-            ? 'Conditions défavorables en ce moment — mesuré par le kit'
-            : undefined,
+          note: unfavourableNote(ctx, farmId),
           at: end.toISOString(),
           urgentNow: closingSoon || undefined,
           target,

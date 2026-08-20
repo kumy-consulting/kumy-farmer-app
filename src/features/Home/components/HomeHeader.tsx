@@ -2,7 +2,7 @@ import type { FunctionComponent } from 'react';
 
 import ArrowForwardRounded from '@mui/icons-material/ArrowForwardRounded';
 import CellTowerRounded from '@mui/icons-material/CellTowerRounded';
-import PublicRounded from '@mui/icons-material/PublicRounded';
+import SatelliteAltRounded from '@mui/icons-material/SatelliteAltRounded';
 import { Box, Stack, Typography } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import dayjs from 'dayjs';
@@ -37,7 +37,13 @@ const Header = styled(Box)({
   // ignorent `env()` — navigateur de bureau, aperçu en cadre — où l'étiquette
   // passerait sinon sous l'encoche. Le plancher ne coûte rien sur mobile.
   padding: 'max(calc(env(safe-area-inset-top, 0px) + 12px), 52px) 24px 20px',
-  background: 'linear-gradient(155deg, #0A6656 0%, #05463A 70%, #04382F 100%)',
+  // #0E7A67 est le vert le plus clair qui tienne : au-delà (#107F6B), même une
+  // encre totalement opaque tombe sous les 4,5:1 du petit texte — mesuré, pas
+  // estimé. Éclaircir jusque-là a coûté la mise à plat des opacités : sur ce
+  // fond, chaque cran d'opacité en dessous de ~0,96 passe sous le seuil. La
+  // hiérarchie repose donc sur le corps, la graisse et la casse, jamais sur un
+  // texte plus pâle — ce qui vaut mieux de toute façon en plein soleil.
+  background: 'linear-gradient(155deg, #0E7A67 0%, #0C6E5C 50%, #0A6152 100%)',
   borderBottomLeftRadius: 26,
   borderBottomRightRadius: 26,
   color: '#EAF7F1',
@@ -58,8 +64,8 @@ const KitPill = styled('button')({
   cursor: 'pointer',
   padding: '6px 12px',
   borderRadius: 999,
-  background: 'rgba(255,255,255,0.13)',
-  border: '1px solid rgba(147,244,224,0.26)',
+  background: 'rgba(255,255,255,0.18)',
+  border: '1px solid rgba(234,247,241,0.45)',
   fontFamily: "'Ubuntu', sans-serif",
   fontSize: 12.5,
   fontWeight: 600,
@@ -87,7 +93,7 @@ const HoldingLine = styled('button')({
   fontWeight: 700,
   letterSpacing: '0.1em',
   textTransform: 'uppercase',
-  color: 'rgba(234,247,241,0.72)',
+  color: '#EAF7F1',
   whiteSpace: 'nowrap',
   overflow: 'hidden',
   textOverflow: 'ellipsis',
@@ -100,6 +106,31 @@ const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slic
 
 /** Fraîcheur compacte : « 4 min » plutôt que « il y a 4 min ». */
 const age = (iso: string): string => formatRelative(iso).replace(/^il y a /, '');
+
+/**
+ * Ce que la puce dit après le nom du domaine.
+ *
+ * Avec un kit, c'est une mesure instantanée et on l'affiche comme telle. Sans
+ * kit, il n'existe aucune mesure « maintenant » : on montre le contexte
+ * climatique satellite, en nommant sa fenêtre — « 24° moy. 7 j » — plutôt que de
+ * le maquiller en relevé. L'ancienne mention « météo régionale estimée »
+ * annonçait une estimation que l'écran ne montrait jamais : aucune température,
+ * aucune source, une promesse en l'air.
+ */
+const kitReading = (weather: HomeWeather): string => {
+  if (weather.hasKit) {
+    const parts = [
+      weather.tempC !== null ? `${Math.round(weather.tempC)}°` : null,
+      weather.online ? 'en direct' : 'hors ligne',
+      weather.observedAt ? age(weather.observedAt) : null,
+    ].filter(Boolean);
+    return parts.length ? ` · ${parts.join(' · ')}` : '';
+  }
+
+  const avg = weather.climate?.avgTempC;
+  if (avg === null || avg === undefined) return ' · pas de kit sur ce domaine';
+  return ` · ${Math.round(avg)}° moy. 7 j`;
+};
 
 export const HomeHeader: FunctionComponent<HomeHeaderProps> = ({
   firstName,
@@ -116,7 +147,7 @@ export const HomeHeader: FunctionComponent<HomeHeaderProps> = ({
         fontWeight: 700,
         letterSpacing: '0.13em',
         textTransform: 'uppercase',
-        color: 'rgba(234,247,241,0.55)',
+        color: '#EAF7F1',
         mb: 1.75,
       }}
     >
@@ -133,15 +164,16 @@ export const HomeHeader: FunctionComponent<HomeHeaderProps> = ({
 
     <Stack spacing={1.25} alignItems="flex-start" sx={{ mt: 2.25 }}>
       {weather && (
-        <KitPill type="button" onClick={() => onWeatherClick(weather.farmId)}>
-          {weather.hasKit ? <CellTowerRounded /> : <PublicRounded />}
+        <KitPill type="button" onClick={() => onWeatherClick(weather.farmId)} sx={{ alignSelf: 'center' }}>
+          {/* Le pictogramme dit d'où vient le chiffre : relais pour le kit posé sur
+              le domaine, satellite pour le contexte climatique qui prend le relais
+              quand il n'y a pas de kit. */}
+          {weather.hasKit ? <CellTowerRounded /> : <SatelliteAltRounded />}
           <Box component="span" sx={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {weather.farmName}
           </Box>
           <Box component="span" sx={{ flexShrink: 0, opacity: 0.88 }}>
-            {weather.tempC !== null && `· ${Math.round(weather.tempC)}° `}
-            {weather.hasKit ? `· ${weather.online ? 'en direct' : 'hors ligne'}` : '· météo régionale estimée'}
-            {weather.observedAt && ` · ${age(weather.observedAt)}`}
+            {kitReading(weather)}
           </Box>
         </KitPill>
       )}

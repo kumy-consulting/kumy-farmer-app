@@ -20,6 +20,28 @@ export interface ItkTaskInput {
   optional?: boolean;
 }
 
+/** Qui a clos une tâche. `role` distingue l'encadreur de l'agriculteur. */
+export interface ItkLogAuteur {
+  uid: string;
+  role: string;
+  displayName?: string;
+}
+
+/**
+ * Journal de clôture d'une tâche ITK.
+ *
+ * C'est la seule voie par laquelle une observation de terrain — note et photos —
+ * redescend jusqu'à l'agriculteur : `POST /parcels/:id/inspections` accepte les
+ * mêmes contenus mais n'a aucun GET, donc ce qui y est déposé reste invisible.
+ */
+export interface ItkCompletedLog {
+  logId: string;
+  completedAt: string;
+  completedBy: ItkLogAuteur;
+  notes?: string;
+  photoUrls?: string[];
+}
+
 /** Tâche ITK d'un stade (lecture seule côté agriculteur). */
 export interface ItkTask {
   taskId: string;
@@ -32,6 +54,8 @@ export interface ItkTask {
   windowEnd: string | null;
   state: ItkTaskState;
   inputs: ItkTaskInput[];
+  /** Présent une fois la tâche close — porte notes et photos. */
+  completedLog?: ItkCompletedLog;
 }
 
 /** Risque agronomique estimé d'un stade — source du conseil accessible FARMER. */
@@ -102,4 +126,24 @@ export interface IndicatorPoint {
   evi?: number | null;
   ndwi?: number | null;
   savi?: number | null;
+}
+
+/**
+ * Contexte climatique 30 j d'une parcelle (`GET /parcels/:id/climate-context`).
+ *
+ * `dataSource` dit d'où viennent les chiffres : `'iot'` quand une station du
+ * domaine a pu être lue, `'external'` sinon — CHIRPS + NASA POWER, donc
+ * disponible même sans le moindre kit posé. C'est ce qui en fait la seule source
+ * météo ouverte au rôle FARMER qui fonctionne sur un domaine non équipé.
+ *
+ * Rien ici n'est une mesure « en ce moment » : `avg7dC` est une moyenne sur sept
+ * jours, `asOfDate` la dernière date réellement lue. L'affichage doit le dire.
+ */
+export interface ClimateContext {
+  parcelId: string;
+  dataSource: 'iot' | 'external';
+  asOfDate: string | null;
+  temperature: { avg7dC: number | null; expectedC: number | null; deltaC: number | null };
+  wind: { avgKmh: number | null; direction: string | null; treatmentWindowOpen: boolean; treatmentLabel?: string };
+  rainfall: { cumulMm: number | null; expectedMm: number | null; deltaPct: number | null };
 }

@@ -5,7 +5,7 @@ import type { FieldTask } from '@/features/FieldTasks/fieldTasks.types';
 import type { ItkParcelTasks } from '@/features/Parcelle/parcelle.types';
 
 import type { FeedItemDraft } from './home.feed.types';
-import { itkToFeed, type NameIndex, type ParcelItkSource } from './home.mappers';
+import { itkToFeed, type NameIndex, type ParcelItkSource, type UnfavourableSource } from './home.mappers';
 import type { HomeRecap, HomeWeather } from './useHomeFeed';
 
 /**
@@ -50,14 +50,17 @@ export const demoWeather: HomeWeather = {
   online: true,
   observedAt: iso(now().subtract(4, 'minute')),
   hasKit: true,
+  climate: null,
 };
 
 /**
  * Domaines où le kit **en ligne** relève des conditions défavorables — même
  * règle que la vague 2 du hook : pluie en cours ou vent trop fort.
  */
-const demoUnfavourableFarmIds = new Set(
-  demoWeather.online && (demoStationMeasures.rain > 0 || demoStationMeasures.wind > WIND_LIMIT_KMH) ? [FARM_ID] : [],
+const demoUnfavourable = new Map<string, UnfavourableSource>(
+  demoWeather.online && (demoStationMeasures.rain > 0 || demoStationMeasures.wind > WIND_LIMIT_KMH)
+    ? [[FARM_ID, 'kit']]
+    : [],
 );
 
 const alert = (
@@ -332,7 +335,7 @@ const demoItkSources: ParcelItkSource[] = [
 
 export const demoItkDrafts: FeedItemDraft[] = itkToFeed(demoItkSources, {
   now: now(),
-  unfavourableFarmIds: demoUnfavourableFarmIds,
+  unfavourable: demoUnfavourable,
 });
 
 /** `?demo=1` en développement — jamais actif dans un build de production. */

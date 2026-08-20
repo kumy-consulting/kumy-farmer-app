@@ -10,7 +10,7 @@ export const HomeSkeleton: FunctionComponent = () => (
     <Box
       sx={{
         padding: 'calc(env(safe-area-inset-top, 0px) + 20px) 24px 22px',
-        background: 'linear-gradient(155deg, #0A6656 0%, #04382F 100%)',
+        background: 'linear-gradient(155deg, #0E7A67 0%, #0A6152 100%)',
         borderBottomLeftRadius: 26,
         borderBottomRightRadius: 26,
       }}
