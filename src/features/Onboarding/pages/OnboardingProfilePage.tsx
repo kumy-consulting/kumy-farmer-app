@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useState, type FunctionComponent } from 'react';
 
-import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined';
 import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
 import LocationCityRoundedIcon from '@mui/icons-material/LocationCityRounded';
 import PublicRoundedIcon from '@mui/icons-material/PublicRounded';
-import { Box, IconButton, InputAdornment, Stack } from '@mui/material';
+import { Box, InputAdornment, Stack } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { MobileDatePicker } from '@mui/x-date-pickers/MobileDatePicker';
 import dayjs, { type Dayjs } from 'dayjs';
@@ -25,6 +24,7 @@ import {
   Title,
 } from '@/features/Onboarding/onboarding.styled';
 import { OnboardingLayout } from '@/features/Onboarding/OnboardingLayout';
+import { BackButton } from '@/shared/components/BackButton';
 
 const MIN_AGE = 15;
 const MAX_AGE = 100;
@@ -167,19 +167,16 @@ export const OnboardingProfilePage: FunctionComponent = () => {
 
   return (
     <OnboardingLayout>
-      <IconButton
-        onClick={() => navigate('/onboarding/welcome')}
-        aria-label="Retour"
+      <Box
         sx={{
           position: 'absolute',
-          top: 'calc(env(safe-area-inset-top, 0px) + 8px)',
-          left: 8,
-          color: '#374B46',
+          top: 'calc(env(safe-area-inset-top, 0px) + 14px)',
+          left: 16,
           zIndex: 2,
         }}
       >
-        <ArrowBackRoundedIcon />
-      </IconButton>
+        <BackButton onClick={() => navigate('/onboarding/welcome')} label="Retour" />
+      </Box>
 
       <OnboardingStepper current={1} total={3} />
 

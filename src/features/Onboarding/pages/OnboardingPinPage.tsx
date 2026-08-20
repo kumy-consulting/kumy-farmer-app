@@ -1,8 +1,7 @@
 import { useState, type FunctionComponent } from 'react';
 
-import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
-import { IconButton } from '@mui/material';
+import { Box } from '@mui/material';
 import { Navigate, useNavigate } from 'react-router-dom';
 
 import { PinDisplay } from '@/features/Auth/components/PinDisplay';
@@ -16,6 +15,7 @@ import {
   Title,
 } from '@/features/Onboarding/onboarding.styled';
 import { CollapseOnKeyboard, OnboardingLayout } from '@/features/Onboarding/OnboardingLayout';
+import { BackButton } from '@/shared/components/BackButton';
 
 export const OnboardingPinPage: FunctionComponent = () => {
   const [pin, setPin] = useState('');
@@ -33,19 +33,16 @@ export const OnboardingPinPage: FunctionComponent = () => {
 
   return (
     <OnboardingLayout keyboardOpen={keyboardOpen}>
-      <IconButton
-        onClick={() => navigate('/onboarding/profile')}
-        aria-label="Retour"
+      <Box
         sx={{
           position: 'absolute',
-          top: 'calc(env(safe-area-inset-top, 0px) + 8px)',
-          left: 8,
-          color: '#374B46',
+          top: 'calc(env(safe-area-inset-top, 0px) + 14px)',
+          left: 16,
           zIndex: 2,
         }}
       >
-        <ArrowBackRoundedIcon />
-      </IconButton>
+        <BackButton onClick={() => navigate('/onboarding/profile')} label="Retour" />
+      </Box>
 
       <OnboardingStepper current={2} total={3} />
 
