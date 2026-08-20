@@ -6,12 +6,19 @@ import ScheduleRounded from '@mui/icons-material/ScheduleRounded';
 import { Box, Stack, Typography } from '@mui/material';
 import dayjs from 'dayjs';
 
+import { formatRelative } from '../formatRelative';
 import type { FeedItem } from '../home.feed.types';
 import type { VisitsSection } from '../home.sections';
 import { SectionHeader } from './SectionHeader';
 
 interface VisitsBlockProps {
   visits: VisitsSection;
+  /**
+   * Prochaine visite quand elle est connue. En production toujours `null` —
+   * aucun endpoint de visite n'est ouvert au rôle FARMER — mais le rendu existe
+   * pour que la carte soit jugeable le jour où l'API l'exposera.
+   */
+  next?: { at: string; author: string } | null;
   onSelect: (item: FeedItem) => void;
 }
 
@@ -29,7 +36,7 @@ const label = { fontSize: 11, fontWeight: 700, letterSpacing: '0.02em', textTran
  * la prochaine — inconnue, et annoncée comme telle : aucun endpoint de visite
  * n'est ouvert au rôle FARMER, donc l'app ne peut pas promettre une date.
  */
-export const VisitsBlock: FunctionComponent<VisitsBlockProps> = ({ visits, onSelect }) => {
+export const VisitsBlock: FunctionComponent<VisitsBlockProps> = ({ visits, next = null, onSelect }) => {
   const last = visits.last;
 
   return (
@@ -116,10 +123,35 @@ export const VisitsBlock: FunctionComponent<VisitsBlockProps> = ({ visits, onSel
           </Box>
 
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography sx={{ ...label, color: 'rgba(55,75,70,0.55)' }}>Prochaine</Typography>
-            <Typography sx={{ fontSize: 13.5, fontWeight: 500, color: 'rgba(55,75,70,0.7)', mt: 0.2 }}>
-              Non planifiée
+            <Typography sx={{ ...label, color: 'rgba(55,75,70,0.55)' }}>
+              Prochaine {next && `· ${dayjs(next.at).format('D MMMM')}`}
             </Typography>
+            {/* Une date connue est une information, pas un pis-aller : elle prend
+                le poids du titre de la ligne du dessus. « Non planifiée » reste
+                en retrait, c'est un état, pas un contenu.
+
+                Pas de « Visite de » ici : la ligne du dessus porte deja ces mots
+                et les repeter donnait deux fois la meme phrase dans la meme
+                carte. La section s'appelle Visites, le libelle dit Prochaine —
+                reste a dire qui, et dans combien de temps, que la date absolue
+                ne donne pas d'un coup d'oeil. */}
+            {next ? (
+              <Typography
+                sx={{
+                  fontFamily: "'Ubuntu', sans-serif",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: 'rgba(26,43,39,0.92)',
+                  mt: 0.2,
+                }}
+              >
+                {next.author} · {formatRelative(next.at)}
+              </Typography>
+            ) : (
+              <Typography sx={{ fontSize: 13.5, fontWeight: 500, color: 'rgba(55,75,70,0.7)', mt: 0.2 }}>
+                Non planifiée
+              </Typography>
+            )}
           </Box>
         </Box>
       </Box>

@@ -57,9 +57,7 @@ export const demoWeather: HomeWeather = {
  * règle que la vague 2 du hook : pluie en cours ou vent trop fort.
  */
 const demoUnfavourableFarmIds = new Set(
-  demoWeather.online && (demoStationMeasures.rain > 0 || demoStationMeasures.wind > WIND_LIMIT_KMH)
-    ? [FARM_ID]
-    : [],
+  demoWeather.online && (demoStationMeasures.rain > 0 || demoStationMeasures.wind > WIND_LIMIT_KMH) ? [FARM_ID] : [],
 );
 
 const alert = (
@@ -129,6 +127,19 @@ export const demoAlerts: FarmerAlert[] = [
   }),
 ];
 
+/**
+ * Prochaine visite — **démo uniquement**.
+ *
+ * Aucun endpoint de visite n'est ouvert au rôle FARMER : en production cette
+ * ligne reste « Non planifiée », et c'est la vérité, pas un manque. Ce mock
+ * existe pour juger la carte une fois la date connue, le jour où l'API
+ * l'exposera. Il n'est jamais lu hors `?demo=1`.
+ */
+export const demoNextVisit = {
+  at: iso(now().add(6, 'day')),
+  author: 'Dr Camara',
+};
+
 export const demoRecap: HomeRecap = {
   domains: 3,
   parcels: 12,
@@ -181,9 +192,7 @@ export const demoTasks: FieldTask[] = [
     overdue: true,
     daysOverdue: 1,
     visitId: VISIT_ID,
-    prerequisitesResolved: [
-      { kind: 'field_task', taskId: 't0', label: 'Épandage du fumier', satisfied: false },
-    ],
+    prerequisitesResolved: [{ kind: 'field_task', taskId: 't0', label: 'Épandage du fumier', satisfied: false }],
     createdAt: iso(now().subtract(6, 'day')),
   }),
   task('t3', {

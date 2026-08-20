@@ -13,7 +13,7 @@ import { HomeHeader } from './components/HomeHeader';
 import { HomeSkeleton } from './components/HomeSkeleton';
 import { TasksBlock } from './components/TasksBlock';
 import { VisitsBlock } from './components/VisitsBlock';
-import { isDemoMode } from './home.demo';
+import { demoNextVisit, isDemoMode } from './home.demo';
 import type { FeedItem } from './home.feed.types';
 import { useHomeFeed } from './useHomeFeed';
 
@@ -131,16 +131,11 @@ export const HomePage: FunctionComponent = () => {
             </Reveal>
 
             <Reveal sx={{ animationDelay: '0.16s' }}>
-              <TasksBlock
-                tasks={sections.tasks}
-                isOnline={isOnline}
-                onSelect={openItem}
-                onAction={runTaskAction}
-              />
+              <TasksBlock tasks={sections.tasks} isOnline={isOnline} onSelect={openItem} onAction={runTaskAction} />
             </Reveal>
 
             <Reveal sx={{ animationDelay: '0.22s' }}>
-              <VisitsBlock visits={sections.visits} onSelect={openItem} />
+              <VisitsBlock visits={sections.visits} next={isDemoMode() ? demoNextVisit : null} onSelect={openItem} />
             </Reveal>
           </>
         )}
