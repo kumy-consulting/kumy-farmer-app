@@ -1,69 +1,118 @@
 import type { FunctionComponent } from 'react';
 
-import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
-import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
-import { Box, Button, Stack, Typography } from '@mui/material';
+import { Box, Stack, Typography } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 
 import { useAuthStore } from '@/shared/stores/authStore';
-import { neutral, primary } from '@/theme/colors';
+import { error } from '@/theme/colors';
+
+import { BlocOutils } from './components/BlocOutils';
+import { BlocReglages } from './components/BlocReglages';
+import { CarteAgriculteur } from './components/CarteAgriculteur';
+import { SectionTitle } from './components/espaceUi';
+import { demoEligibilite, demoProfil, demoScore } from './monEspace.demo';
 
 /**
- * Onglet « Mon espace » (provisoire) — profil de l'agriculteur, préférences et
- * déconnexion. Placeholder de mise en page.
+ * ⚠️ MAQUETTE — aucun appel réseau n'est branché, tout vient de `monEspace.demo`.
+ *
+ * L'onglet répond à une question : « qui la plateforme pense que je suis, et
+ * qu'est-ce que ça m'ouvre ». D'où l'ordre : la carte d'agriculteur, puis le
+ * versant économique qui en découle, et seulement ensuite la plomberie.
+ *
+ * `BlocCredit` et `BlocScore` ne sont pas supprimés : ils portent le détail
+ * (critères manqués, six piliers) et attendent les écrans de détail sur
+ * lesquels les tuiles ouvriront.
+ *
+ * Les trois endpoints qui alimenteront ces blocs sont déjà ouverts au rôle
+ * FARMER et ne sont appelés nulle part aujourd'hui :
+ *   GET /scoring/farmers/:id/profile
+ *   GET /scoring/farmers/:id
+ *   GET /scoring/farmers/:id/credit-eligibility
  */
 export const MonEspacePage: FunctionComponent = () => {
   const logout = useAuthStore((s) => s.logout);
+  const navigate = useNavigate();
 
   return (
-    <Box
-      sx={{
-        minHeight: '100dvh',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        textAlign: 'center',
-        px: 3,
-        pt: 'calc(env(safe-area-inset-top, 0px) + 24px)',
-        background: `linear-gradient(180deg, ${primary[99]} 0%, ${primary[95]} 100%)`,
-      }}
-    >
-      <Stack spacing={2} alignItems="center" maxWidth={320}>
+    <Box sx={{ minHeight: '100dvh', background: 'linear-gradient(180deg, #F3FFFA 0%, #F0F1EF 100%)' }}>
+      <CarteAgriculteur profil={demoProfil} onOuvrirInformations={() => navigate('/mon-espace/informations')} />
+
+      <Stack spacing={3.5} sx={{ px: 2.5, pt: 2.5, pb: 3 }}>
         <Box
           sx={{
-            width: 84,
-            height: 84,
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'radial-gradient(circle at 30% 25%, #FFFFFF 0%, #EAF6F0 100%)',
-            border: `1px solid ${primary[80]}`,
-            boxShadow: '0 14px 30px rgba(1,134,117,0.18)',
-            '& svg': { fontSize: 38, color: primary[40] },
-          }}
-        >
-          <PersonRoundedIcon />
-        </Box>
-        <Typography sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 24, fontWeight: 700, color: primary[20] }}>
-          Mon espace
-        </Typography>
-        <Typography sx={{ fontSize: 14, lineHeight: 1.55, color: neutral[50] }}>
-          Bientôt : votre profil, vos préférences et vos notifications.
-        </Typography>
-        <Button
-          onClick={() => void logout()}
-          startIcon={<LogoutRoundedIcon />}
-          sx={{
-            mt: 1,
-            textTransform: 'none',
+            alignSelf: 'flex-start',
+            px: 1.2,
+            py: 0.5,
+            borderRadius: 999,
+            background: 'rgba(198,138,26,0.16)',
             fontFamily: "'Ubuntu', sans-serif",
-            fontWeight: 600,
-            color: primary[40],
+            fontSize: 10.5,
+            fontWeight: 700,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            color: '#8C5000',
           }}
         >
-          Se déconnecter
-        </Button>
+          Maquette — données fictives
+        </Box>
+
+        <BlocOutils eligibilite={demoEligibilite} score={demoScore} />
+
+        <BlocReglages />
+
+        <Box>
+          <SectionTitle>Compte</SectionTitle>
+          {/* Le bouton EST la surface : plus de carte blanche autour, plus
+              d'icône, plus d'alignement à gauche. Il ne partage sa section avec
+              rien, il peut donc prendre toute la largeur et se centrer.
+
+              Rouge pâle plutôt que rouge plein : se déconnecter n'est pas
+              destructeur — rien n'est perdu, on se reconnecte au téléphone et au
+              PIN. Un bouton rouge saturé crierait un danger qui n'existe pas ;
+              un rouge sourd dit « attention, pas anodin » et s'arrête là. */}
+          <Box
+            component="button"
+            type="button"
+            onClick={() => void logout()}
+            sx={{
+              appearance: 'none',
+              border: '1px solid rgba(186,26,26,0.14)',
+              font: 'inherit',
+              cursor: 'pointer',
+              display: 'block',
+              width: '100%',
+              minHeight: 52,
+              px: 2,
+              borderRadius: '16px',
+              background: 'linear-gradient(180deg, #FDEDED 0%, #FBDDDD 100%)',
+              fontFamily: "'Ubuntu', sans-serif",
+              fontSize: 15,
+              fontWeight: 700,
+              color: error[40],
+              transition: 'filter 0.2s ease',
+              '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+              '&:active': { filter: 'brightness(0.97)' },
+              '&:focus-visible': { outline: `2px solid ${error[40]}`, outlineOffset: 3 },
+            }}
+          >
+            Se déconnecter
+          </Box>
+          {/* La version vient de `package.json` via `__APP_VERSION__` : une
+              chaîne écrite à la main finit toujours par mentir. */}
+          <Typography
+            sx={{
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: '0.14em',
+              textTransform: 'uppercase',
+              color: '#8F9291',
+              mt: 1.5,
+              textAlign: 'center',
+            }}
+          >
+            AgriPilot · v{__APP_VERSION__}
+          </Typography>
+        </Box>
       </Stack>
     </Box>
   );

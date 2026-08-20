@@ -5,6 +5,7 @@ import { PinEntryPage } from '@/features/Auth/pages/PinEntryPage';
 import { DomaineDetailPage } from '@/features/Domaines/DomaineDetailPage';
 import { DomainesPage } from '@/features/Domaines/DomainesPage';
 import { HomePage } from '@/features/Home/HomePage';
+import { MesInformationsPage } from '@/features/MonEspace/MesInformationsPage';
 import { MonEspacePage } from '@/features/MonEspace/MonEspacePage';
 import { InvitationCodePage } from '@/features/Onboarding/pages/InvitationCodePage';
 import { InvitedWelcomePage } from '@/features/Onboarding/pages/InvitedWelcomePage';
@@ -39,6 +40,7 @@ export const router = createBrowserRouter([
       { path: '/domaines/:id', element: <DomaineDetailPage /> },
       { path: '/domaines/:id/parcelles/:parcelId', element: <ParcelDetailPage /> },
       { path: '/mon-espace', element: <MonEspacePage /> },
+      { path: '/mon-espace/informations', element: <MesInformationsPage /> },
     ],
   },
   { path: '*', element: <Navigate to="/welcome" replace /> },
