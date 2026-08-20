@@ -90,15 +90,17 @@ describe('DomainesPage', () => {
     // La carte apparaît après chargement
     expect(await screen.findByText('Mamadou Aliou Barry')).toBeDefined();
 
-    // Barre de stats
-    expect(screen.getByText('Parcelles')).toBeDefined();
-    expect(screen.getByText('Hectares')).toBeDefined();
-    expect(screen.getByText('NDVI moy.')).toBeDefined();
+    // Carte de synthèse
+    expect(screen.getByText('4 parcelles')).toBeDefined();
+    // Végétation vide (aucune parcelle connue) → part exploitée inconnue, pas 0 %.
+    expect(screen.getByText('—')).toBeDefined();
+    expect(screen.getByText(/part exploitée inconnue/)).toBeDefined();
 
     // Ligne méta + badge (pire sévérité = warning → « Vigilance », libellé + compte séparés)
     expect(screen.getByText('13,8 ha · 4 parcelles · 3 cultures')).toBeDefined();
     expect(screen.getByText('Vigilance')).toBeDefined();
-    expect(screen.getByText(/2 alertes/)).toBeDefined();
+    // Deux fois : le badge de la carte de domaine et le pied de la synthèse.
+    expect(screen.getAllByText(/2 alertes/).length).toBe(2);
 
     // Chips cultures (initiale en majuscule, underscore conservé comme la référence)
     expect(screen.getByText('Piment')).toBeDefined();
@@ -120,8 +122,38 @@ describe('DomainesPage', () => {
     renderPage();
     await screen.findByText('Mamadou Aliou Barry');
 
-    // La valeur « Parcelles » de la barre reflète la somme des domaines (9), pas 0.
-    expect(screen.getAllByText('9').length).toBeGreaterThan(0);
+    // Le compte de la synthèse reflète la somme des domaines (9), pas 0.
+    expect(screen.getByText('9 parcelles')).toBeDefined();
+    expect(screen.getByText('Aucune alerte')).toBeDefined();
+  });
+
+  it('calcule la part exploitée à partir des aires de parcelles de la végétation', async () => {
+    mocked.farms.mockResolvedValue([baseDomain]);
+    mocked.alerts.mockResolvedValue([]);
+    mocked.summary.mockResolvedValue({ ...summary, alerts: { total: 0, critical: 0, warning: 0, info: 0 } });
+    // 3,45 + 2,45 = 5,9 ha sur 13,8 → 43 %. Séparateurs et unités mélangés à
+    // dessein : l'API renvoie une chaîne dont le format n'est pas garanti.
+    mocked.vegetation.mockResolvedValue({
+      farms: [
+        {
+          farmId: 'farm-1',
+          name: 'Mamadou Aliou Barry',
+          coordinates: [],
+          parcels: [
+            { area: '3.45' } as never,
+            { area: '2,45 ha' } as never,
+          ],
+        } as never,
+      ],
+    });
+
+    renderPage();
+    await screen.findByText('Mamadou Aliou Barry');
+
+    expect(screen.getByText('43 %')).toBeDefined();
+    // Les deux surfaces sont énoncées en clair, en tête de carte.
+    expect(screen.getByText('5,9 ha')).toBeDefined();
+    expect(screen.getByText(/exploités sur 13,8/)).toBeDefined();
   });
 
   it('ne remonte pas une sévérité OAD inconnue (high) en Critique — plancher Info', async () => {
@@ -133,7 +165,7 @@ describe('DomainesPage', () => {
 
     // Aucune critical/warning explicite → plancher « Info » (pas d'escalade), sans planter.
     expect(await screen.findByText('Info')).toBeDefined();
-    expect(screen.getByText(/1 alerte/)).toBeDefined();
+    expect(screen.getAllByText(/1 alerte/).length).toBe(2);
   });
 
   it('affiche l’état vide quand l’agriculteur n’a aucun domaine', async () => {

@@ -11,6 +11,7 @@ import { neutral, primary } from '@/theme/colors';
 import { DomainCard } from './components/DomainCard';
 import { DomainesSkeleton } from './components/DomainesSkeleton';
 import { DomainesStatBar } from './components/DomainesStatBar';
+import { parseArea } from './components/domainesVisuals';
 import { useDomaines } from './useDomaines';
 
 const Page = styled(Box)({
@@ -121,14 +122,17 @@ export const DomainesPage: FunctionComponent = () => {
     const parcels = domains.reduce((s, d) => s + d.parcelsCount, 0);
     const alerts = domains.reduce((s, d) => s + d.alertCount, 0);
     const areaSum = domains.reduce((s, d) => s + d.area, 0);
-    const ndviVals = domains
-      .map((d) => d.stationMetrics?.ndvi)
-      .filter((n): n is number => typeof n === 'number' && n > 0);
-    const ndviDerived = ndviVals.length ? ndviVals.reduce((a, b) => a + b, 0) / ndviVals.length : 0;
+    // Surface exploitée (découpée en parcelles) : la végétation renvoie une aire par
+    // parcelle (chaîne, séparateur décimal variable selon la locale du backend).
+    // Sans aucune parcelle connue on renvoie `null` plutôt que 0 — on ignore
+    // alors la part cultivée, on ne la sait pas nulle.
+    const vegParcels = domains.flatMap((d) => d.vegetationParcels);
+    const parcelAreas = vegParcels.length ? vegParcels.map((p) => parseArea(p.area)) : null;
+
     return {
       parcels: summary?.totalParcels || parcels,
       hectares: summary?.totalArea || areaSum,
-      avgNdvi: summary?.avgNdvi || ndviDerived,
+      parcelAreas,
       alerts: summary?.alerts.total || alerts,
     };
   }, [domains, summary]);
@@ -229,7 +233,7 @@ export const DomainesPage: FunctionComponent = () => {
               Aucun domaine pour l’instant
             </Typography>
             <Typography sx={{ fontSize: 14, lineHeight: 1.55, color: neutral[50] }}>
-              Vos domaines apparaîtront ici dès que votre technicien les aura enregistrés avec vous sur le terrain.
+              Votre encadreur enregistre vos domaines avec vous, sur le terrain. Ils apparaissent ici après sa visite.
             </Typography>
           </Stack>
         </Box>

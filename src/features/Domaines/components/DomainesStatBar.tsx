@@ -1,14 +1,21 @@
 import type { FunctionComponent } from 'react';
 
-import { Box, Typography } from '@mui/material';
+import { Box, Stack, Typography } from '@mui/material';
 
-import { fr } from './domainesVisuals';
+import { fr, plural } from './domainesVisuals';
 
-/** Totaux affichés dans la barre — dérivés des domaines (voir DomainesPage). */
+/** Totaux affichés dans la carte — dérivés des domaines (voir DomainesPage). */
 export interface DomainesTotals {
   parcels: number;
   hectares: number;
-  avgNdvi: number;
+  /**
+   * Aire de chaque parcelle connue, en hectares — leur somme est la surface
+   * exploitée, leurs proportions dessinent le parcellaire.
+   *
+   * `null` quand la végétation n'a pas pu être chargée : on ignore alors la
+   * part exploitée, on ne la sait pas nulle, et afficher « 0 % » mentirait.
+   */
+  parcelAreas: number[] | null;
   alerts: number;
 }
 
@@ -16,107 +23,170 @@ interface DomainesStatBarProps {
   totals: DomainesTotals;
 }
 
-interface Cell {
-  value: string;
-  label: string;
-}
+/**
+ * Au-delà de ce nombre de parcelles, les segments et leurs jours deviennent
+ * plus fins que le trait : la bande retombe alors sur un remplissage continu,
+ * qui dit toujours la proportion sans prétendre montrer le découpage.
+ */
+const MAX_SEGMENTS = 24;
 
-/** Cellule stat (valeur + label) avec séparateur court dégradé à droite. */
-const Stat: FunctionComponent<Cell> = ({ value, label }) => (
-  <Box
-    sx={{
-      flex: 1,
-      minWidth: 0,
-      position: 'relative',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '2px 4px',
-      // Séparateur court, fondu en haut/bas (centré) — pas une bordure pleine hauteur.
-      '&:not(:last-of-type)::after': {
-        content: '""',
-        position: 'absolute',
-        right: 0,
-        top: '22%',
-        bottom: '22%',
-        width: '1px',
-        background: 'linear-gradient(180deg, transparent 0%, rgba(1,134,117,0.18) 50%, transparent 100%)',
-      },
-    }}
-  >
-    <Typography
-      sx={{
-        fontFamily: "'Ubuntu', sans-serif",
-        fontSize: '19px',
-        fontWeight: 700,
-        color: '#1A1C1B',
-        lineHeight: '24px',
-        letterSpacing: '-0.01em',
-        fontVariantNumeric: 'tabular-nums',
-      }}
-      noWrap
-    >
-      {value}
-    </Typography>
-    <Typography
-      sx={{
-        mt: '3px',
-        fontFamily: "'Ubuntu', sans-serif",
-        fontSize: '9.75px',
-        fontWeight: 600,
-        color: 'rgba(55,75,70,0.60)',
-        lineHeight: '14px',
-        letterSpacing: '0.10em',
-        textTransform: 'uppercase',
-      }}
-      noWrap
-    >
-      {label}
-    </Typography>
-  </Box>
-);
-
-/** Barre de synthèse (Parcelles / Hectares / NDVI moy. / Alertes) — style PWA ingénieur. */
-export const DomainesStatBar: FunctionComponent<DomainesStatBarProps> = ({ totals }) => {
-  const cells: Cell[] = [
-    { value: fr(totals.parcels, 0), label: 'Parcelles' },
-    { value: fr(totals.hectares), label: 'Hectares' },
-    { value: totals.avgNdvi > 0 ? fr(totals.avgNdvi, 2) : '—', label: 'NDVI moy.' },
-    { value: fr(totals.alerts, 0), label: 'Alertes' },
-  ];
+/**
+ * Le parcellaire : la bande de terre et son découpage réel.
+ *
+ * C'est le seul endroit de la carte où l'on prend un risque graphique, et il se
+ * justifie par la donnée. Une barre de progression ordinaire dirait « 78 % ».
+ * Ici la longueur totale est le domaine, la part pleine est ce qui est exploité,
+ * **et cette part est fendue aux vraies proportions des parcelles** — chaque
+ * segment a la largeur de son aire. On lit d'un coup combien de terre est en
+ * production, en combien de morceaux, et s'ils sont réguliers ou non.
+ *
+ * Les aires viennent de `/farms/vegetation`, déjà appelé au chargement de la
+ * page : le dessin ne coûte aucune requête.
+ *
+ * Les jours entre segments laissent voir le rail : ce sont des limites de
+ * parcelle, pas des séparateurs décoratifs. La part pleine garde sa largeur
+ * exacte quoi qu'il arrive — les segments se répartissent *à l'intérieur*
+ * d'elle, si bien qu'une parcelle minuscule reste visible sans fausser le
+ * rapport d'ensemble.
+ */
+const Parcellaire: FunctionComponent<{ ratio: number | null; areas: number[] }> = ({ ratio, areas }) => {
+  const segments = areas.filter((a) => a > 0);
+  const detaille = segments.length > 0 && segments.length <= MAX_SEGMENTS;
 
   return (
     <Box
       sx={{
-        position: 'relative',
-        display: 'flex',
-        alignItems: 'stretch',
-        justifyContent: 'space-between',
-        padding: '12px 8px',
-        borderRadius: '18px',
-        background: 'linear-gradient(135deg, rgba(255,255,255,0.86) 0%, rgba(247,251,246,0.86) 100%)',
-        border: '1px solid rgba(1,134,117,0.14)',
-        backdropFilter: 'blur(12px) saturate(140%)',
-        WebkitBackdropFilter: 'blur(12px) saturate(140%)',
-        boxShadow: '0 8px 22px rgba(55,75,70,0.06), 0 1px 0 rgba(255,255,255,0.9) inset',
-        // Liseré d'accent teal fondu, en haut de la carte.
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          top: 0,
-          left: 16,
-          right: 16,
-          height: '2px',
-          borderRadius: '2px',
-          opacity: 0.7,
-          background: 'linear-gradient(90deg, transparent 0%, rgba(1,134,117,0.40) 50%, transparent 100%)',
-        },
+        mt: '9px',
+        height: 12,
+        borderRadius: 999,
+        overflow: 'hidden',
+        background: ratio == null ? 'transparent' : 'rgba(1,134,117,0.11)',
+        boxShadow: ratio == null ? 'none' : 'inset 0 0 0 1px rgba(1,134,117,0.10)',
+        border: ratio == null ? '1px dashed rgba(1,134,117,0.32)' : 'none',
       }}
     >
-      {cells.map((cell) => (
-        <Stat key={cell.label} {...cell} />
-      ))}
+      {ratio != null && ratio > 0 && (
+        <Box
+          sx={{
+            width: `${Math.max(3, Math.min(100, ratio * 100))}%`,
+            height: '100%',
+            borderRadius: 999,
+            overflow: 'hidden',
+            display: 'flex',
+            gap: '2px',
+            background: detaille ? 'none' : '#018675',
+          }}
+        >
+          {detaille &&
+            segments.map((area, i) => (
+              <Box
+                key={i}
+                sx={{ flex: `${area} 1 0`, minWidth: '2px', height: '100%', background: '#018675' }}
+              />
+            ))}
+        </Box>
+      )}
+    </Box>
+  );
+};
+
+/**
+ * La carte de synthèse de l'onglet Domaines.
+ *
+ * Elle a d'abord été une rangée de quatre chiffres de même corps — parcelles,
+ * hectares, NDVI moyen, alertes. Quatre grandeurs sans rapport, présentées comme
+ * si elles se comparaient, et aucune hiérarchie : l'œil n'avait nulle part où se
+ * poser. Trois décisions l'ont remplacée :
+ *
+ * 1. **La terre est le titre.** « Vos domaines », ce sont des hectares. La
+ *    surface exploitée passe donc en tête, au corps d'un titre, et le reste
+ *    devient ce qu'il est : du contexte.
+ * 2. **Le pourcentage légende la bande au lieu de la doubler.** Il occupait une
+ *    case à lui, en face d'une bande qui disait déjà la même chose ; il est
+ *    maintenant posé au bout de la ligne de titre, là où il qualifie ce qu'on
+ *    vient de lire.
+ * 3. **Les alertes cessent d'être une statistique.** « 28 » en noir entre deux
+ *    autres nombres noirs se lisait comme une décoration. En pied de carte, avec
+ *    sa pastille et le ton d'erreur — celui déjà retenu pour les retards sur
+ *    l'accueil —, c'est un avertissement. À zéro, la phrase change et le rouge
+ *    disparaît : « aucune alerte » est une bonne nouvelle, pas un compteur vide.
+ */
+export const DomainesStatBar: FunctionComponent<DomainesStatBarProps> = ({ totals }) => {
+  const areas = totals.parcelAreas ?? [];
+  const exploitee = totals.parcelAreas == null ? null : areas.reduce((s, a) => s + a, 0);
+  const ratio = exploitee == null || totals.hectares <= 0 ? null : Math.min(1, exploitee / totals.hectares);
+
+  return (
+    <Box
+      sx={{
+        padding: '13px 14px 12px',
+        borderRadius: '18px',
+        background: 'linear-gradient(135deg, #FFFFFF 0%, #F7FBF6 100%)',
+        border: '1px solid rgba(1,134,117,0.14)',
+        boxShadow: '0 8px 22px rgba(55,75,70,0.06)',
+      }}
+    >
+      <Stack direction="row" alignItems="baseline" justifyContent="space-between" spacing={1.5}>
+        <Typography sx={{ minWidth: 0, color: '#5C5F5E', fontSize: '13.5px', fontWeight: 500 }} noWrap>
+          <Box
+            component="span"
+            sx={{
+              fontFamily: "'Ubuntu', sans-serif",
+              fontSize: '22px',
+              fontWeight: 700,
+              color: '#1A1C1B',
+              letterSpacing: '-0.015em',
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            {exploitee == null ? `${fr(totals.hectares)} ha` : `${fr(exploitee)} ha`}
+          </Box>{' '}
+          {exploitee == null ? 'au total · part exploitée inconnue' : `exploités sur ${fr(totals.hectares)}`}
+        </Typography>
+
+        <Typography
+          sx={{
+            flexShrink: 0,
+            fontFamily: "'Ubuntu', sans-serif",
+            fontSize: '16px',
+            fontWeight: 700,
+            color: ratio == null ? '#8F9291' : '#016557',
+            fontVariantNumeric: 'tabular-nums',
+          }}
+        >
+          {ratio == null ? '—' : `${Math.round(ratio * 100)} %`}
+        </Typography>
+      </Stack>
+
+      <Parcellaire ratio={ratio} areas={areas} />
+
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="space-between"
+        spacing={1.5}
+        sx={{ mt: '11px', pt: '10px', borderTop: '1px solid rgba(1,134,117,0.10)' }}
+      >
+        <Typography sx={{ fontSize: '12.5px', color: '#5C5F5E' }} noWrap>
+          {plural(totals.parcels, 'parcelle')}
+        </Typography>
+
+        <Stack direction="row" alignItems="center" spacing={0.75} sx={{ minWidth: 0 }}>
+          {totals.alerts > 0 && (
+            <Box aria-hidden sx={{ width: 6, height: 6, borderRadius: '50%', background: '#BA1A1A', flexShrink: 0 }} />
+          )}
+          <Typography
+            sx={{
+              fontSize: '12.5px',
+              fontWeight: totals.alerts > 0 ? 700 : 400,
+              color: totals.alerts > 0 ? '#BA1A1A' : '#5C5F5E',
+            }}
+            noWrap
+          >
+            {totals.alerts > 0 ? plural(totals.alerts, 'alerte') : 'Aucune alerte'}
+          </Typography>
+        </Stack>
+      </Stack>
     </Box>
   );
 };

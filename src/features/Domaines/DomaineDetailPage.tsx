@@ -1,12 +1,12 @@
 import { useState, type FunctionComponent, type ReactNode } from 'react';
 
-import ChevronLeftRounded from '@mui/icons-material/ChevronLeftRounded';
 import GridViewRounded from '@mui/icons-material/GridViewRounded';
 import ReplayRounded from '@mui/icons-material/ReplayRounded';
-import { Box, CircularProgress, IconButton, Stack, Typography } from '@mui/material';
+import { Box, CircularProgress, Stack, Typography } from '@mui/material';
 import { keyframes } from '@mui/material/styles';
 import { useNavigate, useParams } from 'react-router-dom';
 
+import { BackButton } from '@/shared/components/BackButton';
 import { NAV_HEIGHT } from '@/shared/components/BottomNav';
 import { DraggableBottomSheet } from '@/shared/components/DraggableBottomSheet';
 
@@ -14,6 +14,7 @@ import { DomaineDetailMap } from './components/DomaineDetailMap';
 import { DomaineStatsRow } from './components/DomaineStatsRow';
 import { DomaineWeather } from './components/DomaineWeather';
 import { ParcelCard } from './components/ParcelCard';
+import { ParcellesAbsentes } from './components/ParcellesAbsentes';
 import { useDomaineDetail } from './useDomaineDetail';
 
 const HEADER_OVERLAY_PX = 96;
@@ -33,29 +34,10 @@ const tabIn = keyframes`
 `;
 
 /** Bouton retour translucide sombre (variante overlay). */
-const BackButton: FunctionComponent<{ onClick: () => void }> = ({ onClick }) => (
-  <IconButton
-    onClick={onClick}
-    aria-label="Retour"
-    sx={{
-      width: 38,
-      height: 38,
-      flexShrink: 0,
-      background: 'rgba(0,0,0,0.28)',
-      backdropFilter: 'blur(14px)',
-      WebkitBackdropFilter: 'blur(14px)',
-      border: '1px solid rgba(255,255,255,0.18)',
-      '&:hover': { background: 'rgba(0,0,0,0.38)' },
-    }}
-  >
-    <ChevronLeftRounded sx={{ color: '#FFFFFF' }} />
-  </IconButton>
-);
-
 /**
- * Retour des états transitoires. Même place que celui de l'overlay carte, mais
- * posé sur la surface claire : pas de scrim ni de fond translucide sombre — il
- * n'y a aucune image satellite à assombrir tant que la carte n'est pas là.
+ * Retour des états transitoires : même bouton que sur l'overlay carte, à la
+ * même place. La pastille opaque tient aussi bien sur la surface claire que
+ * sur l'image satellite — il n'y a plus deux variantes à maintenir.
  */
 const PlainBack: FunctionComponent<{ onClick: () => void }> = ({ onClick }) => (
   <Box
@@ -66,19 +48,7 @@ const PlainBack: FunctionComponent<{ onClick: () => void }> = ({ onClick }) => (
       zIndex: 1000,
     }}
   >
-    <IconButton
-      onClick={onClick}
-      aria-label="Retour"
-      sx={{
-        width: 38,
-        height: 38,
-        background: '#FFFFFF',
-        border: '1px solid #E2E3E1',
-        '&:hover': { background: '#F3FFFA' },
-      }}
-    >
-      <ChevronLeftRounded sx={{ color: '#1A1C1B' }} />
-    </IconButton>
+    <BackButton onClick={onClick} />
   </Box>
 );
 
@@ -329,51 +299,30 @@ export const DomaineDetailPage: FunctionComponent = () => {
                 >
                   Parcelles
                 </Typography>
-                <Box
-                  sx={{
-                    minWidth: 22,
-                    height: 22,
-                    px: '6px',
-                    borderRadius: 999,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    background: 'rgba(1,134,117,0.14)',
-                    color: '#006B5D',
-                    fontFamily: "'Ubuntu', sans-serif",
-                    fontSize: 12,
-                    fontWeight: 700,
-                  }}
-                >
-                  {detail.parcels.length}
-                </Box>
+                {detail.parcels.length > 0 && (
+                  <Box
+                    sx={{
+                      minWidth: 22,
+                      height: 22,
+                      px: '6px',
+                      borderRadius: 999,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: 'rgba(1,134,117,0.14)',
+                      color: '#006B5D',
+                      fontFamily: "'Ubuntu', sans-serif",
+                      fontSize: 12,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {detail.parcels.length}
+                  </Box>
+                )}
               </Stack>
 
               {detail.parcels.length === 0 ? (
-                <Stack alignItems="center" spacing={1.25} sx={{ px: 3, py: 4, textAlign: 'center' }}>
-                  <Box
-                    sx={{
-                      width: 56,
-                      height: 56,
-                      borderRadius: '50%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      background: 'rgba(1,134,117,0.08)',
-                      '& svg': { fontSize: 26, color: '#35A18F' },
-                    }}
-                  >
-                    <GridViewRounded />
-                  </Box>
-                  <Typography
-                    sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 14.5, fontWeight: 700, color: '#243F38' }}
-                  >
-                    Aucune parcelle
-                  </Typography>
-                  <Typography sx={{ fontSize: 13, color: '#5C5F5E', maxWidth: 260, lineHeight: 1.5 }}>
-                    Les parcelles de ce domaine apparaîtront ici dès que votre technicien les aura tracées.
-                  </Typography>
-                </Stack>
+                <ParcellesAbsentes />
               ) : (
                 detail.parcels.map((parcel, i) => (
                   <Box

@@ -10,6 +10,19 @@ import type { AlertSeverity } from '../domaines.types';
 export const fr = (n: number, maxDecimals = 1): string =>
   n.toLocaleString('fr-FR', { maximumFractionDigits: maxDecimals });
 
+/**
+ * Surface d'une parcelle telle que la végétation la renvoie : une chaîne, dont
+ * le séparateur décimal et l'unité suffixée varient (« 2.5 », « 2,5 », « 2,5 ha »).
+ * Tout ce qui n'est pas un chiffre ou un séparateur est écarté ; une valeur
+ * illisible vaut 0 plutôt que NaN, qui contaminerait la somme.
+ */
+export const parseArea = (raw: string | number | undefined): number => {
+  if (typeof raw === 'number') return Number.isFinite(raw) ? raw : 0;
+  if (!raw) return 0;
+  const n = parseFloat(raw.replace(/\s/g, '').replace(',', '.').replace(/[^0-9.]/g, ''));
+  return Number.isFinite(n) ? n : 0;
+};
+
 /** Pluriel simple : `n` + singulier/pluriel selon la valeur. */
 export const plural = (n: number, singular: string, pluralForm = `${singular}s`): string =>
   `${n} ${n > 1 ? pluralForm : singular}`;
