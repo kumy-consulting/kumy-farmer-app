@@ -255,7 +255,7 @@ describe('ParcelDetailPage', () => {
     expect(await findByText('Calendrier en préparation')).toBeDefined();
   });
 
-  it('bascule sur Carnet et montre le passage de l’encadreur, photos comprises', async () => {
+  it('bascule sur Carnet et montre le passage du technicien, photos comprises', async () => {
     mocked.itkTasks.mockResolvedValue({
       ...itk,
       stages: [

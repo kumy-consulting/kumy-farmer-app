@@ -95,13 +95,13 @@ export const BlocReglages: FunctionComponent = () => {
         />
         <Ligne
           icone={<TaskAltRounded />}
-          titre="Consignes de mon encadreur"
+          titre="Consignes de mon technicien"
           detail="Nouvelles consignes et retards"
           controle={
             <Switch
               checked={consignes}
               onChange={(event) => setConsignes(event.target.checked)}
-              inputProps={{ 'aria-label': 'Consignes de mon encadreur' }}
+              inputProps={{ 'aria-label': 'Consignes de mon technicien' }}
               sx={bascule}
             />
           }

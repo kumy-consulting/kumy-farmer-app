@@ -232,7 +232,7 @@ export const BlocInformations: FunctionComponent<BlocInformationsProps> = ({ pro
             Cette fiche est en lecture seule
           </Typography>
           <Typography sx={{ fontSize: 12.5, color: '#5C5F5E', mt: 0.35, lineHeight: 1.45 }}>
-            Votre encadreur est le seul à pouvoir la modifier. Signalez-lui l’information à corriger.
+            Votre technicien est le seul à pouvoir la modifier. Signalez-lui l’information à corriger.
           </Typography>
         </Box>
       </Stack>

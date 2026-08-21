@@ -1,5 +1,5 @@
 /**
- * Le carnet d'une parcelle : ce que l'encadreur y a vu et demandé, passage par
+ * Le carnet d'une parcelle : ce que le technicien y a vu et demandé, passage par
  * passage.
  *
  * Les deux moitiés viennent de sources réelles, toutes deux ouvertes au FARMER :

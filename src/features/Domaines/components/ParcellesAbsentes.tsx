@@ -19,9 +19,9 @@ import { Box, Typography } from '@mui/material';
  * existe — sa limite est dessinée sur la carte, derrière la feuille — mais son
  * découpage intérieur n'a pas encore été relevé. C'est exactement l'état décrit.
  *
- * Le texte nomme la personne et le geste. « Encadreur » et non « technicien » :
- * c'est le mot employé partout ailleurs dans l'app — carnet de parcelle, fiche
- * personnelle, réglages —, et un rôle ne change pas de nom d'un écran à l'autre.
+ * Le texte nomme la personne et le geste, avec le mot employé partout ailleurs
+ * dans l'app — carnet de parcelle, fiche personnelle, réglages : un rôle ne
+ * change pas de nom d'un écran à l'autre.
  */
 export const ParcellesAbsentes: FunctionComponent = () => (
   <Box
@@ -73,7 +73,7 @@ export const ParcellesAbsentes: FunctionComponent = () => (
         Aucune parcelle tracée
       </Typography>
       <Typography sx={{ fontSize: 12.5, color: '#5C5F5E', lineHeight: 1.5, mt: 0.4 }}>
-        Votre encadreur les trace avec vous, sur le terrain. Elles apparaissent ici après sa visite.
+        Votre technicien les trace avec vous, sur le terrain. Elles apparaissent ici après sa visite.
       </Typography>
     </Box>
   </Box>

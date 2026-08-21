@@ -12,14 +12,14 @@ import type { ItkParcelTasks, ItkTask } from './parcelle.types';
  * portent un `visitId`, les journaux de tâches ITK n'en ont pas. Plutôt que de
  * bricoler une corrélation fragile, on regroupe sur ce que les deux ont
  * réellement en commun — la date et l'auteur. C'est aussi la façon dont un
- * passage existe pour l'agriculteur : le jour où l'encadreur est venu.
+ * passage existe pour l'agriculteur : le jour où le technicien est venu.
  */
 const cle = (date: string, auteur: string): string => `${dayjs(date).format('YYYY-MM-DD')}|${auteur}`;
 
-/** Ce qui n'est pas l'agriculteur est un encadreur : c'est son carnet, pas le sien. */
-const parEncadreur = (role: string): boolean => role !== 'farmer';
+/** Ce qui n'est pas l'agriculteur est un technicien : c'est son carnet, pas le sien. */
+const parTechnicien = (role: string): boolean => role !== 'farmer';
 
-const ANONYME = 'Votre encadreur';
+const ANONYME = 'Votre technicien';
 
 /** Échéance dite dans le vocabulaire de l'accueil, pour ne pas en inventer un second. */
 const echeanceDe = (tache: FieldTask, now: Dayjs): { texte: string; enRetard: boolean } => {
@@ -36,7 +36,7 @@ const echeanceDe = (tache: FieldTask, now: Dayjs): { texte: string; enRetard: bo
 
 const observationDe = (tache: ItkTask): CarnetObservation | null => {
   const log = tache.completedLog;
-  if (!log || !parEncadreur(log.completedBy.role)) return null;
+  if (!log || !parTechnicien(log.completedBy.role)) return null;
 
   const photos = (log.photoUrls ?? []).map((url) => ({ url, legende: `Photo prise pour « ${tache.title} »` }));
   // Une clôture sans note ni photo n'est pas une observation : c'est juste une

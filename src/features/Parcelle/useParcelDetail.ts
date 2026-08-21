@@ -39,7 +39,7 @@ export interface ParcelDetail {
   /** Plan ITK complet (null si indisponible / pas de campagne). */
   itk: ItkParcelTasks | null;
   /**
-   * Le carnet de la parcelle : ce que l'encadreur y a vu et demandé, passage par
+   * Le carnet de la parcelle : ce que le technicien y a vu et demandé, passage par
    * passage. Dérivé des journaux ITK et des consignes rattachées à une visite.
    */
   carnet: CarnetVisite[];

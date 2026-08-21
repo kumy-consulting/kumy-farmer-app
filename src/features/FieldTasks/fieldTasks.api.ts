@@ -8,7 +8,7 @@ import type { FieldTask, PaginatedFieldTasks } from './fieldTasks.types';
  * `GET /field-tasks` et `PATCH /field-tasks/:id` sont ouverts au rôle FARMER :
  * un agriculteur est toujours forcé sur ses propres consignes côté serveur, et
  * seule la forme « transition » du PATCH (`start` / `complete`) lui est permise —
- * éditer le contenu reste réservé à l'encadreur.
+ * éditer le contenu reste réservé au technicien.
  */
 export const fieldTasksApi = {
   /** Consignes de l'agriculteur, toutes parcelles confondues. */

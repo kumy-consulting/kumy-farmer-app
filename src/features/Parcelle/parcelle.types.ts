@@ -20,7 +20,7 @@ export interface ItkTaskInput {
   optional?: boolean;
 }
 
-/** Qui a clos une tâche. `role` distingue l'encadreur de l'agriculteur. */
+/** Qui a clos une tâche. `role` distingue le technicien de l'agriculteur. */
 export interface ItkLogAuteur {
   uid: string;
   role: string;

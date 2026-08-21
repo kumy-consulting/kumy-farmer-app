@@ -60,11 +60,11 @@ const Photos: FunctionComponent<{ photos: CarnetObservation['photos'] }> = ({ ph
 };
 
 /**
- * Le carnet de l'encadreur, parcelle par parcelle.
+ * Le carnet du technicien, parcelle par parcelle.
  *
  * **Le passage est l'unité, pas la donnée.** L'agriculteur ne se souvient pas
  * d'« une observation » et d'« une consigne » séparément : il se souvient du
- * jour où l'encadreur est venu. Le carnet est donc un journal de visites, et
+ * jour où le technicien est venu. Le carnet est donc un journal de visites, et
  * chaque entrée raconte la même chose dans le même ordre — ce qu'il a vu, puis
  * ce qu'il a demandé. Deux listes à plat auraient obligé à recoudre soi-même.
  *
@@ -93,7 +93,7 @@ export const CarnetTabContent: FunctionComponent<CarnetTabContentProps> = ({ vis
             Aucun passage enregistré
           </Typography>
           <Typography sx={{ fontSize: 13, color: '#5C5F5E', mt: 0.5, lineHeight: 1.5 }}>
-            Les photos et les consignes laissées par votre encadreur sur cette parcelle apparaîtront ici après sa
+            Les photos et les consignes laissées par votre technicien sur cette parcelle apparaîtront ici après sa
             prochaine visite.
           </Typography>
         </Box>

@@ -73,7 +73,7 @@ describe('buildCarnet', () => {
     expect(carnet[0].consignes.map((c) => c.titre)).toEqual(['Compléter le paillage']);
   });
 
-  it('écarte ce que l’agriculteur a lui-même consigné — c’est le carnet de l’encadreur', () => {
+  it('écarte ce que l’agriculteur a lui-même consigné — c’est le carnet du technicien', () => {
     const itk = itkAvec([
       tacheItk({
         taskId: 't1',

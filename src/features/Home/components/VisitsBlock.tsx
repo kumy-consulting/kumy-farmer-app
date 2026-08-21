@@ -32,7 +32,7 @@ const row = {
 const label = { fontSize: 11, fontWeight: 700, letterSpacing: '0.02em', textTransform: 'uppercase' } as const;
 
 /**
- * Section Visites : la dernière visite de l'encadreur et son avancement, puis
+ * Section Visites : la dernière visite du technicien et son avancement, puis
  * la prochaine — inconnue, et annoncée comme telle : aucun endpoint de visite
  * n'est ouvert au rôle FARMER, donc l'app ne peut pas promettre une date.
  */
@@ -96,7 +96,7 @@ export const VisitsBlock: FunctionComponent<VisitsBlockProps> = ({ visits, next 
               {last ? last.title : 'Aucune visite pour l’instant'}
             </Typography>
             <Typography sx={{ fontSize: 12.5, color: 'rgba(36,63,56,0.75)', mt: 0.25 }}>
-              {last?.advice ?? 'Les consignes laissées par votre encadreur apparaîtront ici.'}
+              {last?.advice ?? 'Les consignes laissées par votre technicien apparaîtront ici.'}
             </Typography>
           </Box>
 

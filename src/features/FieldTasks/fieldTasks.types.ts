@@ -3,7 +3,7 @@
  *
  * Miroir TypeScript de `FieldTaskDto` (backend), dates en `string` ISO.
  *
- * ⚠️ Vocabulaire : une « consigne » est une instruction donnée par un encadreur
+ * ⚠️ Vocabulaire : une « consigne » est une instruction donnée par un technicien
  * pendant une visite. Ce n'est PAS une tâche ITK, matérialisée depuis le
  * catalogue agronomique. Les deux coexistent et ne doivent jamais être fusionnées.
  */

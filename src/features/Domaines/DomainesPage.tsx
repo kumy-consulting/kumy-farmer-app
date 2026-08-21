@@ -233,7 +233,7 @@ export const DomainesPage: FunctionComponent = () => {
               Aucun domaine pour l’instant
             </Typography>
             <Typography sx={{ fontSize: 14, lineHeight: 1.55, color: neutral[50] }}>
-              Votre encadreur enregistre vos domaines avec vous, sur le terrain. Ils apparaissent ici après sa visite.
+              Votre technicien enregistre vos domaines avec vous, sur le terrain. Ils apparaissent ici après sa visite.
             </Typography>
           </Stack>
         </Box>
