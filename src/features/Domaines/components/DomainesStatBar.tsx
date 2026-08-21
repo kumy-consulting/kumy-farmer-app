@@ -56,12 +56,17 @@ const Parcellaire: FunctionComponent<{ ratio: number | null; areas: number[] }> 
   return (
     <Box
       sx={{
-        mt: '9px',
-        height: 12,
+        mt: '10px',
+        // Même épaisseur que la barre de répartition de l'accueil : c'est le
+        // même objet — une longueur partagée — et deux épaisseurs pour un même
+        // signe obligent à réapprendre à le lire d'un écran à l'autre.
+        height: 6,
         borderRadius: 999,
         overflow: 'hidden',
-        background: ratio == null ? 'transparent' : 'rgba(1,134,117,0.11)',
-        boxShadow: ratio == null ? 'none' : 'inset 0 0 0 1px rgba(1,134,117,0.10)',
+        // Pas de filet intérieur à cette échelle : sur 6 px, un trait de 1 px
+        // occupe un tiers de la hauteur du rail et le teinte au lieu de le
+        // cerner.
+        background: ratio == null ? 'transparent' : 'rgba(1,134,117,0.13)',
         border: ratio == null ? '1px dashed rgba(1,134,117,0.32)' : 'none',
       }}
     >
@@ -121,9 +126,11 @@ export const DomainesStatBar: FunctionComponent<DomainesStatBarProps> = ({ total
       sx={{
         padding: '13px 14px 12px',
         borderRadius: '18px',
-        background: 'linear-gradient(135deg, #FFFFFF 0%, #F7FBF6 100%)',
-        border: '1px solid rgba(1,134,117,0.14)',
-        boxShadow: '0 8px 22px rgba(55,75,70,0.06)',
+        // Blanc franc, comme toutes les cartes de l'app. Le dégradé faisait de
+        // cette carte-ci un cas particulier sans que rien ne le justifie.
+        background: '#FFFFFF',
+        border: '1px solid rgba(55,75,70,0.07)',
+        boxShadow: '0 6px 18px rgba(1,134,117,0.06)',
       }}
     >
       <Stack direction="row" alignItems="baseline" justifyContent="space-between" spacing={1.5}>
