@@ -13,7 +13,14 @@ import { useAuthStore } from '@/shared/stores/authStore';
 import { HomePage } from './HomePage';
 
 vi.mock('@/features/Domaines/domaines.api', () => ({
-  domainesApi: { alerts: vi.fn(), farms: vi.fn(), parcels: vi.fn(), summary: vi.fn(), liveStation: vi.fn() },
+  domainesApi: {
+    alerts: vi.fn(),
+    farms: vi.fn(),
+    parcels: vi.fn(),
+    summary: vi.fn(),
+    liveStation: vi.fn(),
+    visits: vi.fn(),
+  },
 }));
 vi.mock('@/features/Parcelle/parcelle.api', () => ({
   parcelleApi: { itkTasks: vi.fn(), climateContext: vi.fn() },
@@ -110,7 +117,7 @@ const liveStation = (o: {
   };
 };
 
-describe('HomePage (fil d’exploitation)', () => {
+describe('HomePage (tableau de bord)', () => {
   beforeEach(() => {
     useAuthStore.setState({
       user: { uid: 'u1', displayName: 'Awa Diallo', phone: '+224620000000', role: 'farmer' },
@@ -119,9 +126,16 @@ describe('HomePage (fil d’exploitation)', () => {
     mockedFieldTasks.list.mockResolvedValue([consigne]);
     mockedFieldTasks.transition.mockResolvedValue({ ...consigne, status: 'done', overdue: false, daysOverdue: 0 });
     mockedDomaines.alerts.mockResolvedValue(alerts);
-    mockedDomaines.farms.mockResolvedValue([{ id: 'f1', name: 'Domaine Kaporo' }] as unknown as Domain[]);
+    mockedDomaines.farms.mockResolvedValue([
+      { id: 'f1', name: 'Domaine Kaporo' },
+      { id: 'f2', name: 'Plaine de Dubréka' },
+      { id: 'f3', name: 'Bas-fond Tanènè' },
+    ] as unknown as Domain[]);
     mockedDomaines.summary.mockResolvedValue(summary);
-    mockedDomaines.parcels.mockResolvedValue([{ id: 'p1', name: 'Kaporo 2' }] as unknown as Parcel[]);
+    mockedDomaines.visits.mockResolvedValue({ next: null, recent: [] });
+    mockedDomaines.parcels.mockResolvedValue([
+      { id: 'p1', name: 'Kaporo 2', currentCrop: { cropType: 'ananas' } },
+    ] as unknown as Parcel[]);
     mockedDomaines.liveStation.mockResolvedValue({
       station: liveStation({
         online: true,
@@ -147,176 +161,186 @@ describe('HomePage (fil d’exploitation)', () => {
     vi.clearAllMocks();
   });
 
-  it('range l’accueil en trois sections : alertes, tâches, visites', async () => {
+  it('ouvre sur l’état de l’exploitation, avec la raison du verdict', async () => {
     renderPage();
 
     expect(await screen.findByText(/Bonjour, Awa/)).toBeDefined();
-    expect(await screen.findByText('Alertes')).toBeDefined();
-    expect(await screen.findByText('Tâches')).toBeDefined();
-    expect(await screen.findByText('Visites')).toBeDefined();
-    expect(await screen.findByText('Fortes pluies attendues')).toBeDefined();
-    expect(await screen.findByText('Sarclage manuel')).toBeDefined();
-    expect(await screen.findByText('3 domaines · 7 parcelles · 12,5 ha')).toBeDefined();
-
-    // Plus aucune trace du tableau de bord météo
-    expect(screen.queryByText('Prévisions 5 jours')).toBeNull();
-    expect(screen.queryByText('Vos domaines')).toBeNull();
+    // Une alerte critique commande le verdict — et le verdict dit quoi faire,
+    // pas seulement à quel point c'est grave.
+    expect(await screen.findByText('Intervention urgente')).toBeDefined();
+    expect(await screen.findByText('1 alerte active et 1 action en retard.')).toBeDefined();
+    // Le compte de parcelles vient de celles réellement chargées : `/dashboard`
+    // renvoie parfois 0 par bug d'agrégation, et « 0 parcelle » se lirait comme
+    // une exploitation vide.
+    expect(await screen.findByText('3 domaines · 12,5 ha · 1 parcelle')).toBeDefined();
   });
 
-  it('annonce une prochaine visite inconnue plutôt que d’en inventer une', async () => {
+  it('fond alertes et actions dans une seule liste à traiter, la plus grave en tête', async () => {
     renderPage();
 
-    expect(await screen.findByText('Prochaine')).toBeDefined();
-    expect(await screen.findByText('Non planifiée')).toBeDefined();
+    expect(await screen.findByText('À traiter')).toBeDefined();
+    const alerte = await screen.findByText('Fortes pluies attendues');
+    const action = await screen.findByText('Sarclage manuel');
+    // L'alerte critique passe avant la consigne en retard : gravité d'abord.
+    expect(alerte.compareDocumentPosition(action) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    // Chaque élément dit s'il se consulte ou s'il se fait.
+    expect(await screen.findByText('Alerte')).toBeDefined();
+    expect(await screen.findByText('Action')).toBeDefined();
   });
 
-  it('valide une consigne depuis la section Tâches', async () => {
+  it('situe chaque élément : domaine, parcelle et culture', async () => {
+    renderPage();
+
+    // « Alerte sanitaire » ne suffit pas : il faut savoir où agir.
+    expect(await screen.findAllByText('Domaine Kaporo · Kaporo 2 · Ananas')).toHaveLength(2);
+  });
+
+  it('date les échéances au lieu d’en compter les jours', async () => {
+    renderPage();
+
+    const attendu = `En retard depuis le ${dayjs().subtract(2, 'day').format('D MMMM')}`;
+    expect(await screen.findByText(attendu)).toBeDefined();
+    expect(screen.queryByText(/il y a 2 j/)).toBeNull();
+  });
+
+  it('valide une consigne depuis la liste à traiter', async () => {
     renderPage();
     const done = await screen.findByRole('button', { name: 'Terminé' });
 
     fireEvent.click(done);
 
     await waitFor(() => expect(mockedFieldTasks.transition).toHaveBeenCalledWith('ft1', 'complete'));
-    expect(await screen.findByText('Fait')).toBeDefined();
   });
 
-  it('ouvre sur le segment le plus urgent et filtre au changement de compteur', async () => {
-    mockedFieldTasks.list.mockResolvedValue([
-      consigne,
-      {
+  it('n’affiche pas « 0 parcelle » quand le compte est inconnu', async () => {
+    // Ni parcelle chargée, ni total côté dashboard : le compte est inconnu, pas nul.
+    mockedDomaines.parcels.mockResolvedValue([]);
+    mockedDomaines.summary.mockResolvedValue({ ...summary, totalParcels: 0 });
+
+    renderPage();
+
+    expect(await screen.findByText('3 domaines · 12,5 ha')).toBeDefined();
+    expect(screen.queryByText(/0 parcelle/)).toBeNull();
+  });
+
+  it('résume l’état des domaines sans les lister', async () => {
+    renderPage();
+
+    expect(await screen.findByText('Mes domaines')).toBeDefined();
+    // Le domaine porteur de l'alerte critique est compté comme tel, les autres normaux.
+    expect(await screen.findByText(/critique/)).toBeDefined();
+    expect(await screen.findByText(/normaux/)).toBeDefined();
+    // La répartition est annoncée d'un bloc aux lecteurs d'écran.
+    expect(
+      await screen.findByRole('img', { name: 'Répartition de vos 3 domaines : 1 critique, 2 normaux' }),
+    ).toBeDefined();
+  });
+
+  it('annonce une prochaine visite inconnue plutôt que d’en inventer une', async () => {
+    renderPage();
+
+    expect(await screen.findByText('Mon accompagnement')).toBeDefined();
+    // « Pas encore fixée » dit ce qu'on sait ; « Non planifiée » affirmerait
+    // qu'il n'y a pas de visite prévue, ce que l'API ne permet pas de savoir.
+    expect(await screen.findByText('Pas encore fixée')).toBeDefined();
+    expect(screen.queryByText('Non planifiée')).toBeNull();
+    // Sans visite enregistrée, aucun lien : il n'y a rien à ouvrir.
+    expect(screen.queryByText('Voir la dernière visite')).toBeNull();
+  });
+
+  it('ne laisse pas le volume de retards rendre l’exploitation critique', async () => {
+    // Cinq consignes en retard, aucune alerte : c'est « Attention requise », pas
+    // une urgence — la gravité est métier, pas quantitative (règle 3).
+    mockedDomaines.alerts.mockResolvedValue([]);
+    mockedFieldTasks.list.mockResolvedValue(
+      Array.from({ length: 5 }, (_, i) => ({ ...consigne, id: `ft${i}`, title: `Consigne ${i}` })),
+    );
+    mockedDomaines.summary.mockResolvedValue({ ...summary, alerts: { total: 0, critical: 0, warning: 0, info: 0 } });
+
+    renderPage();
+
+    expect(await screen.findByText('Attention requise')).toBeDefined();
+    expect(screen.queryByText('Intervention urgente')).toBeNull();
+    expect(await screen.findByText('5 actions en retard.')).toBeDefined();
+  });
+
+  it('ne montre que trois éléments, et déplie puis replie le reste', async () => {
+    mockedDomaines.alerts.mockResolvedValue([]);
+    mockedFieldTasks.list.mockResolvedValue(
+      Array.from({ length: 6 }, (_, i) => ({
         ...consigne,
-        id: 'ft2',
-        title: 'Apport urée',
+        id: `ft${i}`,
+        title: `Consigne ${i}`,
+        status: 'planned' as const,
         overdue: false,
         daysOverdue: 0,
-        dueDate: dayjs().add(3, 'day').format('YYYY-MM-DD'),
-      },
-    ]);
+        dueDate: dayjs().add(i + 3, 'day').format('YYYY-MM-DD'),
+      })),
+    );
 
     renderPage();
 
-    // Segment « En retard » ouvert par défaut : la consigne en retard est visible, pas l'autre.
+    // Six consignes, trois affichées : le bloc garde une hauteur prévisible
+    // quel que soit l'état de l'exploitation.
+    const voir = await screen.findByText('Voir les 3 autres');
+    expect(screen.getByText('Consigne 0')).toBeDefined();
+    expect(screen.queryByText('Consigne 5')).toBeNull();
+
+    fireEvent.click(voir);
+    expect(await screen.findByText('Consigne 5')).toBeDefined();
+
+    // Et la liste se referme : elle s'ouvrait sans jamais se replier.
+    fireEvent.click(screen.getByText('Voir moins'));
+    expect(screen.queryByText('Consigne 5')).toBeNull();
+  });
+
+  it('replie même les urgences au-delà de trois', async () => {
+    mockedDomaines.alerts.mockResolvedValue([]);
+    mockedFieldTasks.list.mockResolvedValue(
+      Array.from({ length: 5 }, (_, i) => ({ ...consigne, id: `ft${i}`, title: `Retard ${i}` })),
+    );
+    mockedDomaines.summary.mockResolvedValue({ ...summary, alerts: { total: 0, critical: 0, warning: 0, info: 0 } });
+
+    renderPage();
+
+    // Cinq consignes en retard : le plafond tient quand même, sinon la liste
+    // occupait quatre écrans et le bloc suivant devenait inatteignable.
+    expect(await screen.findByText('Voir les 2 autres')).toBeDefined();
+  });
+
+  it('filtre la liste par découpe pour rendre la page en une hauteur d’écran', async () => {
+    renderPage();
+
+    // Deux découpes réelles : une alerte, une action en retard. « Tout » ouvre.
+    // La puce porte son compte : « 1 En retard ». Le libellé seul se confondrait
+    // avec l'échéance imprimée sur la carte, qui vit dans un bouton elle aussi.
+    const enRetard = await screen.findByRole('button', { name: '1 En retard' });
+    expect(await screen.findByText('Fortes pluies attendues')).toBeDefined();
+
+    fireEvent.click(enRetard);
+
     expect(await screen.findByText('Sarclage manuel')).toBeDefined();
-    expect(screen.queryByText('Apport urée')).toBeNull();
-
-    fireEvent.click(screen.getByRole('button', { name: /prévues/i }));
-
-    expect(await screen.findByText('Apport urée')).toBeDefined();
-    expect(screen.queryByText('Sarclage manuel')).toBeNull();
+    expect(screen.queryByText('Fortes pluies attendues')).toBeNull();
   });
 
-  it('propose le travail qui attend quand le segment ouvert est vide', async () => {
-    mockedFieldTasks.list.mockResolvedValue([consigne]);
-
+  it('n’affiche pas de découpe vide', async () => {
+    // Aucune consigne démarrée : la puce « En cours » n'a rien à ouvrir.
     renderPage();
 
-    fireEvent.click(await screen.findByRole('button', { name: /en cours/i }));
-    expect(await screen.findByText('Aucune tâche démarrée.')).toBeDefined();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Voir la tâche en retard' }));
-
-    expect(await screen.findByText('Sarclage manuel')).toBeDefined();
-  });
-
-  it('montre les trois alertes les plus récentes puis déplie le reste', async () => {
-    const many: FarmerAlert[] = Array.from({ length: 5 }, (_, index) => ({
-      id: `al${index}`,
-      farmId: 'f1',
-      farmName: 'Domaine Kaporo',
-      parcelId: 'p1',
-      parcelName: 'Kaporo 2',
-      type: 'weather',
-      severity: 'critical',
-      status: 'active',
-      title: `Alerte ${index}`,
-      message: '',
-      recommendedAction: '',
-      createdAt: dayjs().subtract(index, 'hour').toISOString(),
-    }));
-    mockedDomaines.alerts.mockResolvedValue(many);
-
-    renderPage();
-
-    expect(await screen.findByText('Alerte 0')).toBeDefined();
-    expect(screen.queryByText('Alerte 4')).toBeNull();
-
-    fireEvent.click(await screen.findByRole('button', { name: 'Voir les 2 autres alertes' }));
-
-    expect(await screen.findByText('Alerte 4')).toBeDefined();
-
-    // Le retour : le bouton reste en place une fois déplié et referme la liste.
-    // Il disparaissait auparavant, la section ne se repliait donc jamais.
-    const collapse = screen.getByRole('button', { name: 'Voir moins' });
-    expect(collapse.getAttribute('aria-expanded')).toBe('true');
-
-    fireEvent.click(collapse);
-
-    await waitFor(() => expect(screen.queryByText('Alerte 4')).toBeNull());
-    expect(screen.getByRole('button', { name: 'Voir les 2 autres alertes' })).toBeDefined();
-  });
-
-  it('écarte les alertes périmées du décompte tout en les gardant consultables', async () => {
-    mockedDomaines.alerts.mockResolvedValue([
-      {
-        id: 'vieille',
-        farmId: 'f1',
-        farmName: 'Domaine Kaporo',
-        parcelId: 'p1',
-        parcelName: 'Kaporo 2',
-        type: 'ndvi',
-        severity: 'critical',
-        status: 'active',
-        title: 'NDVI en chute',
-        message: '',
-        createdAt: dayjs().subtract(66, 'day').toISOString(),
-      },
-    ]);
-
-    renderPage();
-
-    expect(await screen.findByText('Aucune alerte récente sur vos parcelles.')).toBeDefined();
-    expect(screen.queryByText('NDVI en chute')).toBeNull();
-
-    fireEvent.click(await screen.findByRole('button', { name: 'Voir l’ancienne' }));
-
-    expect(await screen.findByText('NDVI en chute')).toBeDefined();
-
-    // Les anciennes se renomment dans les deux sens plutôt que « Voir moins » :
-    // dans un en-tête, on ne saurait pas moins de quoi.
-    fireEvent.click(screen.getByRole('button', { name: 'Masquer les anciennes' }));
-
-    await waitFor(() => expect(screen.queryByText('NDVI en chute')).toBeNull());
-  });
-
-  it('ouvre et referme la liste des tâches', async () => {
-    const many: FieldTask[] = Array.from({ length: 5 }, (_, index) => ({
-      ...consigne,
-      id: `ft${index}`,
-      clientTaskId: `c${index}`,
-      title: `Consigne ${index}`,
-    }));
-    mockedFieldTasks.list.mockResolvedValue(many);
-
-    renderPage();
-
-    expect(await screen.findByText('Consigne 0')).toBeDefined();
-    expect(screen.queryByText('Consigne 4')).toBeNull();
-
-    fireEvent.click(await screen.findByRole('button', { name: 'Voir les 5 tâches' }));
-    expect(await screen.findByText('Consigne 4')).toBeDefined();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Voir moins' }));
-
-    await waitFor(() => expect(screen.queryByText('Consigne 4')).toBeNull());
-    expect(screen.getByRole('button', { name: 'Voir les 5 tâches' })).toBeDefined();
+    await screen.findByText('À traiter');
+    expect(screen.queryByRole('button', { name: /^\d+ En cours$/ })).toBeNull();
   });
 
   it('annonce un accueil vide sans rien inventer', async () => {
     mockedFieldTasks.list.mockResolvedValue([]);
     mockedDomaines.alerts.mockResolvedValue([]);
+    mockedDomaines.summary.mockResolvedValue({ ...summary, alerts: { total: 0, critical: 0, warning: 0, info: 0 } });
 
     renderPage();
 
-    expect(await screen.findByText(/Rien d’urgent aujourd’hui/)).toBeDefined();
+    expect(await screen.findByText('Situation normale')).toBeDefined();
+    expect(await screen.findByText('Rien ne demande votre attention aujourd’hui.')).toBeDefined();
+    expect(await screen.findByText(/Rien à traiter aujourd’hui/)).toBeDefined();
   });
 });

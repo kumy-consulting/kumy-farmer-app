@@ -10,6 +10,7 @@ const draft = (over: Partial<FeedItemDraft> & Pick<FeedItemDraft, 'id' | 'at'>):
   kind: 'task',
   title: 'Tâche',
   place: 'Kaporo 1',
+  perimetre: { parcelle: 'Kaporo 1' },
   icon: 'inspection',
   ...over,
 });

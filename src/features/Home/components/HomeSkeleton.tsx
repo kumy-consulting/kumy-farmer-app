@@ -11,8 +11,6 @@ export const HomeSkeleton: FunctionComponent = () => (
       sx={{
         padding: 'calc(env(safe-area-inset-top, 0px) + 20px) 24px 22px',
         background: 'linear-gradient(155deg, #0E7A67 0%, #0A6152 100%)',
-        borderBottomLeftRadius: 26,
-        borderBottomRightRadius: 26,
       }}
     >
       <Skeleton width={110} height={14} sx={{ bgcolor: 'rgba(255,255,255,0.18)' }} />

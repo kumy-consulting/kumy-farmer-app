@@ -38,6 +38,8 @@ export function isActiveAlert(alert: FarmerAlert): boolean {
 export interface NameIndex {
   parcels: Map<string, string>;
   farms: Map<string, string>;
+  /** parcelId → culture en cours. Absent tant que la vague 2 n'a pas répondu. */
+  crops: Map<string, string>;
 }
 
 /** Type de consigne → pictogramme de la carte. */
@@ -83,6 +85,11 @@ export function fieldTasksToFeed(tasks: FieldTask[], names: NameIndex, now: Dayj
         kind: 'task',
         title: task.title,
         place: parcelName ?? farmName ?? 'Mon exploitation',
+        perimetre: {
+          domaine: farmName,
+          parcelle: parcelName,
+          culture: task.parcelId ? names.crops.get(task.parcelId) : undefined,
+        },
         icon: TASK_ICON[task.type] ?? 'inspection',
         advice: task.description || undefined,
         // Une consigne cochée se lit à l'heure où elle a été faite ; les autres
@@ -103,12 +110,17 @@ export function fieldTasksToFeed(tasks: FieldTask[], names: NameIndex, now: Dayj
  * Alertes actives → éléments du fil. La sévérité passe par la normalisation
  * `SEVERITY` déjà en place (le backend renvoie parfois `high|medium|low`).
  */
-export function alertsToFeed(alerts: FarmerAlert[]): FeedItemDraft[] {
+export function alertsToFeed(alerts: FarmerAlert[], names: NameIndex): FeedItemDraft[] {
   return alerts.filter(isActiveAlert).map((alert) => ({
     id: `alert:${alert.id}`,
     kind: 'alert',
     title: alert.title || alert.message,
     place: alert.parcelName ?? alert.farmName,
+    perimetre: {
+      domaine: alert.farmName,
+      parcelle: alert.parcelName,
+      culture: alert.parcelId ? names.crops.get(alert.parcelId) : undefined,
+    },
     icon: ALERT_ICON[alert.type] ?? 'rain',
     advice: alert.recommendedAction,
     at: alert.createdAt,
@@ -122,6 +134,8 @@ export interface ParcelItkSource {
   itk: ItkParcelTasks;
   parcelName: string;
   farmId: string;
+  farmName?: string;
+  culture?: string;
 }
 
 /** Ce qui a établi que les conditions sont défavorables sur un domaine. */
@@ -168,7 +182,14 @@ const ITK_ICON: Record<string, FeedIcon> = {
 
 /** « Urée 150 kg/ha · KCl 50 kg/ha » — vide si la tâche n'a pas d'intrant. */
 function inputsSummary(task: ItkTask): string {
-  return task.inputs.map((input) => `${input.product} ${input.dosePerHa} ${input.unit}/ha`).join(' · ');
+  return task.inputs
+    .map((input) => {
+      // Le catalogue ITK renvoie tantôt « kg », tantôt « kg/ha » : ajouter
+      // « /ha » sans regarder produisait « 1.2 l/ha/ha » sur l'écran.
+      const unite = /\/\s*ha$/i.test(input.unit) ? input.unit : `${input.unit}/ha`;
+      return `${input.product} ${input.dosePerHa} ${unite}`;
+    })
+    .join(' · ');
 }
 
 /**
@@ -186,12 +207,13 @@ function inputsSummary(task: ItkTask): string {
 export function itkToFeed(sources: ParcelItkSource[], ctx: ItkFeedContext): FeedItemDraft[] {
   const items: FeedItemDraft[] = [];
 
-  for (const { itk, parcelName, farmId } of sources) {
+  for (const { itk, parcelName, farmId, farmName, culture } of sources) {
     if (!itk.hasActiveCampaign) continue;
     const stage = itk.stages.find((s) => s.stageCode === itk.currentStage?.stageCode);
     if (!stage) continue;
 
     const target = `/domaines/${farmId}/parcelles/${itk.parcelId}`;
+    const perimetre = { domaine: farmName, parcelle: parcelName, culture };
 
     for (const task of [...stage.tasks.mandatory, ...stage.tasks.recommended]) {
       if (task.state === 'completed') continue;
@@ -217,8 +239,13 @@ export function itkToFeed(sources: ParcelItkSource[], ctx: ItkFeedContext): Feed
           kind: 'window',
           title: task.title,
           place: parcelName,
+          perimetre,
           icon: 'window',
-          advice: [`Jusqu’au ${end.format('DD/MM')}`, inputs].filter(Boolean).join(' · '),
+          // La borne de fenêtre n'est plus ici : l'échéance de la carte la dit en
+          // toutes lettres (« Dernier jour : demain »), et « Jusqu'au 22/08 »
+          // juste en dessous la répétait en chiffres. Reste ce que le conseil
+          // est seul à porter : les intrants.
+          advice: inputs || undefined,
           note: unfavourableNote(ctx, farmId),
           at: end.toISOString(),
           urgentNow: closingSoon || undefined,
@@ -233,8 +260,13 @@ export function itkToFeed(sources: ParcelItkSource[], ctx: ItkFeedContext): Feed
         kind: 'itk',
         title: task.title,
         place: parcelName,
+        perimetre,
         icon,
-        advice: missed ? 'Fenêtre dépassée' : inputs || task.timing || undefined,
+        // Le retard n'est plus écrit ici : l'échéance le date (« En retard
+        // depuis le 31 mai »), et « Fenêtre dépassée » sous cette ligne ne
+        // faisait que la répéter dans un mot de système. Le conseil garde sa
+        // place pour ce qu'il est seul à dire — les intrants, le moment.
+        advice: inputs || task.timing || undefined,
         at,
         urgentNow: missed || undefined,
         target,
@@ -275,7 +307,7 @@ export function visitsToFeed(tasks: FieldTask[], names: NameIndex, now: Dayjs = 
     if (now.diff(dayjs(first.createdAt), 'day') > VISIT_MAX_AGE_DAYS) continue;
 
     const done = group.filter((t) => t.status === 'done').length;
-    const author = first.createdByName ?? 'votre encadreur';
+    const author = first.createdByName ?? 'votre technicien';
     const parcelName = first.parcelId ? names.parcels.get(first.parcelId) : undefined;
     // Accord en nombre : singulier pour 0 et 1, pluriel au-delà (0 faite, 1 consigne, 2 consignes).
     const consigneLabel = group.length > 1 ? 'consignes' : 'consigne';
@@ -286,6 +318,11 @@ export function visitsToFeed(tasks: FieldTask[], names: NameIndex, now: Dayjs = 
       kind: 'visit',
       title: `Visite de ${author}`,
       place: parcelName ?? names.farms.get(first.farmId) ?? 'Mon exploitation',
+      perimetre: {
+        domaine: names.farms.get(first.farmId),
+        parcelle: parcelName,
+        culture: first.parcelId ? names.crops.get(first.parcelId) : undefined,
+      },
       icon: 'visit',
       advice: `${group.length} ${consigneLabel} · ${done} ${doneLabel}`,
       at: first.createdAt,

@@ -27,7 +27,19 @@ export type FeedIcon =
   | 'window'
   | 'visit';
 
-/** Récapitulatif d'une visite d'encadreur, reconstitué depuis ses consignes. */
+/**
+ * Où agir. « Alerte sanitaire » ne suffit pas : l'agriculteur doit savoir sur
+ * quel domaine, quelle parcelle et quelle culture avant de se déplacer. Les
+ * trois niveaux ne sont pas toujours connus — une alerte de domaine n'a pas de
+ * parcelle —, l'affichage ne montre donc que ce qui existe.
+ */
+export interface Perimetre {
+  domaine?: string;
+  parcelle?: string;
+  culture?: string;
+}
+
+/** Récapitulatif d'une visite de technicien, reconstitué depuis ses consignes. */
 export interface FeedVisitSummary {
   id: string;
   author: string;
@@ -41,8 +53,10 @@ export interface FeedItemDraft {
   id: string;
   kind: FeedKind;
   title: string;
-  /** Parcelle, à défaut domaine. */
+  /** Parcelle, à défaut domaine — libellé court des affichages compacts. */
   place: string;
+  /** Domaine · parcelle · culture, pour les cartes qui doivent situer l'action. */
+  perimetre: Perimetre;
   icon: FeedIcon;
   /** « Vérifier l'irrigation », « Urée 150 kg/ha », « Jusqu'au 20/08 »… */
   advice?: string;
@@ -56,7 +70,7 @@ export interface FeedItemDraft {
   daysOverdue?: number;
   /** Vrai uniquement pour `kind === 'task'` : seule source que l'agriculteur peut faire avancer. */
   actionable?: boolean;
-  /** Nom de l'encadreur (consigne, visite). */
+  /** Nom du technicien (consigne, visite). */
   author?: string;
   /** Libellés des prérequis non satisfaits — vide si le serveur ne les a pas résolus. */
   unmetPrerequisites?: string[];

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import dayjs from 'dayjs';
 
+import { prettyCrop } from '@/features/Domaines/components/domainesVisuals';
 import { domainesApi } from '@/features/Domaines/domaines.api';
 import type { FarmerAlert, Parcel } from '@/features/Domaines/domaines.types';
 import { fieldTasksApi } from '@/features/FieldTasks/fieldTasks.api';
@@ -9,6 +10,8 @@ import type { FieldTask } from '@/features/FieldTasks/fieldTasks.types';
 import { parcelleApi } from '@/features/Parcelle/parcelle.api';
 import { useAuthStore } from '@/shared/stores/authStore';
 
+import { buildDashboard } from './home.dashboard';
+import type { HomeDashboard } from './home.dashboard.types';
 import { demoAlerts, demoItkDrafts, demoNames, demoRecap, demoTasks, demoWeather, isDemoMode } from './home.demo';
 import type { FeedItemDraft } from './home.feed.types';
 import {
@@ -45,10 +48,18 @@ export interface HomeWeather {
    * est une moyenne sur sept jours — et la puce doit l'annoncer comme telle.
    */
   climate: { avgTempC: number | null; asOfDate: string | null } | null;
+  /**
+   * Ce que le kit mesure en plus de la température. Chaque valeur est
+   * indépendamment absente : une station peut n'avoir ni pluviomètre ni
+   * anémomètre, et une case vide vaut mieux qu'un zéro inventé.
+   */
+  mesures: { humidite: number | null; vent: number | null; pluie24h: number | null };
 }
 
 export interface HomeFeedState {
   sections: HomeSections;
+  /** Le tableau de bord de l'accueil, dérivé des sections et des sources brutes. */
+  dashboard: HomeDashboard;
   recap: HomeRecap | null;
   weather: HomeWeather | null;
   isLoading: boolean;
@@ -98,8 +109,15 @@ export function useHomeFeed(): HomeFeedState {
   const [tasks, setTasks] = useState<FieldTask[]>([]);
   const [alerts, setAlerts] = useState<FarmerAlert[]>([]);
   const [itkDrafts, setItkDrafts] = useState<FeedItemDraft[]>([]);
-  const [names, setNames] = useState<NameIndex>({ parcels: new Map(), farms: new Map() });
+  const [names, setNames] = useState<NameIndex>({ parcels: new Map(), farms: new Map(), crops: new Map() });
   const [recap, setRecap] = useState<HomeRecap | null>(null);
+  // Instant du dernier chargement réussi : l'accueil doit pouvoir dire de quand
+  // datent ses chiffres, sur des réseaux qui coupent (§19).
+  const [chargeA, setChargeA] = useState<string | null>(null);
+  // Prochaine visite : elle vient désormais de `/farmers/:id/visits`. Elle ne
+  // pouvait pas être reconstituée depuis les consignes — une visite à venir n'en
+  // a encore produit aucune.
+  const [prochaineVisite, setProchaineVisite] = useState<HomeDashboard['accompagnement']['prochaineVisite']>(null);
   const [weather, setWeather] = useState<HomeWeather | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEnriching, setIsEnriching] = useState(true);
@@ -125,6 +143,7 @@ export function useHomeFeed(): HomeFeedState {
       setNames(demoNames);
       setRecap(demoRecap);
       setWeather(demoWeather);
+      setChargeA(dayjs().toISOString());
       setIsLoading(false);
       setIsEnriching(false);
       return;
@@ -160,7 +179,7 @@ export function useHomeFeed(): HomeFeedState {
       const farmNames = new Map(farms.map((farm) => [farm.id, farm.name]));
       setTasks(loadedTasks);
       setAlerts(loadedAlerts);
-      setNames({ parcels: new Map(), farms: farmNames });
+      setNames({ parcels: new Map(), farms: farmNames, crops: new Map() });
       setRecap(
         summary
           ? {
@@ -173,7 +192,27 @@ export function useHomeFeed(): HomeFeedState {
       );
       if (tasksRes.status === 'rejected' && alertsRes.status === 'rejected' && farmsRes.status === 'rejected') {
         setError('Impossible de charger votre exploitation');
+      } else {
+        setChargeA(dayjs().toISOString());
       }
+
+      // Hors du `allSettled` principal : l'accompagnement n'est pas du chemin
+      // critique, son échec ne doit ni retarder le fil ni le vider.
+      domainesApi
+        .visits(farmerId)
+        .then(({ next }) => {
+          if (!active || !next?.scheduledFor) return;
+          setProchaineVisite({
+            date: next.scheduledFor,
+            technicien: next.technicianName ?? 'Votre technicien',
+            domaine: next.farmName ?? undefined,
+            objectif: next.note ?? undefined,
+          });
+        })
+        .catch(() => {
+          // Visites indisponibles : la prochaine reste inconnue, et l'accueil le
+          // dit déjà — « Pas encore fixée ».
+        });
       setIsLoading(false);
 
       // Vague 2 — noms de parcelles et météo du kit.
@@ -189,10 +228,20 @@ export function useHomeFeed(): HomeFeedState {
       }));
 
       const parcelNames = new Map<string, string>();
+      const parcelCrops = new Map<string, string>();
       for (const { parcels } of parcelsByFarm) {
-        for (const parcel of parcels) parcelNames.set(parcel.id, parcel.name);
+        for (const parcel of parcels) {
+          parcelNames.set(parcel.id, parcel.name);
+          // La culture complète le périmètre d'une carte : « Domaine · Parcelle ·
+          // Ananas » dit où agir, « Ananas Nord » seul laisse chercher.
+          const crop = parcel.currentCrop?.cropType;
+          // `prettyCrop` conserve les underscores pour rester aligné sur la PWA
+          // ingénieur ; sur l'écran d'un agriculteur, « Ananas_baronne » est une clé
+          // de base de données, pas un nom de culture.
+          if (crop) parcelCrops.set(parcel.id, prettyCrop(crop).replace(/_/g, ' '));
+        }
       }
-      setNames({ parcels: parcelNames, farms: farmNames });
+      setNames({ parcels: parcelNames, farms: farmNames, crops: parcelCrops });
 
       // Domaines dont le kit mesure des conditions défavorables ici et maintenant.
       const kits = farms.map((farm, index) => {
@@ -227,6 +276,11 @@ export function useHomeFeed(): HomeFeedState {
           observedAt: equipped.station.lastSeen,
           hasKit: true,
           climate: null,
+          mesures: {
+            humidite: equipped.station.live.humidity?.value ?? null,
+            vent: equipped.station.live.windSpeed?.value ?? null,
+            pluie24h: equipped.station.live.rainfall24h?.valueMm ?? null,
+          },
         });
       } else if (chipFarm) {
         setWeather({
@@ -237,6 +291,7 @@ export function useHomeFeed(): HomeFeedState {
           observedAt: null,
           hasKit: false,
           climate: null,
+          mesures: { humidite: null, vent: null, pluie24h: null },
         });
       }
 
@@ -294,7 +349,15 @@ export function useHomeFeed(): HomeFeedState {
 
       const sources: ParcelItkSource[] = itkResults.flatMap((result, index) =>
         result.status === 'fulfilled'
-          ? [{ itk: result.value, parcelName: itkParcels[index].parcel.name, farmId: itkParcels[index].farmId }]
+          ? [
+              {
+                itk: result.value,
+                parcelName: itkParcels[index].parcel.name,
+                farmId: itkParcels[index].farmId,
+                farmName: farmNames.get(itkParcels[index].farmId),
+                culture: parcelCrops.get(itkParcels[index].parcel.id),
+              },
+            ]
           : [],
       );
       setItkDrafts(itkToFeed(sources, { now: dayjs(), unfavourable }));
@@ -311,13 +374,18 @@ export function useHomeFeed(): HomeFeedState {
     return buildSections(
       [
         ...fieldTasksToFeed(tasks, names, now),
-        ...alertsToFeed(alerts),
+        ...alertsToFeed(alerts, names),
         ...visitsToFeed(tasks, names, now),
         ...itkDrafts,
       ],
       now,
     );
   }, [tasks, alerts, itkDrafts, names]);
+
+  const dashboard = useMemo(
+    () => buildDashboard({ sections, recap, names, alerts, tasks, chargeA, prochaineVisite }),
+    [sections, recap, names, alerts, tasks, chargeA, prochaineVisite],
+  );
 
   /**
    * Transition optimiste d'une consigne : l'UI avance tout de suite, l'appel
@@ -367,6 +435,7 @@ export function useHomeFeed(): HomeFeedState {
 
   return {
     sections,
+    dashboard,
     recap,
     weather,
     isLoading,

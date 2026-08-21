@@ -1,19 +1,19 @@
 import { useEffect, useState, type FunctionComponent } from 'react';
 
-import TaskAltRounded from '@mui/icons-material/TaskAltRounded';
 import { Alert, Box, Button, Snackbar, Stack, Typography } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
 
 import { useAuthStore } from '@/shared/stores/authStore';
 
-import { AlertsBlock } from './components/AlertsBlock';
-import { EmptyState } from './components/EmptyState';
+import { BlocAccompagnement } from './components/dashboard/BlocAccompagnement';
+import { BlocActivite } from './components/dashboard/BlocActivite';
+import { BlocATraiter } from './components/dashboard/BlocATraiter';
+import { BlocDomaines } from './components/dashboard/BlocDomaines';
+import { BlocExploitation } from './components/dashboard/BlocExploitation';
 import { HomeHeader } from './components/HomeHeader';
 import { HomeSkeleton } from './components/HomeSkeleton';
-import { TasksBlock } from './components/TasksBlock';
-import { VisitsBlock } from './components/VisitsBlock';
-import { demoNextVisit, isDemoMode } from './home.demo';
+import { isDemoMode } from './home.demo';
 import type { FeedItem } from './home.feed.types';
 import { useHomeFeed } from './useHomeFeed';
 
@@ -57,7 +57,7 @@ const useIsOnline = (): boolean => {
 };
 
 export const HomePage: FunctionComponent = () => {
-  const { sections, recap, weather, isLoading, error, actionError, reload, runTaskAction, dismissActionError } =
+  const { dashboard, weather, isLoading, error, actionError, reload, runTaskAction, dismissActionError } =
     useHomeFeed();
   const firstName = useFirstName();
   const isOnline = useIsOnline();
@@ -78,14 +78,7 @@ export const HomePage: FunctionComponent = () => {
   return (
     <Page>
       <Reveal>
-        <HomeHeader
-          firstName={firstName}
-          weather={weather}
-          recap={recap}
-          alerts={{ fresh: sections.alerts.fresh.length, stale: sections.alerts.stale.length }}
-          onWeatherClick={(id) => navigate(`/domaines/${id}`)}
-          onRecapClick={() => navigate('/domaines')}
-        />
+        <HomeHeader firstName={firstName} weather={weather} onWeatherClick={(id) => navigate(`/domaines/${id}`)} />
       </Reveal>
 
       <Stack spacing={2.75} sx={{ px: 2.5, mt: 2, pb: 4 }}>
@@ -117,28 +110,38 @@ export const HomePage: FunctionComponent = () => {
           </Stack>
         )}
 
-        {!error && sections.isEmpty && (
-          <EmptyState
-            icon={<TaskAltRounded />}
-            message="Rien d’urgent aujourd’hui — aucune consigne ni alerte en attente sur vos parcelles."
+        <Reveal sx={{ animationDelay: '0.06s' }}>
+          <BlocExploitation resume={dashboard.resume} />
+        </Reveal>
+
+        <Reveal sx={{ animationDelay: '0.12s' }}>
+          <BlocATraiter
+            elements={dashboard.elements}
+            seuilVisible={dashboard.seuilVisible}
+            isOnline={isOnline}
+            onSelect={openItem}
+            onAction={runTaskAction}
           />
+        </Reveal>
+
+        {dashboard.domaines.total > 0 && (
+          <Reveal sx={{ animationDelay: '0.18s' }}>
+            <BlocDomaines domaines={dashboard.domaines} onVoirDomaines={() => navigate('/domaines')} />
+          </Reveal>
         )}
 
-        {!sections.isEmpty && (
-          <>
-            <Reveal sx={{ animationDelay: '0.1s' }}>
-              <AlertsBlock alerts={sections.alerts} onSelect={openItem} />
-            </Reveal>
+        <Reveal sx={{ animationDelay: '0.24s' }}>
+          <BlocAccompagnement
+            accompagnement={dashboard.accompagnement}
+            onVoirVisite={() =>
+              navigate(dashboard.accompagnement.derniereVisite?.target ?? '/domaines')
+            }
+          />
+        </Reveal>
 
-            <Reveal sx={{ animationDelay: '0.16s' }}>
-              <TasksBlock tasks={sections.tasks} isOnline={isOnline} onSelect={openItem} onAction={runTaskAction} />
-            </Reveal>
-
-            <Reveal sx={{ animationDelay: '0.22s' }}>
-              <VisitsBlock visits={sections.visits} next={isDemoMode() ? demoNextVisit : null} onSelect={openItem} />
-            </Reveal>
-          </>
-        )}
+        <Reveal sx={{ animationDelay: '0.3s' }}>
+          <BlocActivite activite={dashboard.activite} onSelect={(target) => navigate(target)} />
+        </Reveal>
       </Stack>
 
       <Snackbar open={actionError !== null} autoHideDuration={4000} onClose={dismissActionError}>

@@ -1,24 +1,18 @@
 import type { FunctionComponent } from 'react';
 
-import ArrowForwardRounded from '@mui/icons-material/ArrowForwardRounded';
 import CellTowerRounded from '@mui/icons-material/CellTowerRounded';
 import SatelliteAltRounded from '@mui/icons-material/SatelliteAltRounded';
 import { Box, Stack, Typography } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import dayjs from 'dayjs';
 
-import { formatRelative } from '../formatRelative';
-import type { HomeRecap, HomeWeather } from '../useHomeFeed';
-import { HealthGauge } from './HealthGauge';
+import { formatSurvenu } from '../home.echeance';
+import type { HomeWeather } from '../useHomeFeed';
 
 interface HomeHeaderProps {
   firstName: string;
   weather: HomeWeather | null;
-  recap: HomeRecap | null;
-  /** Comptes d'alertes tels que la section les affiche. */
-  alerts: { fresh: number; stale: number };
   onWeatherClick: (farmId: string) => void;
-  onRecapClick: () => void;
 }
 
 /**
@@ -36,7 +30,7 @@ const Header = styled(Box)({
   // commande (env + 12), et le plancher de 52 px protège les contextes qui
   // ignorent `env()` — navigateur de bureau, aperçu en cadre — où l'étiquette
   // passerait sinon sous l'encoche. Le plancher ne coûte rien sur mobile.
-  padding: 'max(calc(env(safe-area-inset-top, 0px) + 12px), 52px) 24px 20px',
+  padding: 'max(calc(env(safe-area-inset-top, 0px) + 12px), 48px) 24px 16px',
   // #0E7A67 est le vert le plus clair qui tienne : au-delà (#107F6B), même une
   // encre totalement opaque tombe sous les 4,5:1 du petit texte — mesuré, pas
   // estimé. Éclaircir jusque-là a coûté la mise à plat des opacités : sur ce
@@ -44,147 +38,197 @@ const Header = styled(Box)({
   // hiérarchie repose donc sur le corps, la graisse et la casse, jamais sur un
   // texte plus pâle — ce qui vaut mieux de toute façon en plein soleil.
   background: 'linear-gradient(155deg, #0E7A67 0%, #0C6E5C 50%, #0A6152 100%)',
-  borderBottomLeftRadius: 26,
-  borderBottomRightRadius: 26,
   color: '#EAF7F1',
-  boxShadow: '0 12px 28px rgba(0,40,32,0.24)',
+  // Bandeau à bord franc, sans arrondi ni ombre portée. La carte météo qu'il
+  // contient a déjà ses angles ; deux rayons emboîtés faisaient un cadre dans un
+  // cadre. Et une ombre de 28 px sous un bord droit donne un bloc qui flotte —
+  // ici le changement de couleur suffit à séparer l'en-tête du contenu.
 });
 
-/**
- * La mesure du kit : une pilule, parce qu'elle est vivante et datée — elle
- * change toute la journée, contrairement au reste de l'en-tête.
- */
-const KitPill = styled('button')({
-  all: 'unset',
-  boxSizing: 'border-box',
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 6,
-  maxWidth: '100%',
-  cursor: 'pointer',
-  padding: '6px 12px',
-  borderRadius: 999,
-  background: 'rgba(255,255,255,0.18)',
-  border: '1px solid rgba(234,247,241,0.45)',
-  fontFamily: "'Ubuntu', sans-serif",
-  fontSize: 12.5,
-  fontWeight: 600,
-  color: '#EAF7F1',
-  whiteSpace: 'nowrap',
-  '&:active': { background: 'rgba(255,255,255,0.22)' },
-  '&:focus-visible': { outline: '2px solid #93F4E0', outlineOffset: 2 },
-  '& svg': { fontSize: 16, flexShrink: 0 },
-});
+/** Première lettre en capitale — `dayjs` rend « ven. », l'étiquette veut « Ven. ». */
+const capitalize = (value: string): string => value.charAt(0).toUpperCase() + value.slice(1);
 
 /**
- * L'exploitation en chiffres : traitée comme l'identité du domaine — une
- * référence cadastrale en petites capitales — et non comme une entrée de menu.
- */
-const HoldingLine = styled('button')({
-  all: 'unset',
-  boxSizing: 'border-box',
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 8,
-  maxWidth: '100%',
-  cursor: 'pointer',
-  fontFamily: "'Ubuntu', sans-serif",
-  fontSize: 11,
-  fontWeight: 700,
-  letterSpacing: '0.1em',
-  textTransform: 'uppercase',
-  color: '#EAF7F1',
-  whiteSpace: 'nowrap',
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  '&:active': { color: '#FFFFFF' },
-  '&:focus-visible': { outline: '2px solid #93F4E0', outlineOffset: 3, borderRadius: 4 },
-  '& svg': { fontSize: 15, flexShrink: 0, opacity: 0.65 },
-});
-
-const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
-
-/** Fraîcheur compacte : « 4 min » plutôt que « il y a 4 min ». */
-const age = (iso: string): string => formatRelative(iso).replace(/^il y a /, '');
-
-/**
- * Ce que la puce dit après le nom du domaine.
+ * Ce que la carte annonce en tête — et qui doit être vrai.
  *
- * Avec un kit, c'est une mesure instantanée et on l'affiche comme telle. Sans
- * kit, il n'existe aucune mesure « maintenant » : on montre le contexte
- * climatique satellite, en nommant sa fenêtre — « 24° moy. 7 j » — plutôt que de
- * le maquiller en relevé. L'ancienne mention « météo régionale estimée »
- * annonçait une estimation que l'écran ne montrait jamais : aucune température,
- * aucune source, une promesse en l'air.
+ * Trois sources se succèdent, du plus fiable au plus lointain : le kit posé sur
+ * le domaine, l'estimation satellite qui prend le relais sans kit, et rien du
+ * tout. Chacune se nomme, parce qu'un chiffre de température ne vaut pas la
+ * même chose selon d'où il vient — et qu'un agriculteur sans kit doit
+ * comprendre d'où sort le nombre qu'il lit.
  */
-const kitReading = (weather: HomeWeather): string => {
+const sourceDe = (weather: HomeWeather): { sourcil: string; valeur: string; note: string } => {
   if (weather.hasKit) {
-    const parts = [
-      weather.tempC !== null ? `${Math.round(weather.tempC)}°` : null,
-      weather.online ? 'en direct' : 'hors ligne',
-      weather.observedAt ? age(weather.observedAt) : null,
-    ].filter(Boolean);
-    return parts.length ? ` · ${parts.join(' · ')}` : '';
+    return {
+      sourcil: weather.online ? 'Kit météo · en direct' : 'Kit météo · hors ligne',
+      valeur: weather.tempC !== null ? `${Math.round(weather.tempC)}°` : '—',
+      // `formatSurvenu` et non un relatif nu : un relevé de deux jours annoncé
+      // « il y a 2 j » ne dit pas de quel jour on parle, et c'est précisément la
+      // fraîcheur qu'on cherche à juger ici.
+      note: weather.observedAt ? `Relevé ${formatSurvenu(weather.observedAt).toLowerCase()}` : 'Dernier relevé inconnu',
+    };
   }
 
-  const avg = weather.climate?.avgTempC;
-  if (avg === null || avg === undefined) return ' · pas de kit sur ce domaine';
-  return ` · ${Math.round(avg)}° moy. 7 j`;
+  const moyenne = weather.climate?.avgTempC;
+  if (moyenne === null || moyenne === undefined) {
+    return { sourcil: 'Météo', valeur: '—', note: 'Pas de kit sur ce domaine' };
+  }
+  return {
+    sourcil: 'Estimation satellite',
+    valeur: `${Math.round(moyenne)}°`,
+    note: 'Moyenne des 7 derniers jours',
+  };
 };
 
-export const HomeHeader: FunctionComponent<HomeHeaderProps> = ({
-  firstName,
-  weather,
-  recap,
-  alerts,
-  onWeatherClick,
-  onRecapClick,
-}) => (
-  <Header>
+const Sourcil = styled(Typography)({
+  fontFamily: "'Ubuntu', sans-serif",
+  fontSize: '10px',
+  fontWeight: 700,
+  letterSpacing: '0.12em',
+  textTransform: 'uppercase',
+  color: '#4E635D',
+  lineHeight: 1.2,
+});
+
+/** Une mesure du kit : son nom au-dessus, sa valeur en dessous. */
+const Mesure: FunctionComponent<{ nom: string; valeur: string }> = ({ nom, valeur }) => (
+  <Box sx={{ minWidth: 0 }}>
+    <Sourcil sx={{ color: '#5C5F5E', letterSpacing: '0.1em' }}>{nom}</Sourcil>
     <Typography
-      sx={{
-        fontSize: 10.5,
-        fontWeight: 700,
-        letterSpacing: '0.13em',
-        textTransform: 'uppercase',
-        color: '#EAF7F1',
-        mb: 1.75,
-      }}
+      sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 14.5, fontWeight: 700, color: '#1A1C1B', mt: 0.25 }}
     >
-      {capitalize(dayjs().format('ddd D MMMM'))} · Bonjour, {firstName}
+      {valeur}
     </Typography>
-
-    {recap ? (
-      <HealthGauge health={recap.health} fresh={alerts.fresh} stale={alerts.stale} />
-    ) : (
-      <Typography sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 26, fontWeight: 700, lineHeight: 1 }}>
-        Votre exploitation
-      </Typography>
-    )}
-
-    <Stack spacing={1.25} alignItems="flex-start" sx={{ mt: 2.25 }}>
-      {weather && (
-        <KitPill type="button" onClick={() => onWeatherClick(weather.farmId)} sx={{ alignSelf: 'center' }}>
-          {/* Le pictogramme dit d'où vient le chiffre : relais pour le kit posé sur
-              le domaine, satellite pour le contexte climatique qui prend le relais
-              quand il n'y a pas de kit. */}
-          {weather.hasKit ? <CellTowerRounded /> : <SatelliteAltRounded />}
-          <Box component="span" sx={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {weather.farmName}
-          </Box>
-          <Box component="span" sx={{ flexShrink: 0, opacity: 0.88 }}>
-            {kitReading(weather)}
-          </Box>
-        </KitPill>
-      )}
-
-      {recap && (
-        <HoldingLine type="button" onClick={onRecapClick}>
-          {recap.domains} domaines · {recap.parcels} parcelles ·{' '}
-          {recap.areaHa.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} ha
-          <ArrowForwardRounded />
-        </HoldingLine>
-      )}
-    </Stack>
-  </Header>
+  </Box>
 );
+
+export const HomeHeader: FunctionComponent<HomeHeaderProps> = ({ firstName, weather, onWeatherClick }) => {
+  const source = weather ? sourceDe(weather) : null;
+  // Sans date de relevé, on ne sait pas de quand datent ces mesures : les
+  // afficher comme un état les fait passer pour actuelles. Le kit hors ligne
+  // dont la dernière remontée est inconnue n'a rien à annoncer.
+  const mesures = weather?.hasKit && weather.observedAt
+    ? [
+        weather.mesures.humidite !== null ? { nom: 'Humidité', valeur: `${Math.round(weather.mesures.humidite)} %` } : null,
+        weather.mesures.vent !== null ? { nom: 'Vent', valeur: `${Math.round(weather.mesures.vent)} km/h` } : null,
+        weather.mesures.pluie24h !== null
+          ? { nom: 'Pluie 24 h', valeur: `${weather.mesures.pluie24h.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} mm` }
+          : null,
+      ].filter((m): m is { nom: string; valeur: string } => m !== null)
+    : [];
+
+  return (
+    <Header>
+      <Typography
+        sx={{
+          fontSize: 10.5,
+          fontWeight: 700,
+          letterSpacing: '0.13em',
+          textTransform: 'uppercase',
+          color: '#EAF7F1',
+          mb: 1.5,
+        }}
+      >
+        {capitalize(dayjs().format('ddd D MMMM'))} · Bonjour, {firstName}
+      </Typography>
+
+      {weather && source && (
+        <Box
+          component="button"
+          type="button"
+          onClick={() => onWeatherClick(weather.farmId)}
+          sx={{
+            appearance: 'none',
+            font: 'inherit',
+            textAlign: 'left',
+            width: '100%',
+            display: 'block',
+            cursor: 'pointer',
+            border: 0,
+            p: 1.75,
+            borderRadius: '18px',
+            // Une carte claire, et non une puce translucide : sur ce vert, aucun
+            // gris ne tient les 4,5:1, si bien qu'une puce ne pouvait porter
+            // qu'une seule ligne de texte opaque. Le fond clair rend toute la
+            // hiérarchie typographique disponible — sourcil, lieu, mesures.
+            background: '#FFFFFF',
+            boxShadow: '0 8px 22px rgba(0,40,32,0.18)',
+            '&:active': { background: '#FAFDFB' },
+            '&:focus-visible': { outline: '2px solid #FFFFFF', outlineOffset: 3 },
+          }}
+        >
+          <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={1.5}>
+            <Box sx={{ minWidth: 0 }}>
+              <Stack direction="row" alignItems="center" spacing={0.6}>
+                {/* Le pictogramme dit d'où vient le chiffre : relais pour le kit
+                    posé sur le domaine, satellite pour le contexte climatique. */}
+                {weather.hasKit ? (
+                  <CellTowerRounded sx={{ fontSize: 13, color: '#4E635D' }} />
+                ) : (
+                  <SatelliteAltRounded sx={{ fontSize: 13, color: '#4E635D' }} />
+                )}
+                <Sourcil noWrap>{source.sourcil}</Sourcil>
+              </Stack>
+
+              <Typography
+                sx={{
+                  fontFamily: "'Ubuntu', sans-serif",
+                  fontSize: 17,
+                  fontWeight: 700,
+                  color: '#1A1C1B',
+                  lineHeight: 1.25,
+                  mt: 0.35,
+                }}
+                noWrap
+              >
+                {weather.farmName}
+              </Typography>
+              <Typography sx={{ fontSize: 12.5, color: '#5C5F5E', mt: 0.15 }} noWrap>
+                {source.note}
+              </Typography>
+            </Box>
+
+            <Typography
+              sx={{
+                flexShrink: 0,
+                fontFamily: "'Ubuntu', sans-serif",
+                fontSize: 30,
+                fontWeight: 700,
+                lineHeight: 1,
+                letterSpacing: '-0.02em',
+                color: '#016557',
+                fontVariantNumeric: 'tabular-nums',
+              }}
+            >
+              {source.valeur}
+              {/* L'unité ne suit que s'il y a une valeur : « —C » n'est pas une
+                  température manquante, c'est une faute de frappe. */}
+              {source.valeur !== '—' && (
+                <Box component="span" sx={{ fontSize: 13, fontWeight: 700, ml: '1px' }}>
+                  C
+                </Box>
+              )}
+            </Typography>
+          </Stack>
+
+          {mesures.length > 0 && (
+            <Stack
+              direction="row"
+              spacing={0}
+              sx={{
+                mt: 1.5,
+                pt: 1.25,
+                borderTop: '1px solid rgba(55,75,70,0.10)',
+                '& > *': { flex: 1 },
+              }}
+            >
+              {mesures.map((mesure) => (
+                <Mesure key={mesure.nom} nom={mesure.nom} valeur={mesure.valeur} />
+              ))}
+            </Stack>
+          )}
+        </Box>
+      )}
+    </Header>
+  );
+};

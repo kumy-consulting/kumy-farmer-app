@@ -20,6 +20,7 @@ const NOW = dayjs('2026-08-19T09:00:00.000Z');
 const names: NameIndex = {
   parcels: new Map([['p1', 'Kaporo 2']]),
   farms: new Map([['f1', 'Domaine Kaporo']]),
+  crops: new Map([['p1', 'Piment']]),
 };
 
 const task = (over: Partial<FieldTask> = {}): FieldTask => ({
@@ -61,6 +62,8 @@ describe('fieldTasksToFeed', () => {
     expect(item.status).toBe('planned');
     expect(item.icon).toBe('treatment');
     expect(item.target).toBe('/domaines/f1/parcelles/p1');
+    // Le périmètre complet, pour que la carte dise où agir sans ouvrir le détail.
+    expect(item.perimetre).toEqual({ domaine: 'Domaine Kaporo', parcelle: 'Kaporo 2', culture: 'Piment' });
   });
 
   it('retombe sur le nom du domaine quand la consigne porte sur le domaine entier', () => {
@@ -106,7 +109,8 @@ describe('fieldTasksToFeed', () => {
 
 describe('alertsToFeed', () => {
   it('porte la recommandation du backend comme conseil et normalise la sévérité', () => {
-    const [item] = alertsToFeed([
+    const [item] = alertsToFeed(
+      [
       {
         id: 'al1',
         farmId: 'f1',
@@ -123,7 +127,9 @@ describe('alertsToFeed', () => {
         recommendedAction: 'Reporter l’apport d’urée',
         createdAt: '2026-08-19T06:00:00.000Z',
       },
-    ]);
+      ],
+      names,
+    );
 
     expect(item.id).toBe('alert:al1');
     expect(item.kind).toBe('alert');
@@ -133,6 +139,8 @@ describe('alertsToFeed', () => {
     expect(item.severity).toBe('critical');
     expect(item.icon).toBe('rain');
     expect(item.target).toBe('/domaines/f1/parcelles/p1');
+    // Le périmètre complet, pour que la carte dise où agir sans ouvrir le détail.
+    expect(item.perimetre).toEqual({ domaine: 'Domaine Kaporo', parcelle: 'Kaporo 2', culture: 'Piment' });
   });
 
   it('ignore les alertes qui ne sont plus actives', () => {
@@ -149,7 +157,7 @@ describe('alertsToFeed', () => {
           message: '',
           createdAt: '2026-08-18T06:00:00.000Z',
         },
-      ]),
+      ], names),
     ).toEqual([]);
   });
 });
@@ -207,7 +215,9 @@ describe('itkToFeed', () => {
     expect(items[0].icon).toBe('window');
     expect(items[0].at).toBe('2026-08-20T00:00:00.000Z');
     expect(items[0].urgentNow).toBe(true);
-    expect(items[0].advice).toContain('Jusqu’au 20/08');
+    // La borne de fenêtre est passée dans l'échéance de la carte : le conseil ne
+    // garde que ce qu'il est seul à porter.
+    expect(items[0].advice).toBe('Urée 150 kg/ha');
     expect(items[0].target).toBe('/domaines/f1/parcelles/p1');
   });
 
@@ -262,7 +272,9 @@ describe('itkToFeed', () => {
 
     expect(items[0].kind).toBe('itk');
     expect(items[0].urgentNow).toBe(true);
-    expect(items[0].advice).toBe('Fenêtre dépassée');
+    // Le retard n'est plus répété dans le conseil : l'échéance le date, et le
+    // conseil garde ce qu'il est seul à dire.
+    expect(items[0].advice).not.toBe('Fenêtre dépassée');
   });
 
   it('écarte les tâches faites et les parcelles sans campagne active', () => {
@@ -338,7 +350,7 @@ describe('itkToFeed', () => {
     expect(beyondTwentyFour[0].kind).toBe('itk');
   });
 
-  it('promeut par type même sans intrant, conseil limité à la date', () => {
+  it('promeut par type même sans intrant, et laisse alors le conseil vide', () => {
     const items = itkToFeed(
       [
         itkSource([
@@ -349,7 +361,9 @@ describe('itkToFeed', () => {
     );
 
     expect(items[0].kind).toBe('window');
-    expect(items[0].advice).toBe('Jusqu’au 21/08');
+    // Sans intrant, il n'y a rien à conseiller : la carte n'affiche pas une
+    // ligne vide, et la date de fermeture est déjà dans son échéance.
+    expect(items[0].advice).toBeUndefined();
   });
 });
 
@@ -392,10 +406,10 @@ describe('visitsToFeed', () => {
     expect(items).toEqual([]);
   });
 
-  it('reste lisible quand le nom de l’encadreur est absent', () => {
+  it('reste lisible quand le nom du technicien est absent', () => {
     const items = visitsToFeed([task({ id: 'z', visitId: 'v2', createdByName: null })], names, NOW);
 
-    expect(items[0].title).toBe('Visite de votre encadreur');
+    expect(items[0].title).toBe('Visite de votre technicien');
   });
 
   it('accorde « consigne » et « faite » au singulier pour une visite à consigne unique', () => {

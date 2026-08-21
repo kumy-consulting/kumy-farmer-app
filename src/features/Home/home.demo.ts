@@ -35,6 +35,12 @@ export const demoNames: NameIndex = {
     ['p-piment-sud', 'Piment Sud'],
     ['p-riz-bas-fond', 'Riz Bas-fond'],
   ]),
+  crops: new Map([
+    ['p-ananas-nord', 'Ananas'],
+    ['p-kaporo-2', 'Piment'],
+    ['p-piment-sud', 'Piment'],
+    ['p-riz-bas-fond', 'Riz de bas-fond'],
+  ]),
 };
 
 /** Dernières mesures du kit du domaine — source unique de la puce ET des conditions. */
@@ -51,6 +57,7 @@ export const demoWeather: HomeWeather = {
   observedAt: iso(now().subtract(4, 'minute')),
   hasKit: true,
   climate: null,
+  mesures: { humidite: 74, vent: 11, pluie24h: 6.4 },
 };
 
 /**
@@ -248,6 +255,8 @@ const demoItkSources: ParcelItkSource[] = [
   {
     farmId: FARM_ID,
     parcelName: 'Riz Bas-fond',
+    farmName: 'Domaine de Kaporo',
+    culture: 'Riz de bas-fond',
     itk: {
       parcelId: 'p-riz-bas-fond',
       hasActiveCampaign: true,
@@ -291,6 +300,8 @@ const demoItkSources: ParcelItkSource[] = [
   {
     farmId: FARM_ID,
     parcelName: 'Ananas Nord',
+    farmName: 'Domaine de Kaporo',
+    culture: 'Ananas',
     itk: {
       parcelId: 'p-ananas-nord',
       hasActiveCampaign: true,

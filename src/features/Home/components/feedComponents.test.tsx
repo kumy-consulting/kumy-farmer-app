@@ -10,6 +10,7 @@ const item = (over: Partial<FeedItem> = {}): FeedItem => ({
   kind: 'task',
   title: 'Sarclage manuel',
   place: 'Kaporo 2',
+  perimetre: { domaine: 'Domaine de Kaporo', parcelle: 'Kaporo 2', culture: 'Piment' },
   icon: 'treatment',
   at: '2026-08-17T00:00:00',
   status: 'planned',
@@ -126,18 +127,20 @@ describe('HomeHeader', () => {
           observedAt: '2026-08-19T08:56:00.000Z',
           hasKit: true,
           climate: null,
+          mesures: { humidite: 74, vent: 11, pluie24h: 6.4 },
         }}
-        recap={null}
-        alerts={{ fresh: 0, stale: 0 }}
         onWeatherClick={vi.fn()}
-        onRecapClick={vi.fn()}
       />,
     );
 
     expect(screen.getByText(/Bonjour, Mamadou/)).toBeDefined();
     expect(screen.getByText(/Domaine Kaporo/)).toBeDefined();
     expect(screen.getByText(/29°/)).toBeDefined();
-    expect(screen.getByText(/en direct/)).toBeDefined();
+    expect(screen.getByText(/Kit météo · en direct/)).toBeDefined();
+    // Les mesures du kit accompagnent la température : elles sont ce qui décide
+    // si un traitement est possible aujourd'hui.
+    expect(screen.getByText('74 %')).toBeDefined();
+    expect(screen.getByText('11 km/h')).toBeDefined();
   });
 
   it('montre le contexte climatique satellite quand le domaine n’a pas de kit', () => {
@@ -152,18 +155,18 @@ describe('HomeHeader', () => {
           observedAt: null,
           hasKit: false,
           climate: { avgTempC: 24.4, asOfDate: '2026-08-19' },
+          mesures: { humidite: null, vent: null, pluie24h: null },
         }}
-        recap={null}
-        alerts={{ fresh: 0, stale: 0 }}
         onWeatherClick={vi.fn()}
-        onRecapClick={vi.fn()}
       />,
     );
 
     // La fenêtre est nommée : `avg7dC` est une moyenne 7 j, pas un relevé de
     // l'instant. L'ancienne mention « météo régionale estimée » promettait une
     // estimation que l'écran ne montrait jamais.
-    expect(screen.getByText(/24° moy\. 7 j/)).toBeDefined();
+    expect(screen.getByText(/24°/)).toBeDefined();
+    expect(screen.getByText('Estimation satellite')).toBeDefined();
+    expect(screen.getByText('Moyenne des 7 derniers jours')).toBeDefined();
     expect(screen.queryByText(/météo régionale estimée/)).toBeNull();
   });
 
@@ -179,15 +182,13 @@ describe('HomeHeader', () => {
           observedAt: null,
           hasKit: false,
           climate: null,
+          mesures: { humidite: null, vent: null, pluie24h: null },
         }}
-        recap={null}
-        alerts={{ fresh: 0, stale: 0 }}
         onWeatherClick={vi.fn()}
-        onRecapClick={vi.fn()}
       />,
     );
 
-    expect(screen.getByText(/pas de kit sur ce domaine/)).toBeDefined();
+    expect(screen.getByText('Pas de kit sur ce domaine')).toBeDefined();
   });
 
   it('reste affichable sans aucune donnée météo', () => {
@@ -195,69 +196,9 @@ describe('HomeHeader', () => {
       <HomeHeader
         firstName="Mamadou"
         weather={null}
-        recap={null}
-        alerts={{ fresh: 0, stale: 0 }}
         onWeatherClick={vi.fn()}
-        onRecapClick={vi.fn()}
       />,
     );
     expect(screen.getByText(/Bonjour, Mamadou/)).toBeDefined();
-  });
-});
-
-describe('HomeHeader — récap et jauge de santé', () => {
-  const recap = { domains: 3, parcels: 7, areaHa: 12.5, health: 'attention' as const };
-
-  it('affiche l’exploitation en chiffres et le verdict de santé avec son motif', () => {
-    const onRecapClick = vi.fn();
-    render(
-      <HomeHeader
-        firstName="Mamadou"
-        weather={null}
-        recap={recap}
-        alerts={{ fresh: 2, stale: 0 }}
-        onWeatherClick={vi.fn()}
-        onRecapClick={onRecapClick}
-      />,
-    );
-
-    expect(screen.getByText('3 domaines · 7 parcelles · 12,5 ha')).toBeDefined();
-    expect(screen.getByText('À surveiller')).toBeDefined();
-    expect(screen.getByText('2 alertes récentes')).toBeDefined();
-
-    fireEvent.click(screen.getByText('3 domaines · 7 parcelles · 12,5 ha'));
-    expect(onRecapClick).toHaveBeenCalled();
-  });
-
-  it('place le curseur sur l’échelle de vigilance : dernier palier quand c’est critique', () => {
-    const { rerender } = render(
-      <HomeHeader
-        firstName="Mamadou"
-        weather={null}
-        recap={{ ...recap, health: 'critical' }}
-        alerts={{ fresh: 1, stale: 2 }}
-        onWeatherClick={vi.fn()}
-        onRecapClick={vi.fn()}
-      />,
-    );
-
-    expect(screen.getByRole('meter').getAttribute('aria-valuenow')).toBe('3');
-    expect(screen.getByRole('meter').getAttribute('aria-valuetext')).toBe('Critique');
-    expect(screen.getByText('1 alerte récente, 2 anciennes')).toBeDefined();
-
-    rerender(
-      <HomeHeader
-        firstName="Mamadou"
-        weather={null}
-        recap={{ ...recap, health: 'good' }}
-        alerts={{ fresh: 0, stale: 0 }}
-        onWeatherClick={vi.fn()}
-        onRecapClick={vi.fn()}
-      />,
-    );
-
-    expect(screen.getByRole('meter').getAttribute('aria-valuenow')).toBe('1');
-    expect(screen.getByRole('meter').getAttribute('aria-valuetext')).toBe('Bonne');
-    expect(screen.getByText('aucune alerte récente')).toBeDefined();
   });
 });

@@ -23,7 +23,14 @@ const allItems = (sections: HomeFeedState['sections']) => [
 ];
 
 vi.mock('@/features/Domaines/domaines.api', () => ({
-  domainesApi: { alerts: vi.fn(), farms: vi.fn(), parcels: vi.fn(), summary: vi.fn(), liveStation: vi.fn() },
+  domainesApi: {
+    alerts: vi.fn(),
+    farms: vi.fn(),
+    parcels: vi.fn(),
+    summary: vi.fn(),
+    liveStation: vi.fn(),
+    visits: vi.fn(),
+  },
 }));
 vi.mock('@/features/Parcelle/parcelle.api', () => ({
   parcelleApi: { itkTasks: vi.fn(), climateContext: vi.fn() },
@@ -165,6 +172,8 @@ describe('useHomeFeed', () => {
     mockedDomaines.alerts.mockResolvedValue(alerts);
     mockedDomaines.farms.mockResolvedValue(farms);
     mockedDomaines.summary.mockResolvedValue(summary);
+    // Aucune visite programmée : l'état par défaut tant que personne n'en planifie.
+    mockedDomaines.visits.mockResolvedValue({ next: null, recent: [] });
     mockedDomaines.parcels.mockResolvedValue(parcels);
     mockedDomaines.liveStation.mockResolvedValue({
       station: liveStation({
@@ -221,6 +230,38 @@ describe('useHomeFeed', () => {
 
     await act(async () => {
       resolveParcels(parcels);
+    });
+  });
+
+  it('remonte la prochaine visite planifiée dans l’accompagnement', async () => {
+    mockedDomaines.visits.mockResolvedValue({
+      next: {
+        id: 'v9',
+        status: 'planned',
+        type: 'consultation',
+        category: null,
+        scheduledFor: '2026-08-27T08:00:00.000Z',
+        startedAt: null,
+        endedAt: null,
+        farmId: 'f1',
+        farmName: 'Domaine Kaporo',
+        technicianName: 'Dr Camara',
+        parcelIds: [],
+        note: 'Contrôle floraison ananas',
+      },
+      recent: [],
+    });
+
+    const { result } = renderHook(() => useHomeFeed());
+    await waitFor(() => expect(result.current.dashboard.accompagnement.prochaineVisite).not.toBeNull());
+
+    // Une visite à venir n'a encore produit aucune consigne : elle ne pouvait
+    // pas être reconstituée depuis le fil, seul l'endpoint la connaît.
+    expect(result.current.dashboard.accompagnement.prochaineVisite).toEqual({
+      date: '2026-08-27T08:00:00.000Z',
+      technicien: 'Dr Camara',
+      domaine: 'Domaine Kaporo',
+      objectif: 'Contrôle floraison ananas',
     });
   });
 
