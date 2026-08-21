@@ -2,6 +2,7 @@ import { apiClient } from '@/shared/api/client';
 
 import type {
   Domain,
+  FarmerVisits,
   DomainsSummary,
   FarmerAlert,
   FarmerFarmsVegetation,
@@ -38,6 +39,19 @@ export const domainesApi = {
   /** Totaux (parcelles, surface, NDVI, alertes) tous domaines confondus. */
   async summary(farmerId: string): Promise<DomainsSummary> {
     const { data } = await apiClient.get<DomainsSummary>(`/farmers/${farmerId}/dashboard`);
+    return data;
+  },
+
+  /**
+   * Visites du farmer : la prochaine planifiée et les dernières faites.
+   *
+   * Ouvert au rôle FARMER depuis l'ajout de `GET /farmers/:id/visits`. Jusque-là
+   * l'accueil devait reconstituer les visites depuis les consignes portant un
+   * `visitId`, ce qui ne donnait jamais la visite *à venir* — elle n'a encore
+   * produit aucune consigne.
+   */
+  async visits(farmerId: string): Promise<FarmerVisits> {
+    const { data } = await apiClient.get<FarmerVisits>(`/farmers/${farmerId}/visits`);
     return data;
   },
 

@@ -245,3 +245,30 @@ export interface FarmLiveStation {
     };
   } | null;
 }
+
+// ─── Accompagnement ───
+
+export type VisiteStatut = 'planned' | 'in_progress' | 'done' | 'missed' | 'cancelled';
+
+/** Visite telle que `GET /farmers/:id/visits` la renvoie au rôle FARMER. */
+export interface FarmerVisit {
+  id: string;
+  status: VisiteStatut;
+  type: 'consultation' | 'manager_directed';
+  category: string | null;
+  scheduledFor: string | null;
+  startedAt: string | null;
+  endedAt: string | null;
+  farmId: string | null;
+  farmName: string | null;
+  technicianName: string | null;
+  parcelIds: string[];
+  note: string | null;
+}
+
+/** Réponse `GET /farmers/:id/visits`. */
+export interface FarmerVisits {
+  /** La plus proche à venir. `null` = aucune programmée, ce qui est une information. */
+  next: FarmerVisit | null;
+  recent: FarmerVisit[];
+}
