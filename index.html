@@ -74,21 +74,24 @@
         stroke: #018675;
         stroke-width: 1;
       }
-      /* La parcelle. Immobile : la terre ne bouge pas, c'est le capteur qui passe. */
-      .ks-parcelle {
-        stroke-opacity: 0.24;
-        /* Tirets plus serrés que ceux du rayon : la parcelle est un bornage
-           relevé sur le terrain, le rayon une portée calculée. Deux objets
-           différents ne se dessinent pas du même trait. */
-        stroke-dasharray: 2 3.2;
-        stroke-linejoin: round;
-      }
-      /* Le rayon couvert par la station. Dérive très lentement. */
+      /*
+        Le rayon couvert par la station.
+
+        La trame DIVISE EXACTEMENT le tour, grâce à `pathLength="4800"` posé sur
+        le cercle : l'attribut renormalise la longueur du tracé, si bien que 48
+        tirets de période 100 tombent juste. Le calcul mathématique seul ne
+        suffit pas — les moteurs approchent le cercle par des courbes de Bézier
+        et `getTotalLength()` renvoie 589,665 au lieu de 590,619, ce qui laissait
+        une couture : un dernier tiret tronqué, toujours au même endroit.
+
+        Aucune rotation : avec 48 tirets identiques la figure se superpose à
+        elle-même tous les 7.5°, une rotation y serait invisible. Le seul
+        mouvement de l'écran est le balayage.
+      */
       .ks-couverture {
-        stroke-opacity: 0.3;
-        stroke-dasharray: 3 4.5;
-        transform-origin: 50% 50%;
-        animation: ksRotation 96s linear infinite;
+        stroke-opacity: 0.42;
+        stroke-width: 1.5;
+        stroke-dasharray: 57 43;
       }
       /*
         Le passage de la station. C'est LUI l'indicateur de chargement : il
@@ -96,8 +99,9 @@
         charge ». Une tête vive suivie d'une traînée, à vitesse constante — un
         balayage, pas un spinner.
 
-        Circonférence de r=94 : 590,6. Chaque paire de tirets la totalise, et la
-        traînée est décalée de -517 pour se placer DERRIÈRE la tête.
+        Longueurs exprimées dans les mêmes 4800 unités que le cercle. Chaque
+        paire tiret/espace totalise le tour, et la traînée est décalée de -4200
+        pour se placer DERRIÈRE la tête.
       */
       .ks-passage {
         transform-origin: 50% 50%;
@@ -105,17 +109,20 @@
       }
       .ks-trainee,
       .ks-tete {
-        stroke-width: 2.4;
         stroke-linecap: round;
       }
       .ks-trainee {
-        stroke-opacity: 0.16;
-        stroke-dasharray: 74 517;
-        stroke-dashoffset: -517;
+        stroke-opacity: 0.14;
+        stroke-width: 3.2;
+        stroke-dasharray: 700 4100;
+        stroke-dashoffset: -4100;
       }
+      /* Nettement plus marquée que la trame du cercle : celle-ci ayant été
+         épaissie, une tête discrète s'y serait confondue. */
       .ks-tete {
-        stroke-opacity: 0.62;
-        stroke-dasharray: 16 575;
+        stroke-opacity: 0.88;
+        stroke-width: 3.2;
+        stroke-dasharray: 175 4625;
       }
 
       /* Assoit le mot-symbole bleu ardoise sur le dégradé vert. */
@@ -224,11 +231,10 @@
     <div id="kumy-splash" role="status" aria-label="Chargement de Kumy">
       <div class="ks-stage">
         <svg class="ks-plan" viewBox="0 0 200 200" aria-hidden="true">
-          <polygon class="ks-parcelle" points="100,30 167,68 152,150 57,158 35,82" />
-          <circle class="ks-couverture" cx="100" cy="100" r="94" />
+          <circle class="ks-couverture" cx="100" cy="100" r="94" pathLength="4800" />
           <g class="ks-passage">
-            <circle class="ks-trainee" cx="100" cy="100" r="94" />
-            <circle class="ks-tete" cx="100" cy="100" r="94" />
+            <circle class="ks-trainee" cx="100" cy="100" r="94" pathLength="4800" />
+            <circle class="ks-tete" cx="100" cy="100" r="94" pathLength="4800" />
           </g>
         </svg>
         <span class="ks-halo" aria-hidden="true"></span>

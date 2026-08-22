@@ -74,7 +74,13 @@ await writeFile(
 // dessine l'icône sur `windowSplashScreenBackground`, cf. values/styles.xml).
 //
 // Reprend la composition de l'écran d'attente d'`index.html` — dégradé crème
-// vers sauge et anneaux pointillés — pour que les deux se succèdent sans rupture.
+// vers sauge, cercle pointillé, balayage — pour que les deux se succèdent sans
+// rupture.
+//
+// Les longueurs de tirets sont CALCULÉES ici, alors qu'`index.html` s'appuie sur
+// `pathLength`. Vérifié : librsvg, qui rend ce SVG, ignore cet attribut et lisait
+// les tirets en unités brutes — le cercle sortait quasi plein. Le facteur de
+// Bézier corrige l'écart entre 2·π·r et la longueur réellement parcourue.
 // Aucun texte : le rendu SVG dépendrait d'une police installée sur la machine de
 // build, ce qu'on ne peut pas garantir. Les mots vivent dans le HTML.
 const FOND_SPLASH = `<svg xmlns="http://www.w3.org/2000/svg" width="${SPLASH}" height="${SPLASH}" viewBox="0 0 200 200">
@@ -91,11 +97,12 @@ const FOND_SPLASH = `<svg xmlns="http://www.w3.org/2000/svg" width="${SPLASH}" h
     </radialGradient>
   </defs>
   <rect width="200" height="200" fill="url(#ciel)"/>
-  <g fill="none" stroke="#018675" stroke-width="0.6">
-    <polygon points="100.0,80.2 119.0,90.9 114.7,114.1 87.8,116.4 81.6,94.9" stroke-opacity="0.24" stroke-dasharray="0.6 0.95" stroke-linejoin="round"/>
-    <circle cx="100" cy="100" r="26.6" stroke-opacity="0.3" stroke-dasharray="0.85 1.3"/>
-    <circle cx="100" cy="100" r="26.6" stroke-opacity="0.62" stroke-width="0.7" stroke-linecap="round"
-            stroke-dasharray="4.5 162" transform="rotate(-60 100 100)"/>
+  <g fill="none" stroke="#018675">
+    <circle cx="100" cy="100" r="26.6" stroke-opacity="0.42"
+            stroke-width="0.424" stroke-dasharray="1.9815 1.4948"/>
+    <circle cx="100" cy="100" r="26.6" stroke-opacity="0.88" stroke-linecap="round"
+            stroke-width="0.906" stroke-dasharray="6.0835 160.7791"
+            transform="rotate(-60 100 100)"/>
   </g>
   <circle cx="100" cy="100" r="17.5" fill="url(#halo)"/>
 </svg>`;

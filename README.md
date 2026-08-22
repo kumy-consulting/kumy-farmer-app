@@ -71,12 +71,23 @@ dit quelque chose :
 
 | Forme | Sens | Mouvement |
 |---|---|---|
-| Polygone pointillé fin | la **parcelle**, bornage relevé au sol | aucun — la terre ne bouge pas |
-| Cercle pointillé large | le **rayon de couverture** de la station | dérive, 96 s |
+| Cercle pointillé | le **rayon de couverture** de la station | aucun |
 | Arc vif à traînée | le **passage** de la station | balaie, 4,2 s — c'est l'indicateur de chargement |
 
 Il n'y a donc pas de « trois points » : le passage tient ce rôle. Sous
 `prefers-reduced-motion`, l'arc respire au lieu de tourner.
+
+**Pourquoi `pathLength="4800"` sur les cercles.** Sans lui la trame ne se referme
+pas : les moteurs approchent le cercle par des courbes de Bézier, et
+`getTotalLength()` renvoie 589,665 là où 2·π·94 vaut 590,619 — assez pour tronquer
+le dernier tiret, toujours au même endroit. L'attribut renormalise la longueur du
+tracé : 48 tirets de période 100 tombent alors juste, quel que soit le moteur.
+
+Le cercle ne tourne pas, et ce n'est pas un oubli : avec 48 tirets identiques la
+figure se superpose à elle-même tous les 7,5°, une rotation y serait invisible.
+
+`scripts/build-native-assets.mjs` calcule ses tirets au lieu d'utiliser
+`pathLength` — vérifié, librsvg ignore cet attribut et rendait le cercle plein.
 
 Il est déclaré **hors de `#root`**, et ce n'est pas un détail : React efface le
 contenu de `#root` à son premier rendu et `App` ne rend rien tant que la session
