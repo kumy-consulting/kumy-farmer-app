@@ -23,77 +23,198 @@
   </head>
   <body style="margin: 0; background: #f7f4e9">
     <style>
-      #kumy-preboot {
+      /*
+        Écran d'attente Kumy. Volontairement HORS de #root : React efface le
+        contenu de #root à son premier rendu, et `App` ne rend rien tant que la
+        session n'est pas initialisée — un loader placé dedans laisserait donc un
+        écran vide pendant toute l'authentification.
+        Il est retiré explicitement par `dismissBootSplash()`.
+      */
+      #kumy-splash {
         position: fixed;
         inset: 0;
+        z-index: 9999;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
+        padding: 48px 28px;
         font-family: 'Ubuntu', -apple-system, BlinkMacSystemFont, sans-serif;
-        background: linear-gradient(180deg, #f7f4e9 0%, #edf3ea 35%, #d9e7db 68%, #bed4c0 100%);
-        z-index: 9999;
+        text-align: center;
+        background: linear-gradient(180deg, #f7f4e9 0%, #edf3ea 34%, #d9e7db 68%, #bed4c0 100%);
+        opacity: 1;
+        transition: opacity 420ms ease;
       }
-      #kumy-preboot img {
-        width: 132px;
+      #kumy-splash.is-gone {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      /* Scène : les anneaux et le logo partagent le même centre. */
+      .ks-stage {
+        position: relative;
+        display: grid;
+        place-items: center;
+        width: 320px;
+        height: 320px;
+        max-width: 78vw;
+        max-height: 78vw;
+      }
+      .ks-ring {
+        position: absolute;
+        border-radius: 50%;
+        border: 1.5px dashed rgba(1, 134, 117, 0.3);
+      }
+      /*
+        La signature de l'écran. Ces anneaux ne décorent pas : ils balaient,
+        comme le rayon de couverture d'une station autour d'une parcelle. Deux
+        vitesses opposées et très lentes — on doit le remarquer sans le regarder.
+      */
+      .ks-ring--outer {
+        width: 100%;
+        height: 100%;
+        animation: ksSweep 96s linear infinite;
+      }
+      .ks-ring--inner {
+        width: 76%;
+        height: 76%;
+        border-style: dashed;
+        border-color: rgba(1, 134, 117, 0.19);
+        animation: ksSweep 72s linear infinite reverse;
+      }
+      .ks-halo {
+        position: absolute;
+        width: 62%;
+        height: 62%;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0) 70%);
+      }
+      .ks-logo {
+        position: relative;
+        width: 170px;
+        /* 42vw : sur un écran de 360 px l'anneau intérieur ne fait plus que
+           213 px, et un logo à 48vw viendrait le toucher. */
+        max-width: 42vw;
         height: auto;
-        filter: drop-shadow(0 12px 28px rgba(1, 76, 65, 0.22));
-        animation: kumyFloat 5s ease-in-out infinite;
       }
-      #kumy-preboot .tag {
-        margin-top: 22px;
-        font-size: 11px;
+
+      .ks-eyebrow {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 32px 0 0;
+        font-size: 10.5px;
         font-weight: 700;
-        letter-spacing: 0.38em;
+        letter-spacing: 0.28em;
         text-transform: uppercase;
-        color: #014c41;
+        color: #018675;
       }
-      #kumy-preboot .dots {
+      .ks-eyebrow::before,
+      .ks-eyebrow::after {
+        content: '';
+        width: 18px;
+        height: 1px;
+        background: rgba(1, 134, 117, 0.42);
+      }
+
+      /* Seule italique de l'app : elle signe cette phrase et rien d'autre. */
+      .ks-tagline {
+        margin: 14px 0 0;
+        font-size: 13.5px;
+        font-weight: 300;
+        font-style: italic;
+        line-height: 1.6;
+        color: #4a6360;
+      }
+
+      .ks-dots {
         display: flex;
         gap: 7px;
-        margin-top: 18px;
+        margin-top: 26px;
       }
-      #kumy-preboot .dots i {
-        width: 9px;
-        height: 9px;
+      .ks-dots i {
+        width: 7px;
+        height: 7px;
         border-radius: 50%;
-        background: linear-gradient(180deg, #2fa995 0%, #018675 55%, #014c41 100%);
-        animation: kumyDot 1.4s ease-in-out infinite;
+        background: linear-gradient(180deg, #41b782 0%, #018675 60%, #014c41 100%);
+        animation: ksPulse 1.4s ease-in-out infinite;
       }
-      #kumy-preboot .dots i:nth-child(2) {
+      .ks-dots i:nth-child(2) {
         animation-delay: 0.18s;
       }
-      #kumy-preboot .dots i:nth-child(3) {
+      .ks-dots i:nth-child(3) {
         animation-delay: 0.36s;
       }
-      @keyframes kumyFloat {
-        0%,
-        100% {
-          transform: translateY(0);
-        }
-        50% {
-          transform: translateY(-4px);
+
+      /* Ancrée en bas pour ne pas décentrer le bloc principal. */
+      .ks-mark {
+        position: absolute;
+        bottom: calc(26px + env(safe-area-inset-bottom, 0px));
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0;
+        padding: 7px 16px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.5);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: #35495e;
+      }
+      .ks-mark::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #41b782;
+      }
+
+      @keyframes ksSweep {
+        to {
+          transform: rotate(360deg);
         }
       }
-      @keyframes kumyDot {
+      @keyframes ksPulse {
         0%,
         100% {
           transform: translateY(0) scale(1);
           opacity: 0.35;
         }
         50% {
-          transform: translateY(-6px) scale(1.15);
+          transform: translateY(-5px) scale(1.14);
           opacity: 1;
         }
       }
+      @media (prefers-reduced-motion: reduce) {
+        .ks-ring,
+        .ks-dots i {
+          animation: none;
+        }
+        #kumy-splash {
+          transition: none;
+        }
+      }
     </style>
-    <div id="root">
-      <div id="kumy-preboot">
-        <img src="/logo-kumy.svg" alt="Kumy" />
-        <span class="tag">Mon exploitation</span>
-        <div class="dots"><i></i><i></i><i></i></div>
+
+    <div id="kumy-splash" role="status" aria-label="Chargement de Kumy">
+      <div class="ks-stage">
+        <span class="ks-ring ks-ring--outer" aria-hidden="true"></span>
+        <span class="ks-ring ks-ring--inner" aria-hidden="true"></span>
+        <span class="ks-halo" aria-hidden="true"></span>
+        <img class="ks-logo" src="/logo-kumy.svg" alt="Kumy" />
       </div>
+
+      <p class="ks-eyebrow">Mon exploitation</p>
+      <p class="ks-tagline">L'agriculture de précision,<br />au rythme de vos terres.</p>
+
+      <div class="ks-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+
+      <p class="ks-mark">Suite AgriPilot · Guinée</p>
     </div>
+
+    <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

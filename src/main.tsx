@@ -16,13 +16,15 @@ import 'dayjs/locale/fr';
 // téléchargés (unicode-range), mais en natif TOUT est embarqué dans l'APK —
 // cyrillique et grec compris. L'app est monolingue française.
 import '@fontsource/ubuntu/latin-300.css';
+// La seule italique de l'app : l'accroche de l'écran d'attente.
+import '@fontsource/ubuntu/latin-300-italic.css';
 import '@fontsource/ubuntu/latin-400.css';
 import '@fontsource/ubuntu/latin-500.css';
 import '@fontsource/ubuntu/latin-700.css';
 
 import './index.css';
 import { initDatabase } from '@/shared/db/database';
-import { initNativeShell } from '@/shared/services/nativeShell';
+import { hideNativeSplash, initNativeShell } from '@/shared/services/nativeShell';
 import { requestPersistentStorage } from '@/shared/services/persistence';
 import { theme } from '@/theme/theme';
 
@@ -52,6 +54,11 @@ initDatabase().catch(console.error);
 
 // Rend IndexedDB persistant : protège les files d'écriture offline de l'éviction OS.
 void requestPersistentStorage();
+
+// Le splash natif ne couvre plus que le démarrage du WebView : dès que la page
+// a peint, l'écran d'attente d'`index.html` prend le relais et reste jusqu'à ce
+// que la session soit prête. Double rAF = première image effectivement rendue.
+requestAnimationFrame(() => requestAnimationFrame(() => void hideNativeSplash()));
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

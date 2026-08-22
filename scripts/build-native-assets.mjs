@@ -70,15 +70,45 @@ await writeFile(
     .toBuffer(),
 );
 
-// Splash : le verrou complet, à 30 % de la largeur. Le canevas est carré et très
-// grand car @capacitor/assets y recadre ensuite chaque densité, portrait comme
-// paysage — un logo plus large déborderait en paysage.
-const splash = await centrer({
-  source: 'public/logo-kumy.svg',
-  largeurLogo: Math.round(SPLASH * 0.3),
-  canevas: SPLASH,
-  fond: CREME,
-});
+// Splash des versions ANTÉRIEURES à Android 12 (Android 12+ ignore ce fichier et
+// dessine l'icône sur `windowSplashScreenBackground`, cf. values/styles.xml).
+//
+// Reprend la composition de l'écran d'attente d'`index.html` — dégradé crème
+// vers sauge et anneaux pointillés — pour que les deux se succèdent sans rupture.
+// Aucun texte : le rendu SVG dépendrait d'une police installée sur la machine de
+// build, ce qu'on ne peut pas garantir. Les mots vivent dans le HTML.
+const FOND_SPLASH = `<svg xmlns="http://www.w3.org/2000/svg" width="${SPLASH}" height="${SPLASH}">
+  <defs>
+    <linearGradient id="ciel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F7F4E9"/>
+      <stop offset="34%" stop-color="#EDF3EA"/>
+      <stop offset="68%" stop-color="#D9E7DB"/>
+      <stop offset="100%" stop-color="#BED4C0"/>
+    </linearGradient>
+    <radialGradient id="halo">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.72"/>
+      <stop offset="70%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="${SPLASH}" height="${SPLASH}" fill="url(#ciel)"/>
+  <g fill="none" stroke="#018675" stroke-linecap="round">
+    <circle cx="${SPLASH / 2}" cy="${SPLASH / 2}" r="${SPLASH * 0.17}"
+            stroke-opacity="0.3" stroke-width="8" stroke-dasharray="14 20"/>
+    <circle cx="${SPLASH / 2}" cy="${SPLASH / 2}" r="${SPLASH * 0.13}"
+            stroke-opacity="0.19" stroke-width="8" stroke-dasharray="14 20"/>
+  </g>
+  <circle cx="${SPLASH / 2}" cy="${SPLASH / 2}" r="${SPLASH * 0.105}" fill="url(#halo)"/>
+</svg>`;
+
+const logoSplash = await sharp('public/logo-kumy.svg', { density: 600 })
+  .resize({ width: Math.round(SPLASH * 0.19), fit: 'inside' })
+  .png()
+  .toBuffer();
+
+const splash = await sharp(Buffer.from(FOND_SPLASH))
+  .composite([{ input: logoSplash, gravity: 'centre' }])
+  .png()
+  .toBuffer();
 await writeFile('assets/splash.png', splash);
 // L'app est en thème clair uniquement (`color-scheme: light`) : le splash sombre
 // reprend donc le même visuel, pour ne pas offrir un fond que rien ne prolonge.

@@ -63,6 +63,22 @@ npm run assets:native   # écrit assets/*, public/icon-*, puis génère android/
 
 Le script `scripts/build-native-assets.mjs` explique chaque taille et chaque marge.
 
+### L'écran d'attente
+
+`index.html` porte un écran d'attente complet (`#kumy-splash`) : dégradé crème
+vers sauge, anneaux pointillés en balayage lent, verrou Kumy, accroche, points
+de progression, pastille de provenance.
+
+Il est déclaré **hors de `#root`**, et ce n'est pas un détail : React efface le
+contenu de `#root` à son premier rendu et `App` ne rend rien tant que la session
+n'est pas initialisée. Un loader placé dedans laisserait un écran vide pendant
+toute l'authentification — exactement ce qu'il doit couvrir.
+
+Enchaînement : splash système (icône sur crème) → `hideNativeSplash()` dès la
+première image peinte → `#kumy-splash` jusqu'à session prête → app.
+`dismissBootSplash()` le retire du DOM après le fondu, sinon il intercepterait
+les gestes.
+
 ### L'écran de démarrage Android 12+ n'utilise pas `splash.png`
 
 L'API SplashScreen dessine l'**icône de l'app** sur `windowSplashScreenBackground` ;
