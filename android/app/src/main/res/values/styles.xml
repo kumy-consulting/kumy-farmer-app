@@ -50,6 +50,22 @@
 
 
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
-        <item name="android:background">@drawable/splash</item>
+        <!--
+            Android 12+ n'affiche PAS @drawable/splash : l'API SplashScreen dessine
+            l'icone de l'app sur `windowSplashScreenBackground`. Le
+            `android:background` que Capacitor genere ici est donc inerte, ce qui
+            laissait le fond gris #EFEFF4 par defaut (constate sur emulateur).
+
+            Les splash.png generes dans drawable-* restent produits par
+            @capacitor/assets et servent aux versions anterieures a Android 12.
+        -->
+        <item name="windowSplashScreenBackground">@color/kumySplash</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
+
+        <!-- Le splash est creme plein ecran : il lui faut des icones systeme
+             SOMBRES, a l'inverse de l'app dont la barre est verte. -->
+        <item name="android:statusBarColor">@color/kumySplash</item>
+        <item name="android:windowLightStatusBar">true</item>
     </style>
 </resources>

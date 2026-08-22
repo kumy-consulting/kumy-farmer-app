@@ -20,6 +20,7 @@
     "test:watch": "vitest",
     "prepare": "husky",
     "cap:sync": "npm run build && cap sync",
+    "assets:native": "node scripts/build-native-assets.mjs && capacitor-assets generate --android",
     "cap:add:android": "cap add android",
     "cap:add:ios": "cap add ios"
   },

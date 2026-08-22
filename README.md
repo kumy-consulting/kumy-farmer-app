@@ -47,15 +47,29 @@ gitignoré. Sans `.env` local, l'APK retombe silencieusement sur l'URL Cloud Run
 
 ### Icônes et splash
 
-Générés depuis `assets/logo.svg` — variante **sans le cercle externe** de
-`public/logo-kumy.svg`, dont le masque d'icône adaptative Android rognerait le
-contour. Après modification du logo :
+Deux visuels, pas un seul :
+
+| Contexte | Source | Pourquoi |
+|---|---|---|
+| Carré — favicon, icône PWA, icône Android, médaillon d'accueil | `public/logo-mark.svg` (la pousse seule) | Le verrou complet est large (340×250) : réduit au carré puis rogné par le masque adaptatif, le mot « kumy » devient illisible |
+| Large — splash, loader d'`index.html` | `public/logo-kumy.svg` (verrou complet) | La place existe, et la marque s'identifie |
+
+`public/logo-mark.svg` est **extrait** de `logo-kumy.svg` : même tracé, même vert.
+Après modification du logo, régénérer les deux familles :
 
 ```bash
-npx capacitor-assets generate --android --logoSplashScale 0.32 \
-  --iconBackgroundColor '#F7F4E9' --iconBackgroundColorDark '#F7F4E9' \
-  --splashBackgroundColor '#F7F4E9' --splashBackgroundColorDark '#F7F4E9'
+npm run assets:native   # écrit assets/*, public/icon-*, puis génère android/
 ```
+
+Le script `scripts/build-native-assets.mjs` explique chaque taille et chaque marge.
+
+### L'écran de démarrage Android 12+ n'utilise pas `splash.png`
+
+L'API SplashScreen dessine l'**icône de l'app** sur `windowSplashScreenBackground` ;
+le `android:background` que génère Capacitor y est inerte, ce qui laissait un fond
+gris. Les valeurs de marque sont donc dans `values/styles.xml`
+(`AppTheme.NoActionBarLaunch`). Les `drawable-*/splash.png` restent produits pour
+les versions antérieures à Android 12.
 
 ### Ce qui vit où
 

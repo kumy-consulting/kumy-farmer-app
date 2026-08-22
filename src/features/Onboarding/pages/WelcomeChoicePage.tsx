@@ -19,7 +19,7 @@ export function WelcomeChoicePage() {
   return (
     <OnboardingLayout>
       <Medallion>
-        <Box component="img" src="/logo-kumy.svg" alt="Kumy" sx={{ width: 48, height: 48 }} />
+        <Box component="img" src="/logo-mark.svg" alt="Kumy" sx={{ width: 48, height: 48 }} />
       </Medallion>
 
       <Eyebrow>Bienvenue</Eyebrow>

@@ -65,9 +65,13 @@ export default defineConfig({
         start_url: '/',
         scope: '/',
         categories: ['productivity', 'utilities'],
+        // PNG et non SVG : à l'installation, Android et iOS réclament des
+        // tailles connues. L'entrée `maskable` est une image distincte, plus
+        // aérée — la zone sûre du masque est le disque central de 80 %.
         icons: [
-          { src: '/logo-kumy.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
-          { src: '/logo-kumy.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'maskable' },
+          { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: '/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       workbox: {
