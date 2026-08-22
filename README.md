@@ -27,13 +27,52 @@ npm run format:check # Prettier --check
 
 ## Application native (Capacitor)
 
-Les dossiers natifs ne sont PAS générés à l'init. Pour builder natif :
+`android/` **est versionné** : on y personnalise le manifeste, le thème et les
+icônes. Il n'y a donc rien à générer, seulement à synchroniser.
 
 ```bash
-npm run cap:add:android   # nécessite Android SDK
-npm run cap:add:ios       # nécessite macOS + Xcode + CocoaPods
-npm run cap:sync          # build web + sync vers les plateformes ajoutées
+npm run cap:sync                      # build web + copie vers android/
+cd android && ./gradlew assembleDebug # APK : app/build/outputs/apk/debug/
 ```
+
+`ios/` n'est pas généré : hors périmètre tant qu'aucune machine du projet n'a
+Xcode. Voir `docs/superpowers/specs/2026-08-22-capacitor-android-natif-design.md`.
+
+### ⚠️ L'URL de l'API est figée au build
+
+Vite inline les variables `VITE_*` **au moment du build**, et `.env` est
+gitignoré. Sans `.env` local, l'APK retombe silencieusement sur l'URL Cloud Run
+**dev** codée en dur dans `src/shared/api/client.ts`. Renseigne
+`VITE_API_URL_NATIVE` avant tout build destiné à la production.
+
+### Icônes et splash
+
+Générés depuis `assets/logo.svg` — variante **sans le cercle externe** de
+`public/logo-kumy.svg`, dont le masque d'icône adaptative Android rognerait le
+contour. Après modification du logo :
+
+```bash
+npx capacitor-assets generate --android --logoSplashScale 0.32 \
+  --iconBackgroundColor '#F7F4E9' --iconBackgroundColorDark '#F7F4E9' \
+  --splashBackgroundColor '#F7F4E9' --splashBackgroundColorDark '#F7F4E9'
+```
+
+### Ce qui vit où
+
+- **`src/shared/services/nativeShell.ts`** — seul module autorisé à parler aux
+  plugins de coquille (clavier, splash, bouton retour). No-op sur web.
+- **La barre de statut ne s'y pilote PAS.** Sa couleur est déclarée dans
+  `android/app/src/main/res/values/styles.xml` : `BridgeActivity` réapplique le
+  thème en fin d'animation de démarrage et écraserait tout appel venu du JS.
+- **Le thème désactive l'edge-to-edge** imposé par Android 15
+  (`windowOptOutEdgeToEdgeEnforcement`). À reprendre au passage SDK 36, où
+  l'attribut est déprécié : il faudra alors gérer `env(safe-area-inset-*)`.
+
+### Régression connue : cartes hors-ligne
+
+En natif il n'y a pas de service worker, donc le cache Workbox des tuiles
+satellite (30 jours) ne s'applique plus. Les écrans carto se dégradent hors
+connexion. Chantier à part, explicitement hors périmètre de la conversion.
 
 ## Qualité de code
 
