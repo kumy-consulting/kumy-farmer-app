@@ -74,8 +74,8 @@ await writeFile(
 // dessine l'icône sur `windowSplashScreenBackground`, cf. values/styles.xml).
 //
 // Reprend la composition de l'écran d'attente d'`index.html` — dégradé crème
-// vers sauge, cercle pointillé, balayage — pour que les deux se succèdent sans
-// rupture.
+// vers sauge, couronne de points, marqueurs — pour que les deux se succèdent
+// sans rupture. Les marqueurs sont figés là où leur orbite les aurait placés.
 //
 // Les longueurs de tirets sont CALCULÉES ici, alors qu'`index.html` s'appuie sur
 // `pathLength`. Vérifié : librsvg, qui rend ce SVG, ignore cet attribut et lisait
@@ -95,14 +95,24 @@ const FOND_SPLASH = `<svg xmlns="http://www.w3.org/2000/svg" width="${SPLASH}" h
       <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.72"/>
       <stop offset="70%" stop-color="#FFFFFF" stop-opacity="0"/>
     </radialGradient>
+    <radialGradient id="auraReleve">
+      <stop offset="34%" stop-color="#018675" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#018675" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="auraVigilance">
+      <stop offset="34%" stop-color="#C68A1A" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#C68A1A" stop-opacity="0"/>
+    </radialGradient>
   </defs>
   <rect width="200" height="200" fill="url(#ciel)"/>
-  <g fill="none" stroke="#018675">
-    <circle cx="100" cy="100" r="26.6" stroke-opacity="0.42"
-            stroke-width="0.424" stroke-dasharray="1.9815 1.4948"/>
-    <circle cx="100" cy="100" r="26.6" stroke-opacity="0.88" stroke-linecap="round"
-            stroke-width="0.906" stroke-dasharray="6.0835 160.7791"
-            transform="rotate(-60 100 100)"/>
+  <circle cx="100" cy="100" r="26.6" fill="none" stroke="#018675" stroke-opacity="0.48"
+          stroke-width="0.651" stroke-linecap="round"
+          stroke-dasharray="0.0040 2.0818"/>
+  <g>
+    <circle cx="123.91" cy="88.34" r="2.688" fill="url(#auraReleve)"/>
+    <circle cx="123.91" cy="88.34" r="0.962" fill="#018675"/>
+    <circle cx="92.22" cy="125.44" r="2.405" fill="url(#auraVigilance)"/>
+    <circle cx="92.22" cy="125.44" r="0.792" fill="#C68A1A"/>
   </g>
   <circle cx="100" cy="100" r="17.5" fill="url(#halo)"/>
 </svg>`;

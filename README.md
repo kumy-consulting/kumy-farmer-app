@@ -71,11 +71,18 @@ dit quelque chose :
 
 | Forme | Sens | Mouvement |
 |---|---|---|
-| Cercle pointillé | le **rayon de couverture** de la station | aucun |
-| Arc vif à traînée | le **passage** de la station | balaie, 4,2 s — c'est l'indicateur de chargement |
+| Couronne de 80 points | le **rayon de couverture** de la station | aucun |
+| Marqueur teal (`primary/50`) | un **relevé** | orbite en 9 s |
+| Marqueur ambre (`warning/50`) | une **vigilance** | orbite en 13,5 s |
 
-Il n'y a donc pas de « trois points » : le passage tient ce rôle. Sous
-`prefers-reduced-motion`, l'arc respire au lieu de tourner.
+Il n'y a donc pas de « trois points » de chargement : les marqueurs tiennent ce
+rôle. Leurs couleurs sont les tokens que le tableau de bord emploie déjà, et
+leurs périodes diffèrent à dessein — ils dérivent, se croisent et se séparent,
+jamais en formation figée.
+
+À l'ouverture, une cascade : la couronne éclôt, les marqueurs paraissent, puis
+le logo et le texte montent. Sous `prefers-reduced-motion`, tout est figé et les
+marqueurs sont posés à 64° et 197° pour ne pas se superposer.
 
 **Pourquoi `pathLength="4800"` sur les cercles.** Sans lui la trame ne se referme
 pas : les moteurs approchent le cercle par des courbes de Bézier, et

@@ -61,10 +61,15 @@
       }
 
       /*
-        La signature de l'écran, et le vocabulaire même de l'app : une PARCELLE
-        sous le RAYON DE COUVERTURE d'une station, que l'agriculteur retrouve
-        tracés sur ses cartes. Chaque forme dit quelque chose — aucune n'est là
-        pour décorer.
+        La signature de l'écran : le RAYON DE COUVERTURE d'une station, et deux
+        marqueurs qui l'orbitent.
+
+        Leurs couleurs ne sont pas décoratives — ce sont les deux tokens que le
+        tableau de bord emploie déjà : `primary/50` pour un relevé, `warning/50`
+        pour une vigilance. Leurs périodes diffèrent (9 s et 13,5 s), donc ils
+        dérivent, se croisent et se séparent : jamais de formation figée.
+
+        Ce sont eux l'indicateur de chargement. Il n'y a pas d'autre mouvement.
       */
       .ks-plan {
         position: absolute;
@@ -72,57 +77,56 @@
         height: 100%;
         fill: none;
         stroke: #018675;
-        stroke-width: 1;
+        animation: ksEclosion 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
       }
+
       /*
-        Le rayon couvert par la station.
+        80 points parfaitement répartis. `pathLength="4800"` renormalise la
+        longueur du tracé pour que 80 périodes de 60 tombent juste : sans lui la
+        trame ne se referme pas, les moteurs approchant le cercle par des courbes
+        de Bézier (`getTotalLength()` renvoie 589,665 pour un 2·π·94 de 590,619).
 
-        La trame DIVISE EXACTEMENT le tour, grâce à `pathLength="4800"` posé sur
-        le cercle : l'attribut renormalise la longueur du tracé, si bien que 48
-        tirets de période 100 tombent juste. Le calcul mathématique seul ne
-        suffit pas — les moteurs approchent le cercle par des courbes de Bézier
-        et `getTotalLength()` renvoie 589,665 au lieu de 590,619, ce qui laissait
-        une couture : un dernier tiret tronqué, toujours au même endroit.
-
-        Aucune rotation : avec 48 tirets identiques la figure se superpose à
-        elle-même tous les 7.5°, une rotation y serait invisible. Le seul
-        mouvement de l'écran est le balayage.
+        Un tiret quasi nul avec `stroke-linecap: round` donne un point rond dont
+        le diamètre vaut l'épaisseur du trait.
       */
-      .ks-couverture {
-        stroke-opacity: 0.42;
-        stroke-width: 1.5;
-        stroke-dasharray: 57 43;
-      }
-      /*
-        Le passage de la station. C'est LUI l'indicateur de chargement : il
-        remplace les trois points, et dit « relevé en cours » plutôt que « ça
-        charge ». Une tête vive suivie d'une traînée, à vitesse constante — un
-        balayage, pas un spinner.
-
-        Longueurs exprimées dans les mêmes 4800 unités que le cercle. Chaque
-        paire tiret/espace totalise le tour, et la traînée est décalée de -4200
-        pour se placer DERRIÈRE la tête.
-      */
-      .ks-passage {
-        transform-origin: 50% 50%;
-        animation: ksRotation 4.2s linear infinite;
-      }
-      .ks-trainee,
-      .ks-tete {
+      .ks-couronne {
+        stroke-opacity: 0.48;
+        stroke-width: 2.3;
         stroke-linecap: round;
+        stroke-dasharray: 0.1 59.9;
       }
-      .ks-trainee {
-        stroke-opacity: 0.14;
-        stroke-width: 3.2;
-        stroke-dasharray: 700 4100;
-        stroke-dashoffset: -4100;
+
+      .ks-orbite {
+        transform-origin: 50% 50%;
+        animation: ksRotation 9s linear infinite;
       }
-      /* Nettement plus marquée que la trame du cercle : celle-ci ayant été
-         épaissie, une tête discrète s'y serait confondue. */
-      .ks-tete {
-        stroke-opacity: 0.88;
-        stroke-width: 3.2;
-        stroke-dasharray: 175 4625;
+      /* Décalages négatifs : les marqueurs entrent déjà en place sur leur
+         course, au lieu de démarrer tous deux à midi. */
+      .ks-orbite--releve {
+        animation-delay: -1.6s;
+      }
+      .ks-orbite--vigilance {
+        animation-duration: 13.5s;
+        animation-delay: -7.4s;
+      }
+      .ks-marqueur,
+      .ks-aura {
+        stroke: none;
+        animation: ksParaitre 700ms ease-out 320ms both;
+      }
+      .ks-orbite--releve .ks-marqueur {
+        fill: #018675;
+      }
+      /* Dégradé et non aplat : un disque à bord franc se lisait comme une
+         pastille grise posée là, au lieu d'un halo de signal. */
+      .ks-orbite--releve .ks-aura {
+        fill: url(#ksAuraReleve);
+      }
+      .ks-orbite--vigilance .ks-marqueur {
+        fill: #c68a1a;
+      }
+      .ks-orbite--vigilance .ks-aura {
+        fill: url(#ksAuraVigilance);
       }
 
       /* Assoit le mot-symbole bleu ardoise sur le dégradé vert. */
@@ -132,9 +136,11 @@
         height: 62%;
         border-radius: 50%;
         background: radial-gradient(circle, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0) 70%);
+        animation: ksParaitre 900ms ease-out 120ms both;
       }
       .ks-logo {
         position: relative;
+        animation: ksMonte 800ms cubic-bezier(0.22, 1, 0.36, 1) 140ms both;
         width: 158px;
         /* 40vw : le logo doit rester DANS la parcelle avec de l'air autour.
            Au-delà, il en touche les bords sur un écran de 360 px. */
@@ -152,6 +158,7 @@
         letter-spacing: 0.28em;
         text-transform: uppercase;
         color: #018675;
+        animation: ksMonte 700ms cubic-bezier(0.22, 1, 0.36, 1) 300ms both;
       }
       .ks-eyebrow::before,
       .ks-eyebrow::after {
@@ -169,6 +176,7 @@
         font-style: italic;
         line-height: 1.6;
         color: #4a6360;
+        animation: ksMonte 700ms cubic-bezier(0.22, 1, 0.36, 1) 420ms both;
       }
 
       /* Ancrée en bas pour ne pas décentrer le bloc principal. */
@@ -187,6 +195,7 @@
         letter-spacing: 0.16em;
         text-transform: uppercase;
         color: #35495e;
+        animation: ksMonte 700ms cubic-bezier(0.22, 1, 0.36, 1) 560ms both;
       }
       .ks-mark::before {
         content: '';
@@ -201,26 +210,60 @@
           transform: rotate(360deg);
         }
       }
-      /* Sans rotation, le passage doit rester lisible comme signe d'activité :
-         il respire au lieu de tourner. */
-      @keyframes ksRespire {
-        0%,
-        100% {
-          stroke-opacity: 0.18;
+
+      /*
+        Séquence d'arrivée. Un écran d'attente EST un moment d'arrivée : la
+        couronne éclôt, les marqueurs paraissent, puis le logo et le texte
+        montent en cascade. Rien ne bouge ensuite, hormis les orbites.
+      */
+      @keyframes ksEclosion {
+        from {
+          opacity: 0;
+          transform: scale(0.94);
         }
-        50% {
-          stroke-opacity: 0.62;
+        to {
+          opacity: 1;
+          transform: none;
         }
       }
+      @keyframes ksParaitre {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes ksMonte {
+        from {
+          opacity: 0;
+          transform: translateY(12px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+
       @media (prefers-reduced-motion: reduce) {
-        .ks-couverture {
-          animation: none;
+        /* Plus d'orbites : on fige les marqueurs là où leur course les aurait
+           placés, pour qu'ils ne se superposent pas à midi. */
+        .ks-orbite--releve {
+          transform: rotate(64deg);
         }
-        .ks-passage {
-          animation: none;
+        .ks-orbite--vigilance {
+          transform: rotate(197deg);
         }
-        .ks-tete {
-          animation: ksRespire 2.6s ease-in-out infinite;
+        .ks-plan,
+        .ks-orbite,
+        .ks-marqueur,
+        .ks-aura,
+        .ks-halo,
+        .ks-logo,
+        .ks-eyebrow,
+        .ks-tagline,
+        .ks-mark {
+          animation: none;
         }
         #kumy-splash {
           transition: none;
@@ -231,10 +274,25 @@
     <div id="kumy-splash" role="status" aria-label="Chargement de Kumy">
       <div class="ks-stage">
         <svg class="ks-plan" viewBox="0 0 200 200" aria-hidden="true">
-          <circle class="ks-couverture" cx="100" cy="100" r="94" pathLength="4800" />
-          <g class="ks-passage">
-            <circle class="ks-trainee" cx="100" cy="100" r="94" pathLength="4800" />
-            <circle class="ks-tete" cx="100" cy="100" r="94" pathLength="4800" />
+          <defs>
+            <radialGradient id="ksAuraReleve">
+              <stop offset="34%" stop-color="#018675" stop-opacity="0.3" />
+              <stop offset="100%" stop-color="#018675" stop-opacity="0" />
+            </radialGradient>
+            <radialGradient id="ksAuraVigilance">
+              <stop offset="34%" stop-color="#c68a1a" stop-opacity="0.3" />
+              <stop offset="100%" stop-color="#c68a1a" stop-opacity="0" />
+            </radialGradient>
+          </defs>
+
+          <circle class="ks-couronne" cx="100" cy="100" r="94" pathLength="4800" />
+          <g class="ks-orbite ks-orbite--releve">
+            <circle class="ks-aura" cx="100" cy="6" r="9.5" />
+            <circle class="ks-marqueur" cx="100" cy="6" r="3.4" />
+          </g>
+          <g class="ks-orbite ks-orbite--vigilance">
+            <circle class="ks-aura" cx="100" cy="6" r="8.5" />
+            <circle class="ks-marqueur" cx="100" cy="6" r="2.8" />
           </g>
         </svg>
         <span class="ks-halo" aria-hidden="true"></span>
