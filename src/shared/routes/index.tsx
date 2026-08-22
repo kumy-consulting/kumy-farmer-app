@@ -6,7 +6,9 @@ import { DomaineDetailPage } from '@/features/Domaines/DomaineDetailPage';
 import { DomainesPage } from '@/features/Domaines/DomainesPage';
 import { HomePage } from '@/features/Home/HomePage';
 import { MesInformationsPage } from '@/features/MonEspace/MesInformationsPage';
+import { MonCreditPage } from '@/features/MonEspace/MonCreditPage';
 import { MonEspacePage } from '@/features/MonEspace/MonEspacePage';
+import { MonScorePage } from '@/features/MonEspace/MonScorePage';
 import { InvitationCodePage } from '@/features/Onboarding/pages/InvitationCodePage';
 import { InvitedWelcomePage } from '@/features/Onboarding/pages/InvitedWelcomePage';
 import { OnboardingPinPage } from '@/features/Onboarding/pages/OnboardingPinPage';
@@ -41,6 +43,8 @@ export const router = createBrowserRouter([
       { path: '/domaines/:id/parcelles/:parcelId', element: <ParcelDetailPage /> },
       { path: '/mon-espace', element: <MonEspacePage /> },
       { path: '/mon-espace/informations', element: <MesInformationsPage /> },
+      { path: '/mon-espace/credit', element: <MonCreditPage /> },
+      { path: '/mon-espace/score', element: <MonScorePage /> },
     ],
   },
   { path: '*', element: <Navigate to="/welcome" replace /> },
