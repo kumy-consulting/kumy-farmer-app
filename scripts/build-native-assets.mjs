@@ -77,7 +77,7 @@ await writeFile(
 // vers sauge et anneaux pointillés — pour que les deux se succèdent sans rupture.
 // Aucun texte : le rendu SVG dépendrait d'une police installée sur la machine de
 // build, ce qu'on ne peut pas garantir. Les mots vivent dans le HTML.
-const FOND_SPLASH = `<svg xmlns="http://www.w3.org/2000/svg" width="${SPLASH}" height="${SPLASH}">
+const FOND_SPLASH = `<svg xmlns="http://www.w3.org/2000/svg" width="${SPLASH}" height="${SPLASH}" viewBox="0 0 200 200">
   <defs>
     <linearGradient id="ciel" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#F7F4E9"/>
@@ -90,18 +90,18 @@ const FOND_SPLASH = `<svg xmlns="http://www.w3.org/2000/svg" width="${SPLASH}" h
       <stop offset="70%" stop-color="#FFFFFF" stop-opacity="0"/>
     </radialGradient>
   </defs>
-  <rect width="${SPLASH}" height="${SPLASH}" fill="url(#ciel)"/>
-  <g fill="none" stroke="#018675" stroke-linecap="round">
-    <circle cx="${SPLASH / 2}" cy="${SPLASH / 2}" r="${SPLASH * 0.17}"
-            stroke-opacity="0.3" stroke-width="8" stroke-dasharray="14 20"/>
-    <circle cx="${SPLASH / 2}" cy="${SPLASH / 2}" r="${SPLASH * 0.13}"
-            stroke-opacity="0.19" stroke-width="8" stroke-dasharray="14 20"/>
+  <rect width="200" height="200" fill="url(#ciel)"/>
+  <g fill="none" stroke="#018675" stroke-width="0.6">
+    <polygon points="100.0,80.2 119.0,90.9 114.7,114.1 87.8,116.4 81.6,94.9" stroke-opacity="0.24" stroke-dasharray="0.6 0.95" stroke-linejoin="round"/>
+    <circle cx="100" cy="100" r="26.6" stroke-opacity="0.3" stroke-dasharray="0.85 1.3"/>
+    <circle cx="100" cy="100" r="26.6" stroke-opacity="0.62" stroke-width="0.7" stroke-linecap="round"
+            stroke-dasharray="4.5 162" transform="rotate(-60 100 100)"/>
   </g>
-  <circle cx="${SPLASH / 2}" cy="${SPLASH / 2}" r="${SPLASH * 0.105}" fill="url(#halo)"/>
+  <circle cx="100" cy="100" r="17.5" fill="url(#halo)"/>
 </svg>`;
 
 const logoSplash = await sharp('public/logo-kumy.svg', { density: 600 })
-  .resize({ width: Math.round(SPLASH * 0.19), fit: 'inside' })
+  .resize({ width: Math.round(SPLASH * 0.132), fit: 'inside' })
   .png()
   .toBuffer();
 

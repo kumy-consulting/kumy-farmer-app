@@ -50,38 +50,75 @@
         pointer-events: none;
       }
 
-      /* Scène : les anneaux et le logo partagent le même centre. */
       .ks-stage {
         position: relative;
         display: grid;
         place-items: center;
-        width: 320px;
-        height: 320px;
+        width: 340px;
+        height: 340px;
         max-width: 78vw;
         max-height: 78vw;
       }
-      .ks-ring {
-        position: absolute;
-        border-radius: 50%;
-        border: 1.5px dashed rgba(1, 134, 117, 0.3);
-      }
+
       /*
-        La signature de l'écran. Ces anneaux ne décorent pas : ils balaient,
-        comme le rayon de couverture d'une station autour d'une parcelle. Deux
-        vitesses opposées et très lentes — on doit le remarquer sans le regarder.
+        La signature de l'écran, et le vocabulaire même de l'app : une PARCELLE
+        sous le RAYON DE COUVERTURE d'une station, que l'agriculteur retrouve
+        tracés sur ses cartes. Chaque forme dit quelque chose — aucune n'est là
+        pour décorer.
       */
-      .ks-ring--outer {
+      .ks-plan {
+        position: absolute;
         width: 100%;
         height: 100%;
-        animation: ksSweep 96s linear infinite;
+        fill: none;
+        stroke: #018675;
+        stroke-width: 1;
       }
-      .ks-ring--inner {
-        width: 76%;
-        height: 76%;
-        border-style: dashed;
-        border-color: rgba(1, 134, 117, 0.19);
-        animation: ksSweep 72s linear infinite reverse;
+      /* La parcelle. Immobile : la terre ne bouge pas, c'est le capteur qui passe. */
+      .ks-parcelle {
+        stroke-opacity: 0.24;
+        /* Tirets plus serrés que ceux du rayon : la parcelle est un bornage
+           relevé sur le terrain, le rayon une portée calculée. Deux objets
+           différents ne se dessinent pas du même trait. */
+        stroke-dasharray: 2 3.2;
+        stroke-linejoin: round;
       }
+      /* Le rayon couvert par la station. Dérive très lentement. */
+      .ks-couverture {
+        stroke-opacity: 0.3;
+        stroke-dasharray: 3 4.5;
+        transform-origin: 50% 50%;
+        animation: ksRotation 96s linear infinite;
+      }
+      /*
+        Le passage de la station. C'est LUI l'indicateur de chargement : il
+        remplace les trois points, et dit « relevé en cours » plutôt que « ça
+        charge ». Une tête vive suivie d'une traînée, à vitesse constante — un
+        balayage, pas un spinner.
+
+        Circonférence de r=94 : 590,6. Chaque paire de tirets la totalise, et la
+        traînée est décalée de -517 pour se placer DERRIÈRE la tête.
+      */
+      .ks-passage {
+        transform-origin: 50% 50%;
+        animation: ksRotation 4.2s linear infinite;
+      }
+      .ks-trainee,
+      .ks-tete {
+        stroke-width: 2.4;
+        stroke-linecap: round;
+      }
+      .ks-trainee {
+        stroke-opacity: 0.16;
+        stroke-dasharray: 74 517;
+        stroke-dashoffset: -517;
+      }
+      .ks-tete {
+        stroke-opacity: 0.62;
+        stroke-dasharray: 16 575;
+      }
+
+      /* Assoit le mot-symbole bleu ardoise sur le dégradé vert. */
       .ks-halo {
         position: absolute;
         width: 62%;
@@ -91,10 +128,10 @@
       }
       .ks-logo {
         position: relative;
-        width: 170px;
-        /* 42vw : sur un écran de 360 px l'anneau intérieur ne fait plus que
-           213 px, et un logo à 48vw viendrait le toucher. */
-        max-width: 42vw;
+        width: 158px;
+        /* 40vw : le logo doit rester DANS la parcelle avec de l'air autour.
+           Au-delà, il en touche les bords sur un écran de 360 px. */
+        max-width: 40vw;
         height: auto;
       }
 
@@ -127,25 +164,6 @@
         color: #4a6360;
       }
 
-      .ks-dots {
-        display: flex;
-        gap: 7px;
-        margin-top: 26px;
-      }
-      .ks-dots i {
-        width: 7px;
-        height: 7px;
-        border-radius: 50%;
-        background: linear-gradient(180deg, #41b782 0%, #018675 60%, #014c41 100%);
-        animation: ksPulse 1.4s ease-in-out infinite;
-      }
-      .ks-dots i:nth-child(2) {
-        animation-delay: 0.18s;
-      }
-      .ks-dots i:nth-child(3) {
-        animation-delay: 0.36s;
-      }
-
       /* Ancrée en bas pour ne pas décentrer le bloc principal. */
       .ks-mark {
         position: absolute;
@@ -171,26 +189,31 @@
         background: #41b782;
       }
 
-      @keyframes ksSweep {
+      @keyframes ksRotation {
         to {
           transform: rotate(360deg);
         }
       }
-      @keyframes ksPulse {
+      /* Sans rotation, le passage doit rester lisible comme signe d'activité :
+         il respire au lieu de tourner. */
+      @keyframes ksRespire {
         0%,
         100% {
-          transform: translateY(0) scale(1);
-          opacity: 0.35;
+          stroke-opacity: 0.18;
         }
         50% {
-          transform: translateY(-5px) scale(1.14);
-          opacity: 1;
+          stroke-opacity: 0.62;
         }
       }
       @media (prefers-reduced-motion: reduce) {
-        .ks-ring,
-        .ks-dots i {
+        .ks-couverture {
           animation: none;
+        }
+        .ks-passage {
+          animation: none;
+        }
+        .ks-tete {
+          animation: ksRespire 2.6s ease-in-out infinite;
         }
         #kumy-splash {
           transition: none;
@@ -200,8 +223,14 @@
 
     <div id="kumy-splash" role="status" aria-label="Chargement de Kumy">
       <div class="ks-stage">
-        <span class="ks-ring ks-ring--outer" aria-hidden="true"></span>
-        <span class="ks-ring ks-ring--inner" aria-hidden="true"></span>
+        <svg class="ks-plan" viewBox="0 0 200 200" aria-hidden="true">
+          <polygon class="ks-parcelle" points="100,30 167,68 152,150 57,158 35,82" />
+          <circle class="ks-couverture" cx="100" cy="100" r="94" />
+          <g class="ks-passage">
+            <circle class="ks-trainee" cx="100" cy="100" r="94" />
+            <circle class="ks-tete" cx="100" cy="100" r="94" />
+          </g>
+        </svg>
         <span class="ks-halo" aria-hidden="true"></span>
         <img class="ks-logo" src="/logo-kumy.svg" alt="Kumy" />
       </div>
@@ -209,9 +238,7 @@
       <p class="ks-eyebrow">Mon exploitation</p>
       <p class="ks-tagline">L'agriculture de précision,<br />au rythme de vos terres.</p>
 
-      <div class="ks-dots" aria-hidden="true"><i></i><i></i><i></i></div>
-
-      <p class="ks-mark">Suite AgriPilot · Guinée</p>
+      <p class="ks-mark">Suite Kumy · Guinée</p>
     </div>
 
     <div id="root"></div>

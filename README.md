@@ -65,9 +65,18 @@ Le script `scripts/build-native-assets.mjs` explique chaque taille et chaque mar
 
 ### L'écran d'attente
 
-`index.html` porte un écran d'attente complet (`#kumy-splash`) : dégradé crème
-vers sauge, anneaux pointillés en balayage lent, verrou Kumy, accroche, points
-de progression, pastille de provenance.
+`index.html` porte un écran d'attente complet (`#kumy-splash`). Ses formes
+reprennent le vocabulaire que l'agriculteur retrouve sur ses cartes, et chacune
+dit quelque chose :
+
+| Forme | Sens | Mouvement |
+|---|---|---|
+| Polygone pointillé fin | la **parcelle**, bornage relevé au sol | aucun — la terre ne bouge pas |
+| Cercle pointillé large | le **rayon de couverture** de la station | dérive, 96 s |
+| Arc vif à traînée | le **passage** de la station | balaie, 4,2 s — c'est l'indicateur de chargement |
+
+Il n'y a donc pas de « trois points » : le passage tient ce rôle. Sous
+`prefers-reduced-motion`, l'arc respire au lieu de tourner.
 
 Il est déclaré **hors de `#root`**, et ce n'est pas un détail : React efface le
 contenu de `#root` à son premier rendu et `App` ne rend rien tant que la session
