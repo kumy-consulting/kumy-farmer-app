@@ -13,21 +13,20 @@ import { taskStateStyle } from '../itkVisuals';
  * en plus doublon avec la pastille d'état — cercle vide et « À faire » disaient
  * la même chose, l'un en mentant. Il a été retiré, pas remplacé.
  *
- * Le fanion suit la grammaire de l'accueil (voir `BlocATraiter`) : il ne longe
- * que ce qui cloche, jamais ce qui reste à faire. Une tâche en retard le porte ;
- * les autres n'ont que leur pastille.
+ * Le fanion marque ce qui est RÉGLÉ — terminé ou manqué. Quelle couleur, et
+ * pour quel état, se lit dans `taskStateStyle` : la règle vit dans la table de
+ * tokens, pas ici.
  */
 export const ItkTaskRow: FunctionComponent<{ task: ItkTask }> = ({ task }) => {
   const state = taskStateStyle(task.state);
   const done = task.state === 'completed';
-  const enRetard = task.state === 'overdue';
 
   return (
     <Box
       sx={{
         position: 'relative',
         p: 1.25,
-        pl: enRetard ? 1.75 : 1.25,
+        pl: state.rail ? 1.75 : 1.25,
         mx: 2,
         mb: 1,
         borderRadius: '12px',
@@ -35,7 +34,7 @@ export const ItkTaskRow: FunctionComponent<{ task: ItkTask }> = ({ task }) => {
         // Sans ombre portée : elle surélevait la fiche et achevait de la faire
         // passer pour un bouton. Un simple filet suffit à la détacher du fond.
         border: '1px solid #E2E3E1',
-        ...(enRetard && {
+        ...(state.rail && {
           '&::before': {
             content: '""',
             position: 'absolute',
@@ -44,7 +43,7 @@ export const ItkTaskRow: FunctionComponent<{ task: ItkTask }> = ({ task }) => {
             bottom: 12,
             width: 4,
             borderRadius: 999,
-            background: state.color,
+            background: state.rail,
           },
         }),
       }}

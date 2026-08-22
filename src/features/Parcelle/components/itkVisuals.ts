@@ -24,14 +24,26 @@ interface TaskStateStyle {
   label: string;
   color: string;
   bg: string;
+  /**
+   * Fanion vertical à gauche de la fiche, quand il y en a un.
+   *
+   * Il marque ce qui est RÉGLÉ : terminé, ou manqué. Ce qui reste ouvert — à
+   * faire, à venir — n'en porte pas, parce que rien n'y est encore joué ; sa
+   * pastille suffit. Sans cette règle, un stade entièrement fait n'affichait que
+   * la même pastille pâle répétée, et rien ne disait qu'il était boucle.
+   *
+   * Le vert est volontairement plus discret que le rouge : le fait accompli se
+   * constate, le retard réclame.
+   */
+  rail?: string;
 }
 
 /** Style d'un badge d'état de tâche. */
 export const taskStateStyle = (state: ItkTaskState): TaskStateStyle =>
   ({
-    completed: { label: 'Fait', color: '#005046', bg: 'rgba(1,134,117,0.12)' },
+    completed: { label: 'Fait', color: '#005046', bg: 'rgba(1,134,117,0.12)', rail: 'rgba(1,134,117,0.68)' },
     pending: { label: 'À faire', color: '#8C5000', bg: 'rgba(198,138,26,0.14)' },
-    overdue: { label: 'En retard', color: '#BA1A1A', bg: 'rgba(186,26,26,0.11)' },
+    overdue: { label: 'En retard', color: '#BA1A1A', bg: 'rgba(186,26,26,0.11)', rail: '#BA1A1A' },
     upcoming: { label: 'À venir', color: '#5C5F5E', bg: 'rgba(55,75,70,0.08)' },
     manual: { label: 'Manuel', color: '#5C5F5E', bg: 'rgba(55,75,70,0.08)' },
   })[state];
