@@ -6,11 +6,14 @@ import { Box, Typography } from '@mui/material';
 
 import type { ItkStage } from '../../parcelle.types';
 import { formatPeriodeStade } from '../itkPeriode';
+import { statutEffectif } from '../itkStadeEnCours';
 import { stageStatusColor } from '../itkVisuals';
 
 interface ItkStageTimelineProps {
   stages: ItkStage[];
   selectedStageCode?: string;
+  /** Stade traversé aujourd'hui, calculé par `ItkTabContent`. */
+  codeEnCours?: string;
   onSelectStage: (stageCode: string) => void;
 }
 
@@ -24,6 +27,7 @@ const PAD_Y = 12;
 export const ItkStageTimeline: FunctionComponent<ItkStageTimelineProps> = ({
   stages,
   selectedStageCode,
+  codeEnCours,
   onSelectStage,
 }) => {
   const pisteRef = useRef<HTMLDivElement>(null);
@@ -48,7 +52,8 @@ export const ItkStageTimeline: FunctionComponent<ItkStageTimelineProps> = ({
    */
   useLayoutEffect(() => {
     const piste = pisteRef.current;
-    const carte = selectedStageCode ? cartesRef.current.get(selectedStageCode) : undefined;
+    const cible = codeEnCours ?? selectedStageCode;
+    const carte = cible ? cartesRef.current.get(cible) : undefined;
     if (!piste || !carte) return;
     piste.scrollLeft = carte.offsetLeft - (piste.clientWidth - carte.offsetWidth) / 2;
     majBords();
@@ -129,11 +134,14 @@ export const ItkStageTimeline: FunctionComponent<ItkStageTimelineProps> = ({
       >
         <Box sx={{ display: 'flex', alignItems: 'flex-start', width: 'max-content', minWidth: '100%' }}>
           {stages.map((s, idx) => {
-            const color = stageStatusColor(s.status);
+            // Le statut effectif, et non le champ brut : sans cela le stade en
+            // cours gardait la couleur grise de l'`upcoming` renvoyé par l'API.
+            const statut = statutEffectif(s, codeEnCours);
+            const color = stageStatusColor(statut);
             const selected = s.stageCode === selectedStageCode;
-            const completed = s.status === 'completed';
-            const active = s.status === 'inProgress';
-            const delayed = s.status === 'delayed';
+            const completed = statut === 'completed';
+            const active = statut === 'inProgress';
+            const delayed = statut === 'delayed';
             // Le stade en cours n'est plus un disque plein : c'est un double
             // cercle, fond blanc et anneau, qui laisse lire son numéro.
             const plein = completed || delayed;
@@ -149,9 +157,10 @@ export const ItkStageTimeline: FunctionComponent<ItkStageTimelineProps> = ({
              * il n'a pas eu lieu, il ne doit pas se donner l'air d'un acquis.
              */
             const liaison = (depuis?: ItkStage) => {
-              const franchi = depuis?.status === 'completed' || depuis?.status === 'delayed';
+              const st = depuis ? statutEffectif(depuis, codeEnCours) : undefined;
+              const franchi = st === 'completed' || st === 'delayed';
               return franchi
-                ? { background: stageStatusColor(depuis.status), height: 2, borderTop: 'none' }
+                ? { background: stageStatusColor(st), height: 2, borderTop: 'none' }
                 : { background: 'transparent', height: 0, borderTop: '2px dashed rgba(55,75,70,0.28)' };
             };
 

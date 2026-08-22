@@ -164,6 +164,8 @@ describe('ParcelDetailPage', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+    // Les tests qui figent l'horloge ne doivent pas la laisser figée aux suivants.
+    vi.useRealTimers();
   });
 
   it('affiche l’en-tête, les 4 onglets et la vue d’ensemble par défaut', async () => {
@@ -221,7 +223,14 @@ describe('ParcelDetailPage', () => {
     expect(screen.queryByText('En attente')).toBeNull();
   });
 
-  it('bascule sur Calendrier et affiche le stade courant avec sa tâche', async () => {
+  it('bascule sur Calendrier et ouvre le stade traversé aujourd’hui', async () => {
+    // Horloge figée dans la fenêtre de « Croissance » (11 juin – 20 juillet).
+    // Sans cela le test dépendait du jour d'exécution : passé le 21 juillet, le
+    // stade traversé devient « Floraison » et l'assertion tombait sans qu'aucun
+    // code n'ait changé.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date('2026-07-01T09:00:00Z'));
+
     const { findByText, getByText, getAllByText } = renderPage();
     await findByText('Ananas 2');
 
@@ -230,6 +239,22 @@ describe('ParcelDetailPage', () => {
     expect(await findByText('Apport azoté')).toBeDefined();
     expect(getAllByText('Croissance').length).toBeGreaterThan(0);
     expect(getByText('Tâches obligatoires')).toBeDefined();
+  });
+
+  it('ouvre le stade du jour même quand l’API le dit encore « à venir »', async () => {
+    // Le cas constaté en production : un stade prend du retard, l'API pointe
+    // `currentStage` sur LUI et laisse le suivant en `upcoming`. C'est pourtant
+    // le suivant que l'agriculteur traverse — le 22 août tombe dans « Floraison ».
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date('2026-08-22T09:00:00Z'));
+
+    const { findByText, getByText, getAllByText } = renderPage();
+    await findByText('Ananas 2');
+
+    getByText('Calendrier').click();
+
+    expect(await findByText('Induction florale.')).toBeDefined();
+    expect(getAllByText('Floraison').length).toBeGreaterThan(0);
   });
 
   it('bascule sur Conseils et affiche synthèse, risque et évolution NDVI', async () => {

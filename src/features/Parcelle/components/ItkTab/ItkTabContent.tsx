@@ -6,6 +6,7 @@ import { Box, Stack, Typography } from '@mui/material';
 import { ItkStageDetail } from './ItkStageDetail';
 import { ItkStageTimeline } from './ItkStageTimeline';
 import type { ItkParcelTasks } from '../../parcelle.types';
+import { stadeEnCours } from '../itkStadeEnCours';
 
 /** Message centré (états vides ITK). */
 const EmptyState: FunctionComponent<{ title: string; message: string }> = ({ title, message }) => (
@@ -36,8 +37,19 @@ const EmptyState: FunctionComponent<{ title: string; message: string }> = ({ tit
 /** Onglet ITK (lecture seule) : frise des stades + détail du stade sélectionné. */
 export const ItkTabContent: FunctionComponent<{ itk: ItkParcelTasks | null }> = ({ itk }) => {
   const stages = useMemo(() => itk?.stages ?? [], [itk]);
+  /**
+   * On ouvre sur le stade traversé aujourd'hui, déduit des dates — et non sur
+   * `itk.currentStage`, que l'API pointe sur le stade EN RETARD dès qu'il y en a
+   * un. Les deux sont utiles mais ne disent pas la même chose : le retard réclame
+   * du travail, le stade en cours dit où l'on se trouve. C'est le second qu'on
+   * montre à l'arrivée ; le premier reste rouge dans la frise.
+   */
+  // Calculé ici, puis descendu : la frise et le détail doivent parler du même
+  // stade, sinon l'une annonce « en cours » quand l'autre affiche « À venir ».
+  const codeEnCours = useMemo(() => stadeEnCours(stages), [stages]);
+
   const [selectedCode, setSelectedCode] = useState<string | undefined>(
-    itk?.currentStage?.stageCode ?? stages[0]?.stageCode,
+    stadeEnCours(stages) ?? itk?.currentStage?.stageCode ?? stages[0]?.stageCode,
   );
 
   const selectedStage = useMemo(
@@ -56,8 +68,13 @@ export const ItkTabContent: FunctionComponent<{ itk: ItkParcelTasks | null }> = 
 
   return (
     <Box>
-      <ItkStageTimeline stages={stages} selectedStageCode={selectedStage?.stageCode} onSelectStage={setSelectedCode} />
-      {selectedStage && <ItkStageDetail stage={selectedStage} />}
+      <ItkStageTimeline
+        stages={stages}
+        selectedStageCode={selectedStage?.stageCode}
+        codeEnCours={codeEnCours}
+        onSelectStage={setSelectedCode}
+      />
+      {selectedStage && <ItkStageDetail stage={selectedStage} codeEnCours={codeEnCours} />}
     </Box>
   );
 };

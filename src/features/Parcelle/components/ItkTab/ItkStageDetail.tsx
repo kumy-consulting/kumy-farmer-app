@@ -3,6 +3,7 @@ import type { FunctionComponent } from 'react';
 import { Box, Stack, Typography } from '@mui/material';
 
 import type { ItkStage, ItkTask } from '../../parcelle.types';
+import { statutEffectif } from '../itkStadeEnCours';
 import { stageStatusColor, stageStatusLabel } from '../itkVisuals';
 import { ItkTaskRow } from './ItkTaskRow';
 
@@ -45,8 +46,13 @@ const TaskGroup: FunctionComponent<{ label: string; tasks: ItkTask[] }> = ({ lab
 };
 
 /** Détail d'un stade ITK : en-tête + description + tâches (obligatoires / recommandées). */
-export const ItkStageDetail: FunctionComponent<{ stage: ItkStage }> = ({ stage }) => {
-  const color = stageStatusColor(stage.status);
+export const ItkStageDetail: FunctionComponent<{ stage: ItkStage; codeEnCours?: string }> = ({
+  stage,
+  codeEnCours,
+}) => {
+  // Même statut effectif que la frise, sinon les deux se contredisent.
+  const statut = statutEffectif(stage, codeEnCours);
+  const color = stageStatusColor(statut);
   const noTasks = stage.tasks.mandatory.length === 0 && stage.tasks.recommended.length === 0;
 
   return (
@@ -70,7 +76,7 @@ export const ItkStageDetail: FunctionComponent<{ stage: ItkStage }> = ({ stage }
               background: color,
             }}
           >
-            {stageStatusLabel(stage.status)}
+            {stageStatusLabel(statut)}
           </Box>
         </Stack>
         <Typography sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 12, fontWeight: 600, color: '#8F9291', letterSpacing: '0.02em' }}>
