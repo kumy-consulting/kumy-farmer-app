@@ -13,6 +13,39 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@null</item>
+
+        <!--
+            Android 15 (SDK 35) impose l'edge-to-edge : le WebView dessine sous la
+            barre de statut ET sous la barre de navigation, et `setStatusBarColor`
+            comme `setSystemUiVisibility` deviennent inertes. Mesure faite sur
+            emulateur : safe-area-inset-top = 52px, innerHeight == screenHeight.
+
+            L'app a ete concue pour une barre de statut NON superposee, et ses
+            ecrans alternent fonds clairs (accueil de connexion) et en-tete vert
+            fonce (tableau de bord) : aucun contraste d'icones ne conviendrait aux
+            deux sans pilotage ecran par ecran. On utilise donc la sortie
+            officielle prevue par Google, qui restitue le modele de mise en page
+            attendu et corrige aussi l'inset bas rapporte a 0 sous la barre de
+            navigation gestuelle.
+
+            A REVOIR quand la cible passera au SDK 36 : cet attribut y est deprecie
+            et l'edge-to-edge deviendra inevitable. Il faudra alors reprendre les
+            ecrans avec env(safe-area-inset-*).
+        -->
+        <item name="android:windowOptOutEdgeToEdgeEnforcement">true</item>
+
+        <!--
+            La couleur de la barre de statut est DECLARATIVE, pas pilotee depuis
+            le web. Raison mesuree sur emulateur Android 15 : BridgeActivity
+            installe l'ecran de demarrage androidx puis reapplique ce theme quand
+            l'animation se termine, et cette reapplication reinitialise
+            `statusBarColor`. Un appel `StatusBar.setBackgroundColor` depuis le
+            JS est donc systematiquement ecrase, quel que soit le moment choisi
+            (verifie a l'init, puis apres SplashScreen.hide()).
+        -->
+        <item name="android:statusBarColor">@color/kumyStatusBar</item>
+        <!-- Barre verte : il faut des icones CLAIRES, donc pas de light status bar. -->
+        <item name="android:windowLightStatusBar">false</item>
     </style>
 
 

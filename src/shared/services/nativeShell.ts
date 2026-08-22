@@ -2,24 +2,25 @@ import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { Keyboard, KeyboardResize } from '@capacitor/keyboard';
 import { SplashScreen } from '@capacitor/splash-screen';
-import { StatusBar, Style } from '@capacitor/status-bar';
 
 /**
  * Point d'entrée unique du natif (Capacitor).
  *
  * ⚠️ Convention Kumy : ce fichier est le SEUL autorisé à importer
- * `@capacitor/status-bar`, `@capacitor/keyboard`, `@capacitor/splash-screen` et
- * `@capacitor/app`. Aucun composant ne parle directement à un plugin de coquille.
+ * `@capacitor/keyboard`, `@capacitor/splash-screen` et `@capacitor/app`. Aucun
+ * composant ne parle directement à un plugin de coquille.
+ *
+ * La barre de statut ne se pilote PAS d'ici. Sa couleur est déclarée dans le
+ * thème Android (`values/styles.xml`) : `BridgeActivity` réapplique ce thème à
+ * la fin de l'animation de démarrage, ce qui écrase tout `setBackgroundColor`
+ * venu du JS — vérifié à l'init comme après `SplashScreen.hide()`.
  *
  * Les deux fonctions sortent immédiatement hors natif. C'est ce qui permet aux
  * tests (jsdom) et au build web de les appeler sans mock ni garde d'appel.
  */
 
-/** Vert Kumy — doit rester aligné sur `capacitor.config.ts` et le thème MUI. */
-const STATUS_BAR_COLOR = '#018675';
-
 /**
- * Configure la coquille native : barre de statut, clavier, bouton retour Android.
+ * Configure la coquille native : clavier et bouton retour Android.
  * Appelé une seule fois depuis `main.tsx`, avant le rendu React.
  *
  * Chaque réglage est isolé : un plugin indisponible (variante d'OS, WebView
@@ -27,12 +28,6 @@ const STATUS_BAR_COLOR = '#018675';
  */
 export async function initNativeShell(): Promise<void> {
   if (!Capacitor.isNativePlatform()) return;
-
-  // Barre de statut : texte clair sur le vert Kumy. `overlay: false` empêche le
-  // contenu de passer sous la barre — l'app n'est pas conçue en plein écran.
-  await StatusBar.setOverlaysWebView({ overlay: false }).catch(() => {});
-  await StatusBar.setStyle({ style: Style.Light }).catch(() => {});
-  await StatusBar.setBackgroundColor({ color: STATUS_BAR_COLOR }).catch(() => {});
 
   // Clavier : redimensionne le WebView entier. Sûr ici car tous les écrans de
   // saisie (téléphone, PIN, code d'invitation, profil) sont hors `AppLayout`,

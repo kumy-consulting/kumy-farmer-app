@@ -2,7 +2,6 @@
 import { App } from '@capacitor/app';
 import { Keyboard } from '@capacitor/keyboard';
 import { SplashScreen } from '@capacitor/splash-screen';
-import { StatusBar } from '@capacitor/status-bar';
 import { describe, expect, it, vi } from 'vitest';
 
 import { hideNativeSplash, initNativeShell } from './nativeShell';
@@ -25,18 +24,11 @@ vi.mock('@capacitor/keyboard', () => ({
 vi.mock('@capacitor/splash-screen', () => ({
   SplashScreen: { hide: vi.fn() },
 }));
-vi.mock('@capacitor/status-bar', () => ({
-  StatusBar: { setStyle: vi.fn(), setBackgroundColor: vi.fn(), setOverlaysWebView: vi.fn() },
-  Style: { Light: 'LIGHT' },
-}));
 
 describe('nativeShell hors natif', () => {
   it('initNativeShell se résout sans toucher aux plugins', async () => {
     await expect(initNativeShell()).resolves.toBeUndefined();
 
-    expect(StatusBar.setOverlaysWebView).not.toHaveBeenCalled();
-    expect(StatusBar.setStyle).not.toHaveBeenCalled();
-    expect(StatusBar.setBackgroundColor).not.toHaveBeenCalled();
     expect(Keyboard.setResizeMode).not.toHaveBeenCalled();
     expect(App.addListener).not.toHaveBeenCalled();
   });

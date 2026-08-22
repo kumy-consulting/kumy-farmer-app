@@ -36,9 +36,16 @@ const config: CapacitorConfig = {
       splashFullScreen: true,
       splashImmersive: true,
     },
+    // Le plugin applique cette configuration au chargement, avant le premier
+    // rendu : c'est la seule source de verite de la barre de statut. Ne pas la
+    // dupliquer en appels runtime dans `nativeShell.ts`.
     StatusBar: {
-      style: 'LIGHT',
+      // Contre-intuitif : chez Capacitor, `DARK` signifie « texte clair, pour
+      // fond sombre ». La barre etant verte, il faut donc `DARK`. `LIGHT`
+      // donnerait du texte sombre illisible sur le vert.
+      style: 'DARK',
       backgroundColor: '#018675',
+      overlaysWebView: false,
     },
   },
 };
