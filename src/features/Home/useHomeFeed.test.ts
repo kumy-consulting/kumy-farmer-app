@@ -161,8 +161,21 @@ const liveStation = (o: {
   };
 };
 
+/**
+ * Les fixtures de ce fichier sont datées en dur — fenêtres de traitement,
+ * échéances, relevés de station. Sans horloge figée, elles vieillissent : la
+ * suite est passée verte jusqu'au 21 août 2026, puis les fenêtres se sont
+ * fermées d'elles-mêmes et trois tests ont cassé sans qu'une ligne de code ait
+ * bougé. On fige donc « maintenant » au milieu des fenêtres décrites.
+ */
+const MAINTENANT = new Date('2026-08-20T09:00:00.000Z');
+
 describe('useHomeFeed', () => {
   beforeEach(() => {
+    // `shouldAdvanceTime` : les mappers lisent l'heure, mais le hook attend de
+    // vraies promesses réseau. Sans avance automatique, `waitFor` boucle
+    // jusqu'au timeout sur une horloge arrêtée.
+    vi.useFakeTimers({ now: MAINTENANT, shouldAdvanceTime: true });
     useAuthStore.setState({
       user: { uid: 'u1', displayName: 'Awa Diallo', phone: '+224620000000', role: 'farmer' },
       isAuthenticated: true,
@@ -189,6 +202,7 @@ describe('useHomeFeed', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     useAuthStore.setState({ user: null, isAuthenticated: false });
     vi.clearAllMocks();
   });
