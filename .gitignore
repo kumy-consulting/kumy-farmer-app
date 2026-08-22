@@ -15,8 +15,9 @@ dev-dist
 *.local
 *.tsbuildinfo
 
-# Natif Capacitor (généré par `cap add`)
-android
+# Natif Capacitor
+# `android/` EST versionné : on y personnalise le manifeste, les icônes et gradle.
+# Seuls les artefacts de build Gradle sont ignorés (voir android/.gitignore généré).
 ios
 
 # Env
