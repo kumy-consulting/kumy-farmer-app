@@ -36,7 +36,12 @@ export class ApiRequestError extends Error {
 
 export const apiClient: AxiosInstance = axios.create({
   baseURL: API_URL,
-  withCredentials: true,
+  // Web : le cookie HttpOnly `__session` porte la session, il faut donc les
+  // credentials. Natif : la session passe par le `Bearer` ci-dessous, et
+  // demander les credentials depuis `https://localhost` imposerait à l'API un
+  // `Access-Control-Allow-Credentials` avec origine explicite — contrainte CORS
+  // inutile qui ferait échouer tous les appels natifs.
+  withCredentials: !isNative,
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',

@@ -8,8 +8,21 @@ import { ThemeProvider } from '@mui/material/styles';
 import dayjs from 'dayjs';
 import 'dayjs/locale/fr';
 
+// Police embarquée dans le bundle : en natif, un premier lancement sans réseau
+// ne doit pas retomber sur la police système. Les graisses correspondent à
+// celles que déclarait le <link> Google Fonts retiré d'index.html.
+//
+// Sous-ensemble `latin` uniquement : sur web les autres jeux ne seraient pas
+// téléchargés (unicode-range), mais en natif TOUT est embarqué dans l'APK —
+// cyrillique et grec compris. L'app est monolingue française.
+import '@fontsource/ubuntu/latin-300.css';
+import '@fontsource/ubuntu/latin-400.css';
+import '@fontsource/ubuntu/latin-500.css';
+import '@fontsource/ubuntu/latin-700.css';
+
 import './index.css';
 import { initDatabase } from '@/shared/db/database';
+import { initNativeShell } from '@/shared/services/nativeShell';
 import { requestPersistentStorage } from '@/shared/services/persistence';
 import { theme } from '@/theme/theme';
 
@@ -26,6 +39,10 @@ if (Capacitor.isNativePlatform() && 'serviceWorker' in navigator) {
     void caches.keys().then((keys) => keys.forEach((k) => void caches.delete(k)));
   }
 }
+
+// Configure la coquille native (barre de statut, clavier, bouton retour).
+// No-op sur web — voir le contrat dans `nativeShell.ts`.
+void initNativeShell();
 
 // Locale française globale (utilisée par les date pickers MUI).
 dayjs.locale('fr');

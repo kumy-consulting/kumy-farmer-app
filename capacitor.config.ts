@@ -10,8 +10,11 @@ import type { CapacitorConfig } from '@capacitor/cli';
  * - Pas de `server.url` en production : le bundle local DOIT être chargé pour que
  *   l'app fonctionne hors-ligne (cœur de l'usage terrain en Guinée).
  *
- * Dossiers natifs `android/` et `ios/` NON générés à ce stade : lancer
- * `npm run cap:add:android` / `npm run cap:add:ios` puis `npm run cap:sync`.
+ * `android/` est généré ET versionné (on y personnalise manifeste, icônes,
+ * gradle). Après toute modification du web : `npm run cap:sync`.
+ *
+ * `ios/` n'est pas généré : hors périmètre tant qu'aucune machine du projet ne
+ * dispose de Xcode. Voir la spec `2026-08-22-capacitor-android-natif-design.md`.
  */
 const config: CapacitorConfig = {
   appId: 'com.kumy.farmer',
@@ -25,7 +28,9 @@ const config: CapacitorConfig = {
   },
   plugins: {
     SplashScreen: {
-      launchShowDuration: 600,
+      // Masquage explicite depuis App.tsx quand la session est initialisée
+      // (voir `hideNativeSplash`), pas à l'expiration d'un délai.
+      launchAutoHide: false,
       backgroundColor: '#F7F4E9',
       showSpinner: false,
       splashFullScreen: true,

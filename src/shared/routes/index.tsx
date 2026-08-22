@@ -1,4 +1,5 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { Capacitor } from '@capacitor/core';
+import { createBrowserRouter, createHashRouter, Navigate } from 'react-router-dom';
 
 import { PhoneEntryPage } from '@/features/Auth/pages/PhoneEntryPage';
 import { PinEntryPage } from '@/features/Auth/pages/PinEntryPage';
@@ -20,7 +21,19 @@ import { ParcelDetailPage } from '@/features/Parcelle/ParcelDetailPage';
 import { AppLayout } from '@/shared/components/AppLayout';
 import { ProtectedRoute } from '@/shared/components/ProtectedRoute';
 
-export const router = createBrowserRouter([
+/**
+ * En natif, l'app est servie par le serveur local de Capacitor depuis
+ * `https://localhost`. Le routage par hash supprime toute dépendance à un repli
+ * `index.html` côté serveur, y compris quand le WebView est rechargé sur une
+ * route profonde après une mise en arrière-plan.
+ *
+ * Le web garde `createBrowserRouter` : basculer tout le monde en hash changerait
+ * les URLs du PWA déjà déployé sur Firebase Hosting et casserait les liens
+ * existants.
+ */
+const createRouter = Capacitor.isNativePlatform() ? createHashRouter : createBrowserRouter;
+
+export const router = createRouter([
   { path: '/welcome', element: <WelcomeChoicePage /> },
   { path: '/auth/phone-entry', element: <PhoneEntryPage /> },
   { path: '/auth/pin-entry', element: <PinEntryPage /> },

@@ -1,9 +1,10 @@
-import { useEffect, useState, type FunctionComponent } from 'react';
+import type { FunctionComponent } from 'react';
 
 import { Alert, Box, Button, Snackbar, Stack, Typography } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
 
+import { useIsOnline } from '@/shared/hooks/useIsOnline';
 import { useAuthStore } from '@/shared/stores/authStore';
 
 import { BlocAccompagnement } from './components/dashboard/BlocAccompagnement';
@@ -36,24 +37,6 @@ const Reveal = styled(Box)({
 const useFirstName = (): string => {
   const displayName = useAuthStore((s) => s.user?.displayName);
   return displayName?.trim().split(/\s+/)[0] || 'agriculteur';
-};
-
-/** État réseau du navigateur — les transitions de consigne exigent la ligne. */
-const useIsOnline = (): boolean => {
-  const [isOnline, setIsOnline] = useState(() => navigator.onLine);
-
-  useEffect(() => {
-    const goOnline = () => setIsOnline(true);
-    const goOffline = () => setIsOnline(false);
-    window.addEventListener('online', goOnline);
-    window.addEventListener('offline', goOffline);
-    return () => {
-      window.removeEventListener('online', goOnline);
-      window.removeEventListener('offline', goOffline);
-    };
-  }, []);
-
-  return isOnline;
 };
 
 export const HomePage: FunctionComponent = () => {

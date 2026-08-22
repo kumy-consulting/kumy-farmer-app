@@ -17,4 +17,31 @@ body,
 
 body {
   margin: 0;
+
+  /* Coupe le rebond élastique et le « tirer pour rafraîchir » du WebView : en
+     natif ce geste rechargerait le bundle et ferait clignoter l'app, alors
+     qu'aucun écran n'expose de rafraîchissement par tirage. */
+  overscroll-behavior: none;
+
+  /* Supprime le délai de 300 ms hérité du double-tap-to-zoom. Le viewport est
+     déjà en `user-scalable=no`, ce délai ne protège donc plus rien. */
+  touch-action: manipulation;
+
+  /* Le halo gris au toucher trahit l'origine web de l'app sur Android. */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Une app native ne laisse pas sélectionner son interface : un appui long sur
+   un libellé ne doit pas ouvrir la poignée de sélection du système. On rouvre
+   la sélection sur les seuls contenus que l'utilisateur peut vouloir copier. */
+body {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input,
+textarea,
+[contenteditable='true'] {
+  -webkit-user-select: text;
+  user-select: text;
 }
