@@ -61,8 +61,45 @@ export const RegisterAddressPage: FunctionComponent = () => {
     }
   }, []);
 
+  // Ce que le store portait au montage, figé une fois pour toutes : la
+  // restauration ci-dessous ne doit pas se rejouer à chaque choix de
+  // l'agriculteur.
+  const adresseAuMontage = useRef(adresse);
+
   useEffect(() => {
-    void chargerRegions();
+    // Retour depuis le code confidentiel : le store porte déjà les trois
+    // niveaux, mais les listes du bas sont vides — les deux selects
+    // afficheraient alors une valeur absente de leurs options, c'est-à-dire
+    // rien du tout, avec un « Continuer » pourtant actif.
+    //
+    // On ne touche pas au store : `setAdresse` déclencherait la cascade et
+    // effacerait précisément les niveaux qu'on vient restaurer.
+    const restaurer = async () => {
+      await chargerRegions();
+
+      const { regionId, prefectureId } = adresseAuMontage.current;
+      if (!regionId) return;
+
+      // Un ticket, comme dans les gestionnaires : si l'agriculteur change de
+      // région avant la fin de la restauration, c'est son geste qui gagne.
+      const ticketPrefectures = ++demandePrefectures.current;
+      const ticketSousPrefectures = ++demandeSousPrefectures.current;
+      try {
+        const items = await onboardingApi.getPrefectures(regionId);
+        if (ticketPrefectures !== demandePrefectures.current) return;
+        setPrefectures(items);
+
+        if (!prefectureId) return;
+        const sous = await registerApi.getSousPrefectures(prefectureId);
+        if (ticketSousPrefectures !== demandeSousPrefectures.current) return;
+        setSousPrefectures(sous);
+      } catch {
+        if (ticketPrefectures !== demandePrefectures.current) return;
+        setErreurChargement(true);
+      }
+    };
+
+    void restaurer();
   }, [chargerRegions]);
 
   if (!registrationToken) return <Navigate to={ROUTES_INSCRIPTION.telephone} replace />;

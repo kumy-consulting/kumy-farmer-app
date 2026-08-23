@@ -13,9 +13,9 @@ export interface CompteNouveauState {
 /**
  * La source unique de « ce compte a-t-il été adopté ».
  *
- * La mise en page et la route la lisent toutes deux ici plutôt que d'interroger
- * l'API chacune de leur côté — deux lectures indépendantes finiraient par
- * diverger sur un rechargement.
+ * La mise en page (`AppLayout`) la lit ici plutôt que d'interroger l'API de son
+ * côté : un second lecteur indépendant finirait par diverger du premier sur un
+ * rechargement.
  *
  * En cas d'échec réseau, le hook ouvre l'application complète : enfermer un
  * agriculteur établi derrière un écran de bienvenue serait bien pire que de

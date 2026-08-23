@@ -19,9 +19,11 @@ import {
 } from '@/features/Onboarding/onboarding.styled';
 import { CollapseOnKeyboard, OnboardingLayout } from '@/features/Onboarding/OnboardingLayout';
 import { registerApi } from '@/features/Register/register.api';
+import { MESSAGE_PLAFOND_SMS } from '@/features/Register/register.messages';
 import { ecranApresVerification, ROUTES_INSCRIPTION } from '@/features/Register/register.routing';
 import { useRegisterStore } from '@/features/Register/register.store';
 import { useResendCountdown } from '@/features/Register/useResendCountdown';
+import { ApiRequestError } from '@/shared/api/client';
 import { BackButton } from '@/shared/components/BackButton';
 
 const DELAI_RENVOI_PAR_DEFAUT = 60;
@@ -74,8 +76,14 @@ export const RegisterCodePage: FunctionComponent = () => {
       const { resendAfter } = await registerApi.demanderCode(phone);
       relancer(resendAfter);
       setCode('');
-    } catch {
-      setErreur('Impossible de renvoyer le code. Vérifiez votre connexion.');
+    } catch (echec) {
+      // Idem qu'au premier écran : seul le plafond horaire produit un 429, le
+      // délai d'une minute passant par une réponse 200.
+      setErreur(
+        echec instanceof ApiRequestError && echec.status === 429
+          ? MESSAGE_PLAFOND_SMS
+          : 'Impossible de renvoyer le code. Vérifiez votre connexion.',
+      );
     } finally {
       setRenvoiEnCours(false);
     }

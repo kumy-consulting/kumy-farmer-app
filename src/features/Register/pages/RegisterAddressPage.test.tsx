@@ -129,6 +129,47 @@ describe('RegisterAddressPage', () => {
     expect(await screen.findByText(/Impossible de charger la liste/)).toBeInTheDocument();
   });
 
+  it('restaure les deux listes du bas quand on revient avec une adresse déjà choisie', async () => {
+    // Retour depuis le code confidentiel : sans restauration, les selects
+    // préfecture et sous-préfecture porteraient une valeur absente de leurs
+    // options — donc s'afficheraient vides — alors que « Continuer » reste actif.
+    useRegisterStore.getState().setAdresse({
+      regionId: 'r1',
+      regionName: 'Kindia',
+      prefectureId: 'p1',
+      prefectureName: 'Coyah',
+      sousPrefectureId: 'sp1',
+      sousPrefectureName: 'Manéah',
+    });
+
+    const user = userEvent.setup();
+    renderPage();
+
+    await waitFor(() => expect(onboardingApi.getPrefectures).toHaveBeenCalledWith('r1'));
+    await waitFor(() => expect(registerApi.getSousPrefectures).toHaveBeenCalledWith('p1'));
+
+    // Les trois valeurs stockées s'affichent, et non des capsules vides.
+    await waitFor(() => {
+      expect(screen.getByLabelText('Région')).toHaveTextContent('Kindia');
+      expect(screen.getByLabelText('Préfecture')).toHaveTextContent('Coyah');
+      expect(screen.getByLabelText('Sous-préfecture')).toHaveTextContent('Manéah');
+    });
+
+    // Les listes déroulantes sont garnies : l'agriculteur peut re-choisir.
+    await user.click(screen.getByLabelText('Sous-préfecture'));
+    expect(await screen.findByRole('option', { name: 'Manéah' })).toBeInTheDocument();
+
+    // La restauration n'écrit pas dans le store : la cascade n'a rien effacé.
+    expect(useRegisterStore.getState().adresse).toEqual({
+      regionId: 'r1',
+      regionName: 'Kindia',
+      prefectureId: 'p1',
+      prefectureName: 'Coyah',
+      sousPrefectureId: 'sp1',
+      sousPrefectureName: 'Manéah',
+    });
+  });
+
   it('ignore une réponse de préfectures en retard pour une région déjà quittée', async () => {
     const user = userEvent.setup();
 

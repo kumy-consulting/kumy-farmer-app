@@ -63,6 +63,24 @@ describe('RegisterResultPage', () => {
     expect(creerSpy).toHaveBeenCalledTimes(1);
   });
 
+  it('vide le parcours dès la connexion réussie, tout en saluant l’agriculteur', async () => {
+    vi.spyOn(registerApi, 'creerCompte').mockResolvedValue({ uid: 'u1' });
+    vi.spyOn(useAuthStore.getState(), 'login').mockResolvedValue();
+
+    renderPage();
+
+    expect(await screen.findByText('Compte créé !')).toBeInTheDocument();
+    // Le prénom est recopié avant le vidage : le message reste complet.
+    expect(screen.getByText(/Bienvenue Awa/)).toBeInTheDocument();
+
+    // Le jeton et le code confidentiel ne survivent pas au parcours : un retour
+    // matériel Android ne peut plus rejouer une création déjà consommée.
+    await waitFor(() => {
+      expect(useRegisterStore.getState().registrationToken).toBeNull();
+      expect(useRegisterStore.getState().pin).toBeNull();
+    });
+  });
+
   it('création réussie puis connexion en échec : message dédié, et « Réessayer » ne rejoue pas la création', async () => {
     const user = userEvent.setup();
     const creerSpy = vi.spyOn(registerApi, 'creerCompte').mockResolvedValue({ uid: 'u1' });

@@ -20,8 +20,10 @@ import {
 } from '@/features/Onboarding/onboarding.styled';
 import { CollapseOnKeyboard, OnboardingLayout } from '@/features/Onboarding/OnboardingLayout';
 import { registerApi } from '@/features/Register/register.api';
+import { MESSAGE_PLAFOND_SMS } from '@/features/Register/register.messages';
 import { ROUTES_INSCRIPTION } from '@/features/Register/register.routing';
 import { useRegisterStore } from '@/features/Register/register.store';
+import { ApiRequestError } from '@/shared/api/client';
 import { BackButton } from '@/shared/components/BackButton';
 
 /**
@@ -54,8 +56,16 @@ export const RegisterPhonePage: FunctionComponent = () => {
       reset();
       setPhone(phone);
       navigate(ROUTES_INSCRIPTION.code, { state: { resendAfter } });
-    } catch {
-      setErreur('Impossible d’envoyer le code. Vérifiez votre connexion et réessayez.');
+    } catch (echec) {
+      // Le délai d'une minute entre deux envois n'est pas une erreur — l'API
+      // répond 200 avec le `resendAfter` restant. Un 429 ne dit donc qu'une
+      // chose : le plafond horaire est atteint, et parler de connexion ici
+      // enverrait le fermier réparer un réseau qui marche.
+      setErreur(
+        echec instanceof ApiRequestError && echec.status === 429
+          ? MESSAGE_PLAFOND_SMS
+          : 'Impossible d’envoyer le code. Vérifiez votre connexion et réessayez.',
+      );
     } finally {
       setEnvoiEnCours(false);
     }

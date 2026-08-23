@@ -45,6 +45,10 @@ export const RegisterResultPage: FunctionComponent = () => {
 
   const [enCours, setEnCours] = useState(true);
   const [erreur, setErreur] = useState<string | null>(null);
+  // Le prénom est recopié ici avant que le store ne soit vidé : l'écran de
+  // succès salue l'agriculteur par son prénom, et il ne reste plus rien à lire
+  // dans le store une fois le parcours consommé.
+  const [prenom, setPrenom] = useState<string | null>(null);
 
   // Des refs, pas de l'état : elles ne doivent déclencher aucun rendu, et
   // doivent survivre intactes à la double invocation de StrictMode.
@@ -96,6 +100,13 @@ export const RegisterResultPage: FunctionComponent = () => {
         creationReussie.current = true;
       }
       await useAuthStore.getState().login(phone, pin);
+      // Le parcours est fini : le jeton est dépensé et le code confidentiel n'a
+      // plus à traîner en mémoire. Sans ce vidage, un retour matériel Android
+      // ramènerait à l'écran du code confidentiel, et le valider à nouveau
+      // rejouerait `creerCompte` avec un jeton déjà consommé — on annoncerait
+      // une vérification expirée à quelqu'un qui a désormais un compte.
+      setPrenom(profil.firstName);
+      reset();
     } catch (echec) {
       // Le compte peut exister alors même que la connexion échoue (un simple
       // aléa réseau entre les deux appels suffit) : dire au fermier que la
@@ -106,7 +117,7 @@ export const RegisterResultPage: FunctionComponent = () => {
       setEnCours(false);
       enVol.current = false;
     }
-  }, [phone, registrationToken, pin, profil, adresse]);
+  }, [phone, registrationToken, pin, profil, adresse, reset]);
 
   useEffect(() => {
     void creer();
@@ -117,7 +128,9 @@ export const RegisterResultPage: FunctionComponent = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (!phone) return <Navigate to={ROUTES_INSCRIPTION.telephone} replace />;
+  // Le prénom local survit au vidage du store : une fois le compte créé, un
+  // `phone` absent ne signifie plus « arrivée directe sur l'URL ».
+  if (!phone && prenom === null) return <Navigate to={ROUTES_INSCRIPTION.telephone} replace />;
 
   if (enCours) {
     return (
@@ -215,16 +228,13 @@ export const RegisterResultPage: FunctionComponent = () => {
         Compte créé !
       </Typography>
       <Typography sx={{ fontSize: 14, color: neutral[50], lineHeight: 1.5, maxWidth: 280, mb: 4 }}>
-        Bienvenue {profil.firstName}, votre compte Kumy est prêt.
+        Bienvenue {prenom}, votre compte Kumy est prêt.
       </Typography>
 
       <Button
         size="large"
         variant="contained"
-        onClick={() => {
-          reset();
-          navigate('/', { replace: true });
-        }}
+        onClick={() => navigate('/', { replace: true })}
         sx={{ maxWidth: 395, width: '100%', mt: 4 }}
       >
         Accéder à Kumy

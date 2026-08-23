@@ -1,11 +1,6 @@
 import { create } from 'zustand';
 
-import type {
-  AdresseInscription,
-  CompteVerifie,
-  ProfilInscription,
-  StatutCompte,
-} from './register.types';
+import type { AdresseInscription, CompteVerifie, ProfilInscription } from './register.types';
 
 const profilVierge = (): ProfilInscription => ({
   firstName: '',
@@ -25,7 +20,6 @@ const adresseVierge = (): AdresseInscription => ({
 interface RegisterState {
   phone: string | null;
   registrationToken: string | null;
-  statut: StatutCompte | null;
   profil: ProfilInscription;
   adresse: AdresseInscription;
   pin: string | null;
@@ -48,7 +42,6 @@ interface RegisterState {
 export const useRegisterStore = create<RegisterState>((set) => ({
   phone: null,
   registrationToken: null,
-  statut: null,
   profil: profilVierge(),
   adresse: adresseVierge(),
   pin: null,
@@ -58,7 +51,6 @@ export const useRegisterStore = create<RegisterState>((set) => ({
   setVerification: (registrationToken, account) =>
     set({
       registrationToken,
-      statut: account.statut,
       // Le profil n'arrive que sur `pending` / `inactive`. Ailleurs, l'écran
       // s'ouvre vierge plutôt que de traîner une saisie précédente.
       profil: account.profil
@@ -104,7 +96,6 @@ export const useRegisterStore = create<RegisterState>((set) => ({
     set({
       phone: null,
       registrationToken: null,
-      statut: null,
       profil: profilVierge(),
       adresse: adresseVierge(),
       pin: null,

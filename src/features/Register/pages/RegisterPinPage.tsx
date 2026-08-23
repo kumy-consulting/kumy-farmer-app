@@ -55,7 +55,10 @@ export const RegisterPinPage: FunctionComponent = () => {
       return;
     }
     setPin(premier);
-    navigate(ROUTES_INSCRIPTION.resultat);
+    // `replace` : l'écran de résultat consomme le jeton d'inscription. Laisser
+    // cette étape dans l'historique offrirait au retour matériel Android un
+    // parcours qu'on ne peut plus rejouer.
+    navigate(ROUTES_INSCRIPTION.resultat, { replace: true });
   };
 
   const handleRetour = () => {

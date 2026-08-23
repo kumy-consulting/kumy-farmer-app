@@ -12,7 +12,6 @@ describe('useRegisterStore', () => {
   it('part d’un état vierge', () => {
     expect(etat().phone).toBeNull();
     expect(etat().registrationToken).toBeNull();
-    expect(etat().statut).toBeNull();
     expect(etat().profil).toEqual({ firstName: '', lastName: '', birthDate: null });
     expect(etat().adresse.regionId).toBeNull();
     expect(etat().pin).toBeNull();
@@ -25,7 +24,6 @@ describe('useRegisterStore', () => {
     });
 
     expect(etat().registrationToken).toBe('tok-1');
-    expect(etat().statut).toBe('pending');
     expect(etat().profil).toEqual({
       firstName: 'Awa',
       lastName: 'Diallo',
