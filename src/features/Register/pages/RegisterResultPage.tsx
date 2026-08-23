@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FunctionComponent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FunctionComponent } from 'react';
 
 import { Box, Button, CircularProgress, Typography } from '@mui/material';
 import { Navigate, useNavigate } from 'react-router-dom';
@@ -10,6 +10,10 @@ import { useRegisterStore } from '@/features/Register/register.store';
 import { ApiRequestError } from '@/shared/api/client';
 import { useAuthStore } from '@/shared/stores/authStore';
 import { error as errorPalette, neutral, primary } from '@/theme/colors';
+
+/** Le compte existe (la création a réussi) mais la connexion qui suit a échoué. */
+const MESSAGE_CONNEXION_APRES_CREATION =
+  'Votre compte a bien été créé, mais la connexion a échoué. Réessayez : nous allons à nouveau tenter de vous connecter.';
 
 /** Traduit l'échec de création en une phrase qui dit quoi faire. */
 function messageErreur(erreur: unknown): string {
@@ -42,7 +46,24 @@ export const RegisterResultPage: FunctionComponent = () => {
   const [enCours, setEnCours] = useState(true);
   const [erreur, setErreur] = useState<string | null>(null);
 
+  // Des refs, pas de l'état : elles ne doivent déclencher aucun rendu, et
+  // doivent survivre intactes à la double invocation de StrictMode.
+  //
+  // `creationReussie` mémorise que le jeton a déjà été consommé avec succès :
+  // toute tentative suivante (bouton « Réessayer » après un échec de
+  // connexion, ou double montage en dev) doit sauter `creerCompte` et ne
+  // rejouer que la connexion — rejouer la création est certain d'échouer, le
+  // jeton étant à usage unique côté serveur.
+  //
+  // `enVol` empêche qu'une deuxième exécution démarre pendant qu'une première
+  // est encore en cours : c'est ce qui protège du double montage StrictMode
+  // (mount → cleanup → mount, synchrone) et d'un double clic sur « Réessayer ».
+  const creationReussie = useRef(false);
+  const enVol = useRef(false);
+
   const creer = useCallback(async () => {
+    if (enVol.current) return;
+
     if (
       !phone ||
       !registrationToken ||
@@ -57,30 +78,42 @@ export const RegisterResultPage: FunctionComponent = () => {
       return;
     }
 
+    enVol.current = true;
     setEnCours(true);
     setErreur(null);
     try {
-      await registerApi.creerCompte({
-        registrationToken,
-        firstName: profil.firstName,
-        lastName: profil.lastName,
-        birthDate: profil.birthDate,
-        regionId: adresse.regionId,
-        prefectureId: adresse.prefectureId,
-        sousPrefectureId: adresse.sousPrefectureId,
-        pin,
-      });
+      if (!creationReussie.current) {
+        await registerApi.creerCompte({
+          registrationToken,
+          firstName: profil.firstName,
+          lastName: profil.lastName,
+          birthDate: profil.birthDate,
+          regionId: adresse.regionId,
+          prefectureId: adresse.prefectureId,
+          sousPrefectureId: adresse.sousPrefectureId,
+          pin,
+        });
+        creationReussie.current = true;
+      }
       await useAuthStore.getState().login(phone, pin);
     } catch (echec) {
-      setErreur(messageErreur(echec));
+      // Le compte peut exister alors même que la connexion échoue (un simple
+      // aléa réseau entre les deux appels suffit) : dire au fermier que la
+      // création a échoué serait faux, et « Réessayer » ne pourrait de toute
+      // façon plus rejouer une création déjà réussie.
+      setErreur(creationReussie.current ? MESSAGE_CONNEXION_APRES_CREATION : messageErreur(echec));
     } finally {
       setEnCours(false);
+      enVol.current = false;
     }
   }, [phone, registrationToken, pin, profil, adresse]);
 
   useEffect(() => {
     void creer();
     // Une seule tentative au montage ; le bouton « Réessayer » rappelle `creer`.
+    // Les refs `enVol` / `creationReussie` protègent cette invocation contre le
+    // double montage de StrictMode (dev uniquement) — pas ce tableau de
+    // dépendances, qui reste volontairement vide.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
