@@ -54,4 +54,13 @@ describe('useResendCountdown', () => {
     });
     expect(result.current.secondesRestantes).toBe(45);
   });
+
+  it('resynchronise en une seule avance d\'horloge (reprise en arrière-plan)', () => {
+    const { result } = renderHook(() => useResendCountdown(60));
+
+    act(() => {
+      vi.advanceTimersByTime(60_000);
+    });
+    expect(result.current.secondesRestantes).toBe(0);
+  });
 });
