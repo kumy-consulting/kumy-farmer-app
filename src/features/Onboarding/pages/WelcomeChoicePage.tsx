@@ -36,7 +36,7 @@ export function WelcomeChoicePage() {
           Connexion
         </PrimaryButton>
 
-        <OutlinedButton onClick={() => navigate('/onboarding/register/phone')}>Créer un compte</OutlinedButton>
+        <OutlinedButton onClick={() => navigate('/inscription/telephone')}>Créer un compte</OutlinedButton>
 
         <TextLink onClick={() => navigate('/onboarding/invitation')} sx={{ mt: 0.5 }}>
           J&apos;ai une invitation

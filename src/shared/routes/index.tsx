@@ -15,9 +15,16 @@ import { InvitedWelcomePage } from '@/features/Onboarding/pages/InvitedWelcomePa
 import { OnboardingPinPage } from '@/features/Onboarding/pages/OnboardingPinPage';
 import { OnboardingProfilePage } from '@/features/Onboarding/pages/OnboardingProfilePage';
 import { OnboardingSuccessPage } from '@/features/Onboarding/pages/OnboardingSuccessPage';
-import { RegisterComingSoonPage } from '@/features/Onboarding/pages/RegisterComingSoonPage';
 import { WelcomeChoicePage } from '@/features/Onboarding/pages/WelcomeChoicePage';
 import { ParcelDetailPage } from '@/features/Parcelle/ParcelDetailPage';
+import { RegisterAddressPage } from '@/features/Register/pages/RegisterAddressPage';
+import { RegisterCodePage } from '@/features/Register/pages/RegisterCodePage';
+import { RegisterKnownAccountPage } from '@/features/Register/pages/RegisterKnownAccountPage';
+import { RegisterPhonePage } from '@/features/Register/pages/RegisterPhonePage';
+import { RegisterPinPage } from '@/features/Register/pages/RegisterPinPage';
+import { RegisterProfilePage } from '@/features/Register/pages/RegisterProfilePage';
+import { RegisterResultPage } from '@/features/Register/pages/RegisterResultPage';
+import { RegisterSuspendedPage } from '@/features/Register/pages/RegisterSuspendedPage';
 import { AppLayout } from '@/shared/components/AppLayout';
 import { ProtectedRoute } from '@/shared/components/ProtectedRoute';
 
@@ -42,7 +49,18 @@ export const router = createRouter([
   { path: '/onboarding/profile', element: <OnboardingProfilePage /> },
   { path: '/onboarding/pin', element: <OnboardingPinPage /> },
   { path: '/onboarding/success', element: <OnboardingSuccessPage /> },
-  { path: '/onboarding/register/phone', element: <RegisterComingSoonPage /> },
+  // Ancienne adresse de l'écran « Bientôt disponible » : elle a pu être mise en
+  // favori ou partagée. On la fait mener au parcours réel plutôt qu'au repli.
+  { path: '/onboarding/register/phone', element: <Navigate to="/inscription/telephone" replace /> },
+
+  { path: '/inscription/telephone', element: <RegisterPhonePage /> },
+  { path: '/inscription/code', element: <RegisterCodePage /> },
+  { path: '/inscription/deja-inscrit', element: <RegisterKnownAccountPage /> },
+  { path: '/inscription/suspendu', element: <RegisterSuspendedPage /> },
+  { path: '/inscription/profil', element: <RegisterProfilePage /> },
+  { path: '/inscription/adresse', element: <RegisterAddressPage /> },
+  { path: '/inscription/code-confidentiel', element: <RegisterPinPage /> },
+  { path: '/inscription/resultat', element: <RegisterResultPage /> },
   {
     element: (
       <ProtectedRoute>
