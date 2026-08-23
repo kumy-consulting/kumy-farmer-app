@@ -1,6 +1,9 @@
-import type { FunctionComponent } from 'react';
+import { useCallback, useEffect, useState, type FunctionComponent } from 'react';
 
 import CheckRounded from '@mui/icons-material/CheckRounded';
+import ChevronLeftRounded from '@mui/icons-material/ChevronLeftRounded';
+import ChevronRightRounded from '@mui/icons-material/ChevronRightRounded';
+import CloseRounded from '@mui/icons-material/CloseRounded';
 import PersonPinCircleRounded from '@mui/icons-material/PersonPinCircleRounded';
 import { Box, Stack, Typography } from '@mui/material';
 import dayjs from 'dayjs';
@@ -12,38 +15,149 @@ interface CarnetTabContentProps {
 }
 
 /**
- * Pression d'adventices constatée.
+ * Le sourcil d'une observation : de quoi elle parle.
  *
- * Le mot du technicien est « adventices » ; on le garde, parce que c'est celui
- * qu'il emploiera de vive voix devant la parcelle. La teinte porte le degré —
- * un agriculteur qui parcourt son carnet voit d'abord la couleur.
+ * Deux origines, un seul emplacement. Une observation tirée d'un journal ITK
+ * nomme la tâche qu'elle accompagnait ; une observation libre annonce la
+ * pression d'adventices constatée. Les deux répondent à la même question, et
+ * ne coexistent jamais — leur donner deux traitements typographiques ferait
+ * lire deux choses là où il n'y en a qu'une.
+ *
+ * La pastille pleine porte le degré : un agriculteur qui parcourt son carnet
+ * voit d'abord la couleur, et le mot « adventices » est celui que le technicien
+ * emploiera de vive voix devant la parcelle.
  */
-const PRESSIONS: Record<PressionAdventices, { texte: string; fond: string; encre: string }> = {
-  none: { texte: 'Adventices : aucune', fond: 'rgba(1,134,117,0.12)', encre: '#016557' },
-  low: { texte: 'Adventices : faible', fond: 'rgba(1,134,117,0.12)', encre: '#016557' },
-  moderate: { texte: 'Adventices : modérée', fond: 'rgba(198,138,26,0.16)', encre: '#8C5000' },
-  high: { texte: 'Adventices : forte', fond: 'rgba(193,58,44,0.14)', encre: '#A3271B' },
+const PRESSIONS: Record<PressionAdventices, { texte: string; teinte: string }> = {
+  none: { texte: 'Adventices : aucune', teinte: '#018675' },
+  low: { texte: 'Adventices : faible', teinte: '#018675' },
+  moderate: { texte: 'Adventices : modérée', teinte: '#C68A1A' },
+  high: { texte: 'Adventices : forte', teinte: '#C13A2C' },
 };
 
-const Pression: FunctionComponent<{ niveau?: PressionAdventices }> = ({ niveau }) => {
-  if (!niveau) return null;
-  const { texte, fond, encre } = PRESSIONS[niveau];
+const Sourcil: FunctionComponent<{ aPropos?: string; pression?: PressionAdventices }> = ({
+  aPropos,
+  pression,
+}) => {
+  if (!pression && !aPropos) return null;
+  const p = pression ? PRESSIONS[pression] : null;
+
+  return (
+    <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 0.85 }}>
+      {p && (
+        <Box
+          aria-hidden
+          sx={{ width: 7, height: 7, borderRadius: '50%', background: p.teinte, flexShrink: 0 }}
+        />
+      )}
+      <Typography
+        sx={{
+          fontSize: 11,
+          fontWeight: 700,
+          letterSpacing: '0.07em',
+          textTransform: 'uppercase',
+          color: p ? p.teinte : '#5C5F5E',
+        }}
+      >
+        {p ? p.texte : aPropos}
+      </Typography>
+    </Stack>
+  );
+};
+
+/**
+ * Le visionneur plein écran.
+ *
+ * Fond `#0B1F1B` — le vert presque noir de la palette Kumy, pas un noir
+ * générique : de la terre et des feuilles se lisent mieux sur cette teinte, et
+ * on reste dans l'application plutôt que dans une visionneuse d'images.
+ *
+ * Le compteur et les flèches ne paraissent que s'il y a une suite. Sur une
+ * photo seule, ils ne diraient rien.
+ */
+const Visionneuse: FunctionComponent<{
+  photos: CarnetObservation['photos'];
+  depart: number;
+  onFermer: () => void;
+}> = ({ photos, depart, onFermer }) => {
+  const [rang, setRang] = useState(depart);
+  const plusieurs = photos.length > 1;
+
+  const bouger = useCallback(
+    (pas: number) => setRang((r) => (r + pas + photos.length) % photos.length),
+    [photos.length],
+  );
+
+  useEffect(() => {
+    const auClavier = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onFermer();
+      if (e.key === 'ArrowRight') bouger(1);
+      if (e.key === 'ArrowLeft') bouger(-1);
+    };
+    window.addEventListener('keydown', auClavier);
+    return () => window.removeEventListener('keydown', auClavier);
+  }, [bouger, onFermer]);
+
+  const photo = photos[rang];
+
+  const commande = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    appearance: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    color: '#FFFFFF',
+    background: 'rgba(255,255,255,0.12)',
+    '&:focus-visible': { outline: '2px solid #93F4E0', outlineOffset: 2 },
+  } as const;
+
   return (
     <Box
-      component="span"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Photo de la parcelle"
       sx={{
-        display: 'inline-block',
-        mt: 0.75,
-        px: 1,
-        py: 0.4,
-        borderRadius: 999,
-        background: fond,
-        fontSize: 11,
-        fontWeight: 700,
-        color: encre,
+        position: 'fixed',
+        inset: 0,
+        zIndex: 1400,
+        background: '#0B1F1B',
+        display: 'flex',
+        flexDirection: 'column',
+        pt: 'calc(env(safe-area-inset-top, 0px) + 10px)',
+        pb: 'calc(env(safe-area-inset-bottom, 0px) + 14px)',
       }}
     >
-      {texte}
+      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 2, flexShrink: 0 }}>
+        <Typography sx={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.72)' }}>
+          {plusieurs ? `${rang + 1} / ${photos.length}` : ''}
+        </Typography>
+        <Box component="button" type="button" aria-label="Fermer" onClick={onFermer}
+          sx={{ ...commande, width: 38, height: 38, borderRadius: '50%' }}>
+          <CloseRounded sx={{ fontSize: 22 }} />
+        </Box>
+      </Stack>
+
+      <Box sx={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', px: 2 }}>
+        <Box
+          component="img"
+          src={photo.url}
+          alt={photo.legende ?? 'Photo prise sur la parcelle'}
+          sx={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: '10px' }}
+        />
+      </Box>
+
+      {plusieurs && (
+        <Stack direction="row" alignItems="center" justifyContent="center" spacing={2.5} sx={{ pt: 1.5, flexShrink: 0 }}>
+          <Box component="button" type="button" aria-label="Photo précédente" onClick={() => bouger(-1)}
+            sx={{ ...commande, width: 46, height: 46, borderRadius: '50%' }}>
+            <ChevronLeftRounded sx={{ fontSize: 26 }} />
+          </Box>
+          <Box component="button" type="button" aria-label="Photo suivante" onClick={() => bouger(1)}
+            sx={{ ...commande, width: 46, height: 46, borderRadius: '50%' }}>
+            <ChevronRightRounded sx={{ fontSize: 26 }} />
+          </Box>
+        </Stack>
+      )}
     </Box>
   );
 };
@@ -56,7 +170,10 @@ const Pression: FunctionComponent<{ niveau?: PressionAdventices }> = ({ niveau }
  * Une bande garde des vignettes lisibles et laisse la place au texte, qui reste
  * la partie qui se lit.
  */
-const Photos: FunctionComponent<{ photos: CarnetObservation['photos'] }> = ({ photos }) => {
+const Photos: FunctionComponent<{
+  photos: CarnetObservation['photos'];
+  onOuvrir: (rang: number) => void;
+}> = ({ photos, onOuvrir }) => {
   if (photos.length === 0) return null;
   return (
     <Stack
@@ -74,23 +191,37 @@ const Photos: FunctionComponent<{ photos: CarnetObservation['photos'] }> = ({ ph
         px: 1.75,
       }}
     >
-      {photos.map((photo) => (
+      {photos.map((photo, rang) => (
         <Box
           key={photo.url}
-          component="img"
-          src={photo.url}
-          alt={photo.legende ?? 'Photo prise sur la parcelle'}
-          loading="lazy"
+          component="button"
+          type="button"
+          aria-label={`Agrandir la photo ${rang + 1}`}
+          onClick={() => onOuvrir(rang)}
           sx={{
             flexShrink: 0,
-            width: 112,
-            height: 112,
-            objectFit: 'cover',
-            borderRadius: '14px',
-            background: 'rgba(55,75,70,0.08)',
+            p: 0,
+            appearance: 'none',
             border: '1px solid rgba(55,75,70,0.10)',
+            borderRadius: '14px',
+            overflow: 'hidden',
+            cursor: 'pointer',
+            background: 'rgba(55,75,70,0.08)',
+            lineHeight: 0,
+            transition: 'transform 0.16s ease',
+            '&:active': { transform: 'scale(0.97)' },
+            '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+            '&:focus-visible': { outline: '2px solid #016557', outlineOffset: 2 },
           }}
-        />
+        >
+          <Box
+            component="img"
+            src={photo.url}
+            alt={photo.legende ?? 'Photo prise sur la parcelle'}
+            loading="lazy"
+            sx={{ width: 112, height: 112, objectFit: 'cover', display: 'block' }}
+          />
+        </Box>
       ))}
     </Stack>
   );
@@ -115,6 +246,14 @@ const Photos: FunctionComponent<{ photos: CarnetObservation['photos'] }> = ({ ph
  * parce que la suite n'est pas écrite.
  */
 export const CarnetTabContent: FunctionComponent<CarnetTabContentProps> = ({ visites }) => {
+  // La photo regardée, et le rang d'où l'on est parti. `null` = personne ne
+  // regarde. L'état vit ici plutôt que dans chaque observation : un seul
+  // visionneur peut être ouvert, et c'est la page qui le sait.
+  const [visionnee, setVisionnee] = useState<{
+    photos: CarnetObservation['photos'];
+    depart: number;
+  } | null>(null);
+
   if (visites.length === 0) {
     return (
       <Box sx={{ px: 2, py: 3 }}>
@@ -193,19 +332,33 @@ export const CarnetTabContent: FunctionComponent<CarnetTabContentProps> = ({ vis
                   }}
                 >
                   {visite.observations.map((observation, rang) => (
-                    <Box key={observation.id} sx={{ mt: rang === 0 ? 0 : 1.75 }}>
-                      {observation.aPropos && (
-                        <Typography sx={{ fontSize: 11.5, fontWeight: 700, color: '#5C5F5E', mb: 0.35 }}>
-                          {observation.aPropos}
-                        </Typography>
-                      )}
+                    <Box
+                      key={observation.id}
+                      sx={{
+                        // Un filet sépare deux constats du même passage : sans
+                        // lui, deux notes courtes se lisent comme un paragraphe.
+                        mt: rang === 0 ? 0 : 1.6,
+                        pt: rang === 0 ? 0 : 1.6,
+                        borderTop: rang === 0 ? 'none' : '1px solid rgba(55,75,70,0.08)',
+                      }}
+                    >
+                      <Sourcil aPropos={observation.aPropos} pression={observation.pression} />
+                      <Photos
+                        photos={observation.photos}
+                        onOuvrir={(depart) => setVisionnee({ photos: observation.photos, depart })}
+                      />
                       {observation.texte && (
-                        <Typography sx={{ fontSize: 13.5, color: '#1A1C1B', lineHeight: 1.5 }}>
+                        <Typography
+                          sx={{
+                            fontSize: 13.5,
+                            color: '#1A1C1B',
+                            lineHeight: 1.55,
+                            mt: observation.photos.length > 0 ? 1.1 : 0,
+                          }}
+                        >
                           {observation.texte}
                         </Typography>
                       )}
-                      <Pression niveau={observation.pression} />
-                      <Photos photos={observation.photos} />
                     </Box>
                   ))}
 
@@ -284,6 +437,14 @@ export const CarnetTabContent: FunctionComponent<CarnetTabContentProps> = ({ vis
           );
         })}
       </Stack>
+
+      {visionnee && (
+        <Visionneuse
+          photos={visionnee.photos}
+          depart={visionnee.depart}
+          onFermer={() => setVisionnee(null)}
+        />
+      )}
     </Box>
   );
 };
