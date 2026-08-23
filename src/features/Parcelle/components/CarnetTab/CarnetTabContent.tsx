@@ -54,11 +54,11 @@ const photosDuPassage = (visite: CarnetVisite): PhotoDuPassage[] =>
  * voit d'abord la couleur, et le mot « adventices » est celui que le technicien
  * emploiera de vive voix devant la parcelle.
  */
-const PRESSIONS: Record<PressionAdventices, { texte: string; teinte: string }> = {
-  none: { texte: 'Adventices : aucune', teinte: '#018675' },
-  low: { texte: 'Adventices : faible', teinte: '#018675' },
-  moderate: { texte: 'Adventices : modérée', teinte: '#C68A1A' },
-  high: { texte: 'Adventices : forte', teinte: '#C13A2C' },
+const PRESSIONS: Record<PressionAdventices, { texte: string; pastille: string; encre: string }> = {
+  none: { texte: 'Adventices : aucune', pastille: '#35A18F', encre: '#016557' },
+  low: { texte: 'Adventices : faible', pastille: '#35A18F', encre: '#016557' },
+  moderate: { texte: 'Adventices : modérée', pastille: '#C68A1A', encre: '#8C5000' },
+  high: { texte: 'Adventices : forte', pastille: '#C13A2C', encre: '#A3271B' },
 };
 
 const Sourcil: FunctionComponent<{ aPropos?: string; pression?: PressionAdventices }> = ({
@@ -73,16 +73,17 @@ const Sourcil: FunctionComponent<{ aPropos?: string; pression?: PressionAdventic
       {p && (
         <Box
           aria-hidden
-          sx={{ width: 7, height: 7, borderRadius: '50%', background: p.teinte, flexShrink: 0 }}
+          sx={{ width: 6, height: 6, borderRadius: '50%', background: p.pastille, flexShrink: 0 }}
         />
       )}
       <Typography
         sx={{
-          fontSize: 11,
-          fontWeight: 700,
-          letterSpacing: '0.07em',
-          textTransform: 'uppercase',
-          color: p ? p.teinte : '#5C5F5E',
+          // Bas-de-casse et sans interlettrage : les capitales espacées sont
+          // réservées à l'en-tête du passage, qui est le niveau au-dessus.
+          // Répété trois fois dans une même carte, ce traitement criait.
+          fontSize: 11.5,
+          fontWeight: 600,
+          color: p ? p.encre : '#5C5F5E',
         }}
       >
         {p ? p.texte : aPropos}
@@ -206,12 +207,17 @@ const Visionneuse: FunctionComponent<{
 };
 
 /**
- * Photos d'une observation.
+ * La planche-contact d'un passage.
  *
- * Bande défilante et non grille : sur un téléphone, une grille de vignettes
- * rétrécit chaque photo jusqu'à ce qu'on n'y distingue plus la feuille du sol.
- * Une bande garde des vignettes lisibles et laisse la place au texte, qui reste
- * la partie qui se lit.
+ * Bande défilante et non grille, pour deux raisons qui tiennent à 76 px comme
+ * elles tenaient plus grand : une bande absorbe un nombre quelconque de photos
+ * sans jamais coûter plus d'une hauteur de vignette, là où une grille pousse
+ * les notes toujours plus bas ; et sa dernière tuile coupée au bord de la carte
+ * dit qu'il y a une suite, ce qu'une grille complète ne dit pas.
+ *
+ * 76 px plutôt que 112 : à cette échelle on reconnaît la parcelle sans que les
+ * photos prennent le pas sur ce que le technicien a écrit. Le détail se regarde
+ * en grand, d'un tap.
  */
 const Photos: FunctionComponent<{
   photos: PhotoDuPassage[];
@@ -221,7 +227,7 @@ const Photos: FunctionComponent<{
   return (
     <Stack
       direction="row"
-      spacing={1}
+      spacing={0.75}
       sx={{
         overflowX: 'auto',
         pb: 0.5,
@@ -245,7 +251,7 @@ const Photos: FunctionComponent<{
             p: 0,
             appearance: 'none',
             border: '1px solid rgba(55,75,70,0.10)',
-            borderRadius: '14px',
+            borderRadius: '10px',
             overflow: 'hidden',
             cursor: 'pointer',
             background: 'rgba(55,75,70,0.08)',
@@ -261,7 +267,7 @@ const Photos: FunctionComponent<{
             src={photo.url}
             alt={photo.legende ?? 'Photo prise sur la parcelle'}
             loading="lazy"
-            sx={{ width: 112, height: 112, objectFit: 'cover', display: 'block' }}
+            sx={{ width: 76, height: 76, objectFit: 'cover', display: 'block' }}
           />
         </Box>
       ))}
