@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -127,5 +127,36 @@ describe('RegisterAddressPage', () => {
     renderPage();
 
     expect(await screen.findByText(/Impossible de charger la liste/)).toBeInTheDocument();
+  });
+
+  it('ignore une réponse de préfectures en retard pour une région déjà quittée', async () => {
+    const user = userEvent.setup();
+
+    let resoudreR1: ((value: { id: string; name: string }[]) => void) | undefined;
+    const prefecturesR1 = new Promise<{ id: string; name: string }[]>((resolve) => {
+      resoudreR1 = resolve;
+    });
+
+    vi.spyOn(onboardingApi, 'getPrefectures').mockImplementation(async (regionId) =>
+      regionId === 'r1' ? prefecturesR1 : [{ id: 'p3', name: 'Boffa' }],
+    );
+
+    renderPage();
+    await waitFor(() => expect(onboardingApi.getRegions).toHaveBeenCalled());
+
+    await choisir(user, 'Région', 'Kindia');
+    await choisir(user, 'Région', 'Boké');
+
+    await waitFor(() => expect(onboardingApi.getPrefectures).toHaveBeenCalledWith('r2'));
+
+    // La réponse tardive de r1 arrive après celle de r2 : elle ne doit rien écraser.
+    await act(async () => {
+      resoudreR1?.([{ id: 'p1', name: 'Coyah' }, { id: 'p2', name: 'Dubréka' }]);
+      await prefecturesR1;
+    });
+
+    await user.click(screen.getByLabelText('Préfecture'));
+    expect(await screen.findByRole('option', { name: 'Boffa' })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Coyah' })).not.toBeInTheDocument();
   });
 });

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FunctionComponent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FunctionComponent } from 'react';
 
 import HolidayVillageRoundedIcon from '@mui/icons-material/HolidayVillageRounded';
 import LocationCityRoundedIcon from '@mui/icons-material/LocationCityRounded';
@@ -45,6 +45,13 @@ export const RegisterAddressPage: FunctionComponent = () => {
   const [sousPrefectures, setSousPrefectures] = useState<ReferentialItem[]>([]);
   const [erreurChargement, setErreurChargement] = useState(false);
 
+  // Une réponse lente ne doit jamais écraser une demande plus récente : sur un
+  // réseau lent, deux changements de région rapprochés arrivent parfois dans le
+  // désordre, et la liste afficherait les préfectures de l'ancienne région
+  // pendant que le store porte déjà la nouvelle.
+  const demandePrefectures = useRef(0);
+  const demandeSousPrefectures = useRef(0);
+
   const chargerRegions = useCallback(async () => {
     setErreurChargement(false);
     try {
@@ -65,9 +72,16 @@ export const RegisterAddressPage: FunctionComponent = () => {
     setPrefectures([]);
     setSousPrefectures([]);
     setErreurChargement(false);
+    const ticket = ++demandePrefectures.current;
+    // Une sous-préfecture encore en vol pour l'ancienne préfecture ne doit pas
+    // non plus pouvoir s'appliquer une fois la région changée.
+    demandeSousPrefectures.current += 1;
     try {
-      setPrefectures(await onboardingApi.getPrefectures(id));
+      const items = await onboardingApi.getPrefectures(id);
+      if (ticket !== demandePrefectures.current) return;
+      setPrefectures(items);
     } catch {
+      if (ticket !== demandePrefectures.current) return;
       setErreurChargement(true);
     }
   };
@@ -76,9 +90,13 @@ export const RegisterAddressPage: FunctionComponent = () => {
     setAdresse({ prefectureId: id, prefectureName: name });
     setSousPrefectures([]);
     setErreurChargement(false);
+    const ticket = ++demandeSousPrefectures.current;
     try {
-      setSousPrefectures(await registerApi.getSousPrefectures(id));
+      const items = await registerApi.getSousPrefectures(id);
+      if (ticket !== demandeSousPrefectures.current) return;
+      setSousPrefectures(items);
     } catch {
+      if (ticket !== demandeSousPrefectures.current) return;
       setErreurChargement(true);
     }
   };
