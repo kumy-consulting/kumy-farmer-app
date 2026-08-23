@@ -79,6 +79,77 @@ describe('useRegisterStore', () => {
     expect(etat().adresse.regionId).toBe('r1');
   });
 
+  it('garde la préfecture fournie dans le même appel que le changement de région', () => {
+    etat().setAdresse({
+      regionId: 'r1',
+      regionName: 'Kindia',
+      prefectureId: 'p1',
+      prefectureName: 'Coyah',
+      sousPrefectureId: 'sp1',
+      sousPrefectureName: 'Manéah',
+    });
+
+    etat().setAdresse({
+      regionId: 'r2',
+      regionName: 'Boké',
+      prefectureId: 'p3',
+      prefectureName: 'Boffa',
+    });
+
+    expect(etat().adresse).toEqual({
+      regionId: 'r2',
+      regionName: 'Boké',
+      prefectureId: 'p3',
+      prefectureName: 'Boffa',
+      sousPrefectureId: null,
+      sousPrefectureName: null,
+    });
+  });
+
+  it('ne remet rien à zéro quand la région fournie est déjà la région courante', () => {
+    etat().setAdresse({
+      regionId: 'r1',
+      regionName: 'Kindia',
+      prefectureId: 'p1',
+      prefectureName: 'Coyah',
+      sousPrefectureId: 'sp1',
+      sousPrefectureName: 'Manéah',
+    });
+
+    etat().setAdresse({ regionId: 'r1', regionName: 'Kindia' });
+
+    expect(etat().adresse).toEqual({
+      regionId: 'r1',
+      regionName: 'Kindia',
+      prefectureId: 'p1',
+      prefectureName: 'Coyah',
+      sousPrefectureId: 'sp1',
+      sousPrefectureName: 'Manéah',
+    });
+  });
+
+  it('remet préfecture et sous-préfecture à zéro quand la région est effacée', () => {
+    etat().setAdresse({
+      regionId: 'r1',
+      regionName: 'Kindia',
+      prefectureId: 'p1',
+      prefectureName: 'Coyah',
+      sousPrefectureId: 'sp1',
+      sousPrefectureName: 'Manéah',
+    });
+
+    etat().setAdresse({ regionId: null, regionName: null });
+
+    expect(etat().adresse).toEqual({
+      regionId: null,
+      regionName: null,
+      prefectureId: null,
+      prefectureName: null,
+      sousPrefectureId: null,
+      sousPrefectureName: null,
+    });
+  });
+
   it('efface tout, jeton et code confidentiel compris, à la réinitialisation', () => {
     etat().setPhone('+224622201362');
     etat().setVerification('tok-3', { statut: 'absent' });

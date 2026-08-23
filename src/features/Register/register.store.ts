@@ -78,16 +78,20 @@ export const useRegisterStore = create<RegisterState>((set) => ({
   setAdresse: (partial) =>
     set((state) => {
       const adresse = { ...state.adresse, ...partial };
-      if (partial.regionId !== undefined && partial.regionId !== state.adresse.regionId) {
+      const regionChanged =
+        partial.regionId !== undefined && partial.regionId !== state.adresse.regionId;
+      const prefectureChanged =
+        partial.prefectureId !== undefined && partial.prefectureId !== state.adresse.prefectureId;
+
+      // On ne remet à zéro que ce que l'appelant n'a PAS fourni : changer de
+      // région invalide la préfecture héritée, pas celle qu'on vient de
+      // choisir dans le même geste. Une valeur explicite l'emporte toujours
+      // sur la remise à zéro automatique.
+      if (regionChanged && partial.prefectureId === undefined) {
         adresse.prefectureId = null;
         adresse.prefectureName = null;
-        adresse.sousPrefectureId = null;
-        adresse.sousPrefectureName = null;
       }
-      if (
-        partial.prefectureId !== undefined &&
-        partial.prefectureId !== state.adresse.prefectureId
-      ) {
+      if ((regionChanged || prefectureChanged) && partial.sousPrefectureId === undefined) {
         adresse.sousPrefectureId = null;
         adresse.sousPrefectureName = null;
       }
