@@ -8,11 +8,38 @@ import PersonPinCircleRounded from '@mui/icons-material/PersonPinCircleRounded';
 import { Box, Stack, Typography } from '@mui/material';
 import dayjs from 'dayjs';
 
-import type { CarnetObservation, CarnetVisite, PressionAdventices } from '../../carnet.types';
+import type { CarnetVisite, PressionAdventices } from '../../carnet.types';
 
 interface CarnetTabContentProps {
   visites: CarnetVisite[];
 }
+
+/**
+ * Une photo du passage, avec de quoi dire d'où elle vient.
+ *
+ * Réunir les photos d'un même jour dans une bande unique fait perdre, dans la
+ * liste, le lien entre une photo et la note qui la commente. On le rétablit là
+ * où il compte : en grand, sous la photo. `constat` porte la note du constat,
+ * à défaut la pression relevée.
+ */
+interface PhotoDuPassage {
+  url: string;
+  legende?: string;
+  constat?: string;
+}
+
+/**
+ * Les photos d'un passage, tous constats confondus, dans l'ordre où les
+ * constats sont racontés.
+ */
+const photosDuPassage = (visite: CarnetVisite): PhotoDuPassage[] =>
+  visite.observations.flatMap((o) =>
+    o.photos.map((p) => ({
+      url: p.url,
+      legende: p.legende,
+      constat: o.texte ?? (o.pression ? PRESSIONS[o.pression].texte : undefined),
+    })),
+  );
 
 /**
  * Le sourcil d'une observation : de quoi elle parle.
@@ -75,7 +102,7 @@ const Sourcil: FunctionComponent<{ aPropos?: string; pression?: PressionAdventic
  * photo seule, ils ne diraient rien.
  */
 const Visionneuse: FunctionComponent<{
-  photos: CarnetObservation['photos'];
+  photos: PhotoDuPassage[];
   depart: number;
   onFermer: () => void;
 }> = ({ photos, depart, onFermer }) => {
@@ -146,6 +173,22 @@ const Visionneuse: FunctionComponent<{
         />
       </Box>
 
+      {photo.constat && (
+        <Typography
+          sx={{
+            flexShrink: 0,
+            px: 3,
+            pt: 1.75,
+            fontSize: 13.5,
+            lineHeight: 1.5,
+            textAlign: 'center',
+            color: 'rgba(255,255,255,0.86)',
+          }}
+        >
+          {photo.constat}
+        </Typography>
+      )}
+
       {plusieurs && (
         <Stack direction="row" alignItems="center" justifyContent="center" spacing={2.5} sx={{ pt: 1.5, flexShrink: 0 }}>
           <Box component="button" type="button" aria-label="Photo précédente" onClick={() => bouger(-1)}
@@ -171,7 +214,7 @@ const Visionneuse: FunctionComponent<{
  * la partie qui se lit.
  */
 const Photos: FunctionComponent<{
-  photos: CarnetObservation['photos'];
+  photos: PhotoDuPassage[];
   onOuvrir: (rang: number) => void;
 }> = ({ photos, onOuvrir }) => {
   if (photos.length === 0) return null;
@@ -180,7 +223,6 @@ const Photos: FunctionComponent<{
       direction="row"
       spacing={1}
       sx={{
-        mt: 1.25,
         overflowX: 'auto',
         pb: 0.5,
         scrollbarWidth: 'none',
@@ -250,7 +292,7 @@ export const CarnetTabContent: FunctionComponent<CarnetTabContentProps> = ({ vis
   // regarde. L'état vit ici plutôt que dans chaque observation : un seul
   // visionneur peut être ouvert, et c'est la page qui le sait.
   const [visionnee, setVisionnee] = useState<{
-    photos: CarnetObservation['photos'];
+    photos: PhotoDuPassage[];
     depart: number;
   } | null>(null);
 
@@ -282,6 +324,9 @@ export const CarnetTabContent: FunctionComponent<CarnetTabContentProps> = ({ vis
       <Stack spacing={0}>
         {visites.map((visite, index) => {
           const dernier = index === visites.length - 1;
+          // Une seule bande pour tout le passage : ce que le technicien a
+          // photographié ce jour-là, d'un coup d'œil.
+          const bande = photosDuPassage(visite);
           return (
             <Stack key={visite.id} direction="row" spacing={1.5} sx={{ position: 'relative' }}>
               {/* Rail du temps : la pastille marque le passage, le trait relie au
@@ -331,31 +376,23 @@ export const CarnetTabContent: FunctionComponent<CarnetTabContentProps> = ({ vis
                     overflow: 'hidden',
                   }}
                 >
+                  <Photos photos={bande} onOuvrir={(depart) => setVisionnee({ photos: bande, depart })} />
+
                   {visite.observations.map((observation, rang) => (
                     <Box
                       key={observation.id}
                       sx={{
-                        // Un filet sépare deux constats du même passage : sans
+                        // Le premier constat ne se décolle que de la bande, s'il
+                        // y en a une. Un filet sépare ensuite deux constats : sans
                         // lui, deux notes courtes se lisent comme un paragraphe.
-                        mt: rang === 0 ? 0 : 1.6,
-                        pt: rang === 0 ? 0 : 1.6,
+                        mt: rang === 0 ? (bande.length > 0 ? 1.4 : 0) : 1.4,
+                        pt: rang === 0 ? 0 : 1.4,
                         borderTop: rang === 0 ? 'none' : '1px solid rgba(55,75,70,0.08)',
                       }}
                     >
                       <Sourcil aPropos={observation.aPropos} pression={observation.pression} />
-                      <Photos
-                        photos={observation.photos}
-                        onOuvrir={(depart) => setVisionnee({ photos: observation.photos, depart })}
-                      />
                       {observation.texte && (
-                        <Typography
-                          sx={{
-                            fontSize: 13.5,
-                            color: '#1A1C1B',
-                            lineHeight: 1.55,
-                            mt: observation.photos.length > 0 ? 1.1 : 0,
-                          }}
-                        >
+                        <Typography sx={{ fontSize: 13.5, color: '#1A1C1B', lineHeight: 1.55 }}>
                           {observation.texte}
                         </Typography>
                       )}

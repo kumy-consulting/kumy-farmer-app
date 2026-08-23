@@ -80,24 +80,72 @@ describe('CarnetTabContent — photos', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('n’ouvre que les photos de l’observation touchée', () => {
+  it('réunit dans une seule bande les photos de toutes les observations du jour', () => {
     render(
       <CarnetTabContent
         visites={[
           visite({
             observations: [
-              { id: 'o1', photos: photos(2) },
-              { id: 'o2', photos: [{ url: 'https://ex.test/autre.jpg' }] },
+              { id: 'o1', texte: 'Foyer en bordure', photos: photos(2) },
+              { id: 'o2', texte: 'Sol tassé', photos: [{ url: 'https://ex.test/autre.jpg' }] },
             ],
           }),
         ]}
       />,
     );
 
-    // La 3e vignette de la page appartient à la 2e observation.
-    fireEvent.click(screen.getAllByRole('button', { name: /agrandir/i })[2]);
+    // Trois photos venues de deux constats, une seule série.
+    const vignettes = screen.getAllByRole('button', { name: /agrandir/i });
+    expect(vignettes).toHaveLength(3);
 
-    expect(screen.queryByText(/\/ 2$/)).toBeNull();
+    fireEvent.click(vignettes[2]);
+    expect(screen.getByText('3 / 3')).toBeDefined();
+  });
+
+  it('la bande passe avant les notes du passage', () => {
+    render(
+      <CarnetTabContent
+        visites={[visite({ observations: [{ id: 'o1', texte: 'Foyer en bordure', photos: photos(1) }] })]}
+      />,
+    );
+
+    const bande = screen.getByRole('button', { name: /agrandir/i });
+    const note = screen.getByText('Foyer en bordure');
+    // Node.DOCUMENT_POSITION_FOLLOWING === 4
+    expect(bande.compareDocumentPosition(note) & 4).toBeTruthy();
+  });
+
+  it('nomme, dans le visionneur, le constat dont la photo vient', () => {
+    render(
+      <CarnetTabContent
+        visites={[
+          visite({
+            observations: [
+              { id: 'o1', texte: 'Foyer en bordure', photos: photos(1) },
+              { id: 'o2', texte: 'Sol tassé au nord', photos: [{ url: 'https://ex.test/autre.jpg' }] },
+            ],
+          }),
+        ]}
+      />,
+    );
+
+    fireEvent.click(screen.getAllByRole('button', { name: /agrandir/i })[1]);
+
+    const dialogue = screen.getByRole('dialog');
+    expect(dialogue.textContent).toContain('Sol tassé au nord');
+    expect(dialogue.textContent).not.toContain('Foyer en bordure');
+  });
+
+  it('retombe sur la pression quand le constat n’a pas de note', () => {
+    render(
+      <CarnetTabContent
+        visites={[visite({ observations: [{ id: 'o1', pression: 'high', photos: photos(1) }] })]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /agrandir/i }));
+
+    expect(screen.getByRole('dialog').textContent).toContain('Adventices : forte');
   });
 });
 
