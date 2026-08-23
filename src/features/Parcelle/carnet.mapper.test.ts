@@ -114,10 +114,33 @@ describe('buildCarnet', () => {
     expect(carnet[0].observations[0].texte).toBeUndefined();
   });
 
-  it('ignore une consigne sans visite : elle vit dans le fil, pas dans le carnet', () => {
+  it('garde une consigne donnée hors visite : seul un technicien peut en écrire', () => {
+    // L'app technicien ne pose un `visitId` que si une visite est ouverte à cet
+    // instant. Exiger ce champ vidait le carnet de la plupart des consignes
+    // réellement données sur la parcelle.
     const taches = [consigne({ id: 'c1', title: 'Sarclage', createdAt: '2026-08-13T11:00:00.000Z', visitId: null })];
 
-    expect(buildCarnet(null, taches, NOW)).toEqual([]);
+    const carnet = buildCarnet(null, taches, NOW);
+    expect(carnet).toHaveLength(1);
+    expect(carnet[0].auteur).toBe('Dr Camara');
+    expect(carnet[0].consignes.map((c) => c.titre)).toEqual(['Sarclage']);
+  });
+
+  it('range une consigne hors visite dans le passage du même jour que l’observation', () => {
+    const itk = itkAvec([
+      tacheItk({
+        taskId: 't1',
+        completedLog: log({ logId: 'l1', completedAt: '2026-08-13T10:00:00.000Z', notes: 'Adventices fortes' }),
+      }),
+    ]);
+    const taches = [
+      consigne({ id: 'c1', title: 'Désherbage parcelle', createdAt: '2026-08-13T11:30:00.000Z', visitId: null }),
+    ];
+
+    const carnet = buildCarnet(itk, taches, NOW);
+    expect(carnet).toHaveLength(1);
+    expect(carnet[0].observations.map((o) => o.texte)).toEqual(['Adventices fortes']);
+    expect(carnet[0].consignes.map((c) => c.titre)).toEqual(['Désherbage parcelle']);
   });
 
   it('rend les passages du plus récent au plus ancien', () => {

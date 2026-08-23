@@ -40,7 +40,7 @@ export interface ParcelDetail {
   itk: ItkParcelTasks | null;
   /**
    * Le carnet de la parcelle : ce que le technicien y a vu et demandé, passage par
-   * passage. Dérivé des journaux ITK et des consignes rattachées à une visite.
+   * passage. Dérivé des journaux ITK et des consignes de la parcelle.
    */
   carnet: CarnetVisite[];
   /** Série NDVI (courbe onglet Conseils). */
@@ -108,8 +108,10 @@ export function useParcelDetail(farmId: string | undefined, parcelId: string | u
       parcelleApi.itkTasks(parcelId),
       parcelleApi.indicators(parcelId, 6),
       parcelleApi.yieldEstimate(parcelId),
-      // Consignes de l'agriculteur, filtrées ensuite sur cette parcelle :
-      // `GET /field-tasks` ne prend pas de `parcelId`, seulement un `farmerId`.
+      // Consignes de l'agriculteur, filtrées ensuite sur cette parcelle. Le
+      // serveur accepte aussi un `parcelId`, mais il exclut alors le `farmerId`
+      // du filtre : passer par l'agriculteur garde la requête dans le périmètre
+      // qu'un FARMER a le droit de lire.
       farmerId ? fieldTasksApi.list(farmerId) : Promise.resolve([]),
     ])
       .then(([parcelRes, itkRes, indicatorsRes, yieldRes, tasksRes]) => {

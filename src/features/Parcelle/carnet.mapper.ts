@@ -76,9 +76,11 @@ export function buildCarnet(itk: ItkParcelTasks | null, taches: FieldTask[], now
   }
 
   for (const tache of taches) {
-    // Sans `visitId`, la consigne n'est rattachée à aucun passage : elle vit
-    // dans le fil de l'accueil, pas dans le carnet de la parcelle.
-    if (!tache.visitId) continue;
+    // Pas de filtre sur `visitId` : l'app technicien ne le renseigne que si une
+    // visite est ouverte au moment de la saisie, alors qu'une consigne écrite
+    // hors visite reste une consigne donnée sur cette parcelle. Et seul un
+    // superviseur peut en créer — il n'y a donc rien à écarter ici. Le
+    // regroupement se fait de toute façon sur la date et l'auteur.
     const { texte, enRetard } = echeanceDe(tache, now);
     const consigne: CarnetConsigne = {
       id: tache.id,
