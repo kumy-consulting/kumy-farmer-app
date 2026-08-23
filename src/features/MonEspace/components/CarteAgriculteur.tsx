@@ -110,7 +110,22 @@ export const CarteAgriculteur: FunctionComponent<CarteAgriculteurProps> = ({ pro
         >
           {profil.nomComplet}
         </Typography>
-        <Typography sx={{ fontSize: 13, fontWeight: 500, color: '#5C5F5E', mt: 0.3 }}>{profil.cooperative}</Typography>
+        <Typography
+          sx={{
+            fontSize: 13,
+            fontWeight: 500,
+            color: '#5C5F5E',
+            mt: 0.3,
+            // Une ligne, toujours : « Coopérative maraîchère de Tanènè » passait
+            // sur deux lignes et étirait la carte pour une information de
+            // troisième rang, lisible en entier dans la fiche.
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
+          {profil.cooperative}
+        </Typography>
 
         {profil.niveauAcces === 'simulation' && (
           // Un agriculteur en simulation doit le savoir, sinon il croit ses
