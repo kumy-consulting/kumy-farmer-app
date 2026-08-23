@@ -129,6 +129,21 @@ describe('RegisterCodePage', () => {
     expect(navigateMock).not.toHaveBeenCalled();
   });
 
+  it('annonce l’indisponibilité du service quand la vérification échoue en 503, sans accuser le code', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(registerApi, 'verifierCode').mockRejectedValue(
+      new ApiRequestError('Vérification indisponible pour le moment. Réessayez dans un instant.', 503),
+    );
+
+    renderPage();
+    await saisirCode(user, '000000');
+    await user.click(screen.getByRole('button', { name: 'Vérifier' }));
+
+    expect(await screen.findByText(/service est momentanément indisponible/i)).toBeInTheDocument();
+    expect(screen.queryByText(/code est incorrect ou a expiré/i)).not.toBeInTheDocument();
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
   it('annonce le plafond horaire quand le renvoi est refusé en 429', async () => {
     // Le délai d'une minute n'est pas une erreur : l'API le rend en 200 avec le
     // `resendAfter` restant. Un 429 ne peut donc dire que le plafond horaire.

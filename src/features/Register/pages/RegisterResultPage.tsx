@@ -5,6 +5,7 @@ import { Navigate, useNavigate } from 'react-router-dom';
 
 import { CheckCircleIcon } from '@/features/Onboarding/components/OnboardingIcons';
 import { registerApi } from '@/features/Register/register.api';
+import { MESSAGE_SERVICE_INDISPONIBLE_INSCRIPTION } from '@/features/Register/register.messages';
 import { ROUTES_INSCRIPTION } from '@/features/Register/register.routing';
 import { useRegisterStore } from '@/features/Register/register.store';
 import { ApiRequestError } from '@/shared/api/client';
@@ -27,6 +28,12 @@ function messageErreur(erreur: unknown): string {
       return 'Ce compte est suspendu. Contactez le support Kumy.';
     case 409:
       return 'Un compte existe déjà pour ce numéro. Connectez-vous avec votre code confidentiel.';
+    case 503:
+      // Panne transitoire de la lecture du compte Firebase Auth (reprise d'un
+      // compte préparé par un partenaire) : le jeton d'inscription est déjà
+      // consommé, mais rien n'indique que la saisie de l'agriculteur soit en
+      // cause — un texte de « création échouée » raconterait un mensonge.
+      return MESSAGE_SERVICE_INDISPONIBLE_INSCRIPTION;
     default:
       return 'La création du compte a échoué. Réessayez dans un instant.';
   }

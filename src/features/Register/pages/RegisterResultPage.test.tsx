@@ -101,6 +101,21 @@ describe('RegisterResultPage', () => {
     expect(await screen.findByText('Compte créé !')).toBeInTheDocument();
   });
 
+  it('création en échec 503 : message d’indisponibilité, pas de « la création a échoué »', async () => {
+    const creerSpy = vi
+      .spyOn(registerApi, 'creerCompte')
+      .mockRejectedValue(new ApiRequestError('Inscription indisponible pour le moment.', 503));
+    vi.spyOn(useAuthStore.getState(), 'login').mockResolvedValue();
+
+    renderPage();
+
+    expect(
+      await screen.findByText(/service est momentanément indisponible/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/la création du compte a échoué/i)).not.toBeInTheDocument();
+    expect(creerSpy).toHaveBeenCalledTimes(1);
+  });
+
   it('échec de création véritable : message mappé, et « Réessayer » rejoue bien la création', async () => {
     const user = userEvent.setup();
     const creerSpy = vi

@@ -19,7 +19,10 @@ import {
 } from '@/features/Onboarding/onboarding.styled';
 import { CollapseOnKeyboard, OnboardingLayout } from '@/features/Onboarding/OnboardingLayout';
 import { registerApi } from '@/features/Register/register.api';
-import { MESSAGE_PLAFOND_SMS } from '@/features/Register/register.messages';
+import {
+  MESSAGE_PLAFOND_SMS,
+  MESSAGE_SERVICE_INDISPONIBLE_VERIFICATION,
+} from '@/features/Register/register.messages';
 import { ecranApresVerification, ROUTES_INSCRIPTION } from '@/features/Register/register.routing';
 import { useRegisterStore } from '@/features/Register/register.store';
 import { useResendCountdown } from '@/features/Register/useResendCountdown';
@@ -60,9 +63,16 @@ export const RegisterCodePage: FunctionComponent = () => {
       const { registrationToken, account } = await registerApi.verifierCode(phone, code);
       setVerification(registrationToken, account);
       navigate(ecranApresVerification(account.statut));
-    } catch {
+    } catch (echec) {
       setCode('');
-      setErreur('Ce code est incorrect ou a expiré. Vérifiez-le, ou demandez-en un nouveau.');
+      // Le 503 arrive après que `verifyCode` a déjà détruit le code côté API
+      // (lecture du compte Firebase Auth en échec) : dire « code incorrect »
+      // serait le mensonge exact que ce statut existe pour éliminer.
+      setErreur(
+        echec instanceof ApiRequestError && echec.status === 503
+          ? MESSAGE_SERVICE_INDISPONIBLE_VERIFICATION
+          : 'Ce code est incorrect ou a expiré. Vérifiez-le, ou demandez-en un nouveau.',
+      );
     } finally {
       setVerificationEnCours(false);
     }
