@@ -1,6 +1,7 @@
 import type { Parcel } from '@/features/Domaines/domaines.types';
 import { apiClient } from '@/shared/api/client';
 
+import type { CarnetInspection } from './carnet.types';
 import type { ClimateContext, IndicatorPoint, ItkParcelTasks, YieldEstimate } from './parcelle.types';
 
 /**
@@ -20,6 +21,17 @@ export const parcelleApi = {
   async parcel(farmId: string, parcelId: string): Promise<Parcel> {
     const { data } = await apiClient.get<Parcel>(`/farms/${farmId}/parcels/${parcelId}`);
     return data;
+  },
+
+  /**
+   * Observations libres laissées sur la parcelle, de la plus récente à la plus
+   * ancienne. Ouvert au FARMER : le serveur vérifie qu'il possède la parcelle.
+   */
+  async inspections(parcelId: string): Promise<CarnetInspection[]> {
+    const { data } = await apiClient.get<{ data?: CarnetInspection[] }>(
+      `/parcels/${parcelId}/inspections`,
+    );
+    return data.data ?? [];
   },
 
   /** Plan ITK complet de la parcelle (stades, tâches, risques par stade). */

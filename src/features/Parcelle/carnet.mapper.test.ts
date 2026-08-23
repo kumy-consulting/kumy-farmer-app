@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import type { FieldTask } from '@/features/FieldTasks/fieldTasks.types';
 
 import { buildCarnet } from './carnet.mapper';
+import type { CarnetInspection } from './carnet.types';
 import type { ItkCompletedLog, ItkParcelTasks, ItkTask } from './parcelle.types';
 
 const NOW = dayjs('2026-08-20T09:00:00.000Z');
@@ -53,6 +54,22 @@ const consigne = (over: Partial<FieldTask> & Pick<FieldTask, 'id' | 'title' | 'c
     updatedAt: over.createdAt,
     ...over,
   }) as FieldTask;
+
+const inspection = (
+  over: Partial<CarnetInspection> & Pick<CarnetInspection, 'id'>,
+): CarnetInspection => ({
+  parcelId: 'p1',
+  inspectionDate: '2026-08-13T09:00:00.000Z',
+  weedPressure: undefined,
+  weedSpecies: [],
+  notes: undefined,
+  photoUrls: [],
+  visitId: null,
+  inspectorUid: 'e1',
+  inspectorName: 'Dr Camara',
+  createdAt: '2026-08-13T09:01:00.000Z',
+  ...over,
+});
 
 describe('buildCarnet', () => {
   it('réunit dans un même passage ce qui a été vu et ce qui a été demandé le même jour', () => {
@@ -141,6 +158,67 @@ describe('buildCarnet', () => {
     expect(carnet).toHaveLength(1);
     expect(carnet[0].observations.map((o) => o.texte)).toEqual(['Adventices fortes']);
     expect(carnet[0].consignes.map((c) => c.titre)).toEqual(['Désherbage parcelle']);
+  });
+
+  it('range une observation libre dans le passage de son auteur', () => {
+    const carnet = buildCarnet(null, [], NOW, [
+      inspection({ id: 'o1', notes: 'Patches en bordure sud.', inspectorName: 'Dr Camara' }),
+    ]);
+
+    expect(carnet).toHaveLength(1);
+    expect(carnet[0].auteur).toBe('Dr Camara');
+    expect(carnet[0].observations.map((o) => o.texte)).toEqual(['Patches en bordure sud.']);
+  });
+
+  it('fusionne observation libre et consigne du même jour en un seul passage', () => {
+    // C'est tout l'intérêt de résoudre le nom côté API : sans lui, une visite
+    // se couperait en deux à l'écran.
+    const taches = [consigne({ id: 'c1', title: 'Désherbage parcelle', createdAt: '2026-08-13T11:30:00.000Z' })];
+    const observations = [
+      inspection({ id: 'o1', inspectionDate: '2026-08-13T09:00:00.000Z', notes: 'Adventices fortes' }),
+    ];
+
+    const carnet = buildCarnet(null, taches, NOW, observations);
+
+    expect(carnet).toHaveLength(1);
+    expect(carnet[0].observations.map((o) => o.texte)).toEqual(['Adventices fortes']);
+    expect(carnet[0].consignes.map((c) => c.titre)).toEqual(['Désherbage parcelle']);
+  });
+
+  it('garde une observation qui ne porte que la pression d’adventices', () => {
+    // Une pression est un constat, pas une case cochée : contrairement à une
+    // clôture de tâche ITK vide, elle a sa place dans le carnet.
+    const carnet = buildCarnet(null, [], NOW, [
+      inspection({ id: 'o1', notes: undefined, weedPressure: 'high' }),
+    ]);
+
+    expect(carnet[0].observations).toHaveLength(1);
+    expect(carnet[0].observations[0].pression).toBe('high');
+    expect(carnet[0].observations[0].texte).toBeUndefined();
+  });
+
+  it('écarte une observation totalement vide', () => {
+    const carnet = buildCarnet(null, [], NOW, [
+      inspection({ id: 'o1', notes: undefined, weedPressure: undefined, photoUrls: [] }),
+    ]);
+
+    expect(carnet).toEqual([]);
+  });
+
+  it('nomme l’auteur « Votre technicien » quand l’API n’a pas résolu le nom', () => {
+    const carnet = buildCarnet(null, [], NOW, [
+      inspection({ id: 'o1', inspectorName: null, notes: 'Vu ce matin' }),
+    ]);
+
+    expect(carnet[0].auteur).toBe('Votre technicien');
+  });
+
+  it('porte les photos d’une observation libre', () => {
+    const carnet = buildCarnet(null, [], NOW, [
+      inspection({ id: 'o1', notes: undefined, photoUrls: ['gs://b/1.jpg', 'gs://b/2.jpg'] }),
+    ]);
+
+    expect(carnet[0].observations[0].photos).toHaveLength(2);
   });
 
   it('rend les passages du plus récent au plus ancien', () => {

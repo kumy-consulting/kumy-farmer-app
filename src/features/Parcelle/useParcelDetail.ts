@@ -113,8 +113,11 @@ export function useParcelDetail(farmId: string | undefined, parcelId: string | u
       // du filtre : passer par l'agriculteur garde la requête dans le périmètre
       // qu'un FARMER a le droit de lire.
       farmerId ? fieldTasksApi.list(farmerId) : Promise.resolve([]),
+      // Observations libres : ce que le technicien a constaté sans que ce soit
+      // accroché à une tâche ITK.
+      parcelleApi.inspections(parcelId),
     ])
-      .then(([parcelRes, itkRes, indicatorsRes, yieldRes, tasksRes]) => {
+      .then(([parcelRes, itkRes, indicatorsRes, yieldRes, tasksRes, obsRes]) => {
         if (!active) return;
 
         const parcel = parcelRes.status === 'fulfilled' ? parcelRes.value : undefined;
@@ -122,6 +125,7 @@ export function useParcelDetail(farmId: string | undefined, parcelId: string | u
         const indicators = indicatorsRes.status === 'fulfilled' ? indicatorsRes.value : [];
         const yieldEstimate = yieldRes.status === 'fulfilled' ? yieldRes.value : null;
         const taches = tasksRes.status === 'fulfilled' ? tasksRes.value.filter((t) => t.parcelId === parcelId) : [];
+        const observations = obsRes.status === 'fulfilled' ? obsRes.value : [];
 
         // La parcelle doit exister quelque part (méta ou plan ITK), sinon erreur.
         if (!parcel && !itk) {
@@ -149,7 +153,7 @@ export function useParcelDetail(farmId: string | undefined, parcelId: string | u
         const expectedHarvestDate = officialHarvest ?? derivedHarvest;
 
         setDetail({
-          carnet: buildCarnet(itk, taches),
+          carnet: buildCarnet(itk, taches, undefined, observations),
           parcelName: parcel?.name ?? 'Parcelle',
           cropLabel: cropLabel || undefined,
           cropType: cropType || undefined,

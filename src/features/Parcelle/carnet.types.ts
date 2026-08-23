@@ -17,12 +17,10 @@
  * identifiant commun, et « le jour où le technicien est venu » est de toute
  * façon la façon dont un passage existe pour l'agriculteur.
  *
- * ⚠️ Ce qui manque, et qu'aucun écran ne pourra montrer en l'état : les
- * observations libres. `POST /parcels/:id/inspections` accepte des photos et une
- * note, mais **aucun GET n'existe** — l'app technicien les relit depuis son
- * propre IndexedDB, jamais depuis le serveur. Une observation qui n'est pas
- * accrochée à une tâche ITK est donc invisible pour l'agriculteur tant que
- * l'API n'expose pas la sous-collection `parcels/{id}/inspections`.
+ * - **Les observations libres** viennent de `GET /parcels/:id/inspections` : ce
+ *   que le technicien a constaté sans que ce soit accroché à une tâche. Le
+ *   serveur y résout `inspectorName` depuis `users/{uid}`, faute de quoi elles
+ *   formeraient un passage séparé de celui des consignes du même jour.
  */
 
 export interface CarnetPhoto {
@@ -32,12 +30,38 @@ export interface CarnetPhoto {
   legende?: string;
 }
 
+export type PressionAdventices = 'none' | 'low' | 'moderate' | 'high';
+
 export interface CarnetObservation {
   id: string;
   /** Tâche à laquelle l'observation était accrochée, quand il y en a une. */
   aPropos?: string;
   texte?: string;
   photos: CarnetPhoto[];
+  /**
+   * Pression d'adventices constatée. Absente des observations tirées d'un
+   * journal ITK, qui ne portent pas d'évaluation.
+   */
+  pression?: PressionAdventices;
+}
+
+/**
+ * Une observation libre telle que l'API la rend — miroir de
+ * `InspectionResponseDto`, dates en chaînes ISO.
+ */
+export interface CarnetInspection {
+  id: string;
+  parcelId: string;
+  inspectionDate: string;
+  weedPressure?: PressionAdventices;
+  weedSpecies?: string[];
+  notes?: string;
+  photoUrls?: string[];
+  visitId?: string | null;
+  inspectorUid: string;
+  /** Résolu par le serveur ; `null` quand le compte est introuvable. */
+  inspectorName?: string | null;
+  createdAt: string;
 }
 
 export interface CarnetConsigne {

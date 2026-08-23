@@ -15,6 +15,7 @@ vi.mock('./parcelle.api', () => ({
     itkTasks: vi.fn(),
     indicators: vi.fn(),
     yieldEstimate: vi.fn(),
+    inspections: vi.fn(),
   },
 }));
 
@@ -159,6 +160,7 @@ describe('ParcelDetailPage', () => {
     mocked.itkTasks.mockResolvedValue(itk);
     mocked.indicators.mockResolvedValue(indicators);
     mocked.yieldEstimate.mockResolvedValue(yieldEstimate);
+    mocked.inspections.mockResolvedValue([]);
     mockedTaches.list.mockResolvedValue([]);
   });
 
@@ -278,6 +280,31 @@ describe('ParcelDetailPage', () => {
     getByText('Calendrier').click();
 
     expect(await findByText('Calendrier en préparation')).toBeDefined();
+  });
+
+  it('montre une observation libre et la pression d’adventices constatée', async () => {
+    mocked.inspections.mockResolvedValue([
+      {
+        id: 'o1',
+        parcelId: 'p1',
+        inspectionDate: '2026-08-23T09:00:00.000Z',
+        weedPressure: 'high',
+        weedSpecies: [],
+        notes: 'Patches en bordure sud.',
+        photoUrls: [],
+        visitId: null,
+        inspectorUid: 'e1',
+        inspectorName: 'Dr Camara',
+        createdAt: '2026-08-23T09:01:00.000Z',
+      },
+    ]);
+
+    renderPage();
+    fireEvent.click(await screen.findByText('Carnet'));
+
+    expect(await screen.findByText(/Patches en bordure sud/)).toBeDefined();
+    expect(screen.getByText('Adventices : forte')).toBeDefined();
+    expect(screen.getByText(/23 août · Dr Camara/)).toBeDefined();
   });
 
   it('bascule sur Carnet et montre le passage du technicien, photos comprises', async () => {

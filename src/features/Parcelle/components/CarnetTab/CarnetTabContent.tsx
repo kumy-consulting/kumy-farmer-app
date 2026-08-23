@@ -5,11 +5,48 @@ import PersonPinCircleRounded from '@mui/icons-material/PersonPinCircleRounded';
 import { Box, Stack, Typography } from '@mui/material';
 import dayjs from 'dayjs';
 
-import type { CarnetObservation, CarnetVisite } from '../../carnet.types';
+import type { CarnetObservation, CarnetVisite, PressionAdventices } from '../../carnet.types';
 
 interface CarnetTabContentProps {
   visites: CarnetVisite[];
 }
+
+/**
+ * Pression d'adventices constatée.
+ *
+ * Le mot du technicien est « adventices » ; on le garde, parce que c'est celui
+ * qu'il emploiera de vive voix devant la parcelle. La teinte porte le degré —
+ * un agriculteur qui parcourt son carnet voit d'abord la couleur.
+ */
+const PRESSIONS: Record<PressionAdventices, { texte: string; fond: string; encre: string }> = {
+  none: { texte: 'Adventices : aucune', fond: 'rgba(1,134,117,0.12)', encre: '#016557' },
+  low: { texte: 'Adventices : faible', fond: 'rgba(1,134,117,0.12)', encre: '#016557' },
+  moderate: { texte: 'Adventices : modérée', fond: 'rgba(198,138,26,0.16)', encre: '#8C5000' },
+  high: { texte: 'Adventices : forte', fond: 'rgba(193,58,44,0.14)', encre: '#A3271B' },
+};
+
+const Pression: FunctionComponent<{ niveau?: PressionAdventices }> = ({ niveau }) => {
+  if (!niveau) return null;
+  const { texte, fond, encre } = PRESSIONS[niveau];
+  return (
+    <Box
+      component="span"
+      sx={{
+        display: 'inline-block',
+        mt: 0.75,
+        px: 1,
+        py: 0.4,
+        borderRadius: 999,
+        background: fond,
+        fontSize: 11,
+        fontWeight: 700,
+        color: encre,
+      }}
+    >
+      {texte}
+    </Box>
+  );
+};
 
 /**
  * Photos d'une observation.
@@ -167,6 +204,7 @@ export const CarnetTabContent: FunctionComponent<CarnetTabContentProps> = ({ vis
                           {observation.texte}
                         </Typography>
                       )}
+                      <Pression niveau={observation.pression} />
                       <Photos photos={observation.photos} />
                     </Box>
                   ))}

@@ -2,7 +2,7 @@ import dayjs, { type Dayjs } from 'dayjs';
 
 import type { FieldTask } from '@/features/FieldTasks/fieldTasks.types';
 
-import type { CarnetConsigne, CarnetObservation, CarnetVisite } from './carnet.types';
+import type { CarnetConsigne, CarnetInspection, CarnetObservation, CarnetVisite } from './carnet.types';
 import type { ItkParcelTasks, ItkTask } from './parcelle.types';
 
 /**
@@ -47,6 +47,21 @@ const observationDe = (tache: ItkTask): CarnetObservation | null => {
 };
 
 /**
+ * Une observation libre devient une entrée du carnet dès qu'elle porte quelque
+ * chose à voir : une note, des photos, ou une pression d'adventices. La
+ * pression compte — c'est un constat du technicien, pas une case cochée.
+ */
+const observationLibreDe = (obs: CarnetInspection): CarnetObservation | null => {
+  const photos = (obs.photoUrls ?? []).map((url) => ({
+    url,
+    legende: 'Photo prise lors du passage',
+  }));
+  if (!obs.notes && photos.length === 0 && !obs.weedPressure) return null;
+
+  return { id: obs.id, texte: obs.notes, photos, pression: obs.weedPressure };
+};
+
+/**
  * Construit le carnet d'une parcelle à partir des deux seules sources lisibles
  * par un agriculteur : les journaux de tâches ITK (observations et photos) et
  * les consignes rattachées à une visite.
@@ -54,7 +69,12 @@ const observationDe = (tache: ItkTask): CarnetObservation | null => {
  * Les passages sont rendus du plus récent au plus ancien — on ouvre un carnet
  * pour voir la dernière page.
  */
-export function buildCarnet(itk: ItkParcelTasks | null, taches: FieldTask[], now: Dayjs = dayjs()): CarnetVisite[] {
+export function buildCarnet(
+  itk: ItkParcelTasks | null,
+  taches: FieldTask[],
+  now: Dayjs = dayjs(),
+  observations: CarnetInspection[] = [],
+): CarnetVisite[] {
   const visites = new Map<string, CarnetVisite>();
 
   const obtenir = (date: string, auteur: string): CarnetVisite => {
@@ -90,6 +110,12 @@ export function buildCarnet(itk: ItkParcelTasks | null, taches: FieldTask[], now
       enRetard,
     };
     obtenir(tache.createdAt, tache.createdByName ?? ANONYME).consignes.push(consigne);
+  }
+
+  for (const obs of observations) {
+    const observation = observationLibreDe(obs);
+    if (!observation) continue;
+    obtenir(obs.inspectionDate, obs.inspectorName ?? ANONYME).observations.push(observation);
   }
 
   return [...visites.values()].sort((a, b) => b.date.localeCompare(a.date));
