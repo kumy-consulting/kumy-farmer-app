@@ -61,33 +61,53 @@ const PRESSIONS: Record<PressionAdventices, { texte: string; pastille: string; e
   high: { texte: 'Adventices : forte', pastille: '#C13A2C', encre: '#A3271B' },
 };
 
-const Sourcil: FunctionComponent<{ aPropos?: string; pression?: PressionAdventices }> = ({
-  aPropos,
-  pression,
+/**
+ * Un constat : une marque en marge, ce qu'elle qualifie, ce qui a été écrit.
+ *
+ * La gouttière de gauche tient la pastille de gravité. Alignées, ces marques
+ * forment une petite colonne à l'intérieur de la carte — le même geste que le
+ * rail des passages, un niveau en dessous. C'est ce qui remplace les filets :
+ * trois filets dans une carte de cette taille faisaient un tableau, alors qu'il
+ * s'agit de notes prises en marge.
+ *
+ * Le libellé et la note s'indentent au-delà de la gouttière, si bien qu'une
+ * note longue reste alignée sur elle-même au lieu de repasser sous la pastille.
+ */
+const Constat: FunctionComponent<{ observation: CarnetVisite['observations'][number] }> = ({
+  observation,
 }) => {
-  if (!pression && !aPropos) return null;
-  const p = pression ? PRESSIONS[pression] : null;
+  const p = observation.pression ? PRESSIONS[observation.pression] : null;
+  const enTete = p ? p.texte : observation.aPropos;
 
   return (
-    <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 0.85 }}>
-      {p && (
-        <Box
-          aria-hidden
-          sx={{ width: 6, height: 6, borderRadius: '50%', background: p.pastille, flexShrink: 0 }}
-        />
-      )}
-      <Typography
-        sx={{
-          // Bas-de-casse et sans interlettrage : les capitales espacées sont
-          // réservées à l'en-tête du passage, qui est le niveau au-dessus.
-          // Répété trois fois dans une même carte, ce traitement criait.
-          fontSize: 11.5,
-          fontWeight: 600,
-          color: p ? p.encre : '#5C5F5E',
-        }}
-      >
-        {p ? p.texte : aPropos}
-      </Typography>
+    <Stack direction="row" spacing={1.1}>
+      <Box sx={{ width: 7, flexShrink: 0, pt: enTete ? '6px' : '8px' }}>
+        {p && (
+          <Box aria-hidden sx={{ width: 7, height: 7, borderRadius: '50%', background: p.pastille }} />
+        )}
+      </Box>
+
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        {enTete && (
+          <Typography
+            sx={{
+              // Bas-de-casse et sans interlettrage : les capitales espacées sont
+              // réservées à l'en-tête du passage, le niveau au-dessus.
+              fontSize: 11.5,
+              fontWeight: 600,
+              lineHeight: 1.4,
+              color: p ? p.encre : '#5C5F5E',
+            }}
+          >
+            {enTete}
+          </Typography>
+        )}
+        {observation.texte && (
+          <Typography sx={{ fontSize: 14, color: '#1A1C1B', lineHeight: 1.45, mt: enTete ? 0.15 : 0 }}>
+            {observation.texte}
+          </Typography>
+        )}
+      </Box>
     </Stack>
   );
 };
@@ -387,21 +407,13 @@ export const CarnetTabContent: FunctionComponent<CarnetTabContentProps> = ({ vis
                   {visite.observations.map((observation, rang) => (
                     <Box
                       key={observation.id}
-                      sx={{
-                        // Le premier constat ne se décolle que de la bande, s'il
-                        // y en a une. Un filet sépare ensuite deux constats : sans
-                        // lui, deux notes courtes se lisent comme un paragraphe.
-                        mt: rang === 0 ? (bande.length > 0 ? 1.4 : 0) : 1.4,
-                        pt: rang === 0 ? 0 : 1.4,
-                        borderTop: rang === 0 ? 'none' : '1px solid rgba(55,75,70,0.08)',
-                      }}
+                      // Les constats se suivent sans filet : la colonne de
+                      // pastilles suffit à les distinguer, et un écart franc
+                      // sépare mieux que trois traits dans une carte de cette
+                      // taille.
+                      sx={{ mt: rang === 0 ? (bande.length > 0 ? 1.5 : 0) : 1.35 }}
                     >
-                      <Sourcil aPropos={observation.aPropos} pression={observation.pression} />
-                      {observation.texte && (
-                        <Typography sx={{ fontSize: 13.5, color: '#1A1C1B', lineHeight: 1.55 }}>
-                          {observation.texte}
-                        </Typography>
-                      )}
+                      <Constat observation={observation} />
                     </Box>
                   ))}
 
