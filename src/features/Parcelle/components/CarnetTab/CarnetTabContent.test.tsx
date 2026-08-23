@@ -145,7 +145,7 @@ describe('CarnetTabContent — photos', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /agrandir/i }));
 
-    expect(screen.getByRole('dialog').textContent).toContain('Adventices : forte');
+    expect(screen.getByRole('dialog').textContent).toContain('Pression forte');
   });
 });
 
@@ -157,7 +157,7 @@ describe('CarnetTabContent — sourcil', () => {
       />,
     );
 
-    expect(screen.getByText('Adventices : forte')).toBeDefined();
+    expect(screen.getByText('Pression forte')).toBeDefined();
   });
 
   it('annonce la tâche quand l’observation y était accrochée', () => {

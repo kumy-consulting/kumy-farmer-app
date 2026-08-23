@@ -303,7 +303,7 @@ describe('ParcelDetailPage', () => {
     fireEvent.click(await screen.findByText('Carnet'));
 
     expect(await screen.findByText(/Patches en bordure sud/)).toBeDefined();
-    expect(screen.getByText('Adventices : forte')).toBeDefined();
+    expect(screen.getByText('Pression forte')).toBeDefined();
     expect(screen.getByText(/23 août · Dr Camara/)).toBeDefined();
   });
 

@@ -54,24 +54,31 @@ const photosDuPassage = (visite: CarnetVisite): PhotoDuPassage[] =>
  * voit d'abord la couleur, et le mot « adventices » est celui que le technicien
  * emploiera de vive voix devant la parcelle.
  */
-const PRESSIONS: Record<PressionAdventices, { texte: string; pastille: string; encre: string }> = {
-  none: { texte: 'Adventices : aucune', pastille: '#35A18F', encre: '#016557' },
-  low: { texte: 'Adventices : faible', pastille: '#35A18F', encre: '#016557' },
-  moderate: { texte: 'Adventices : modérée', pastille: '#C68A1A', encre: '#8C5000' },
-  high: { texte: 'Adventices : forte', pastille: '#C13A2C', encre: '#A3271B' },
+const PRESSIONS: Record<
+  PressionAdventices,
+  { texte: string; fond: string; pastille: string; encre: string }
+> = {
+  none: { texte: 'Pression nulle', fond: '#E2F0EC', pastille: '#35A18F', encre: '#016557' },
+  low: { texte: 'Pression faible', fond: '#E2F0EC', pastille: '#35A18F', encre: '#016557' },
+  moderate: { texte: 'Pression modérée', fond: '#F5EADC', pastille: '#C68A1A', encre: '#8C5000' },
+  high: { texte: 'Pression forte', fond: '#F7E7E4', pastille: '#C13A2C', encre: '#A3271B' },
 };
 
 /**
- * Un constat : une marque en marge, ce qu'elle qualifie, ce qui a été écrit.
+ * Un constat : ce qu'il qualifie, puis ce qui a été écrit.
  *
- * La gouttière de gauche tient la pastille de gravité. Alignées, ces marques
- * forment une petite colonne à l'intérieur de la carte — le même geste que le
- * rail des passages, un niveau en dessous. C'est ce qui remplace les filets :
- * trois filets dans une carte de cette taille faisaient un tableau, alors qu'il
- * s'agit de notes prises en marge.
+ * Le titre est un pavé teinté, pas du texte nu. Il se détache du blanc de la
+ * carte, si bien que trois constats se distinguent sans qu'aucun filet ni
+ * gouttière n'ait à les séparer — le pavé ouvre l'entrée, la note la remplit.
  *
- * Le libellé et la note s'indentent au-delà de la gouttière, si bien qu'une
- * note longue reste alignée sur elle-même au lieu de repasser sous la pastille.
+ * La teinte porte le degré. Un agriculteur qui parcourt son carnet voit
+ * d'abord la couleur ; la pastille la redit à qui ne la distingue pas, et le
+ * mot la dit en clair. Trois canaux pour une information, parce que sur ce
+ * public la couleur seule ne suffit pas.
+ *
+ * Une observation tirée d'un journal ITK nomme la tâche qu'elle accompagnait,
+ * dans un pavé neutre et sans pastille : ce n'est pas une gravité, et lui
+ * donner une couleur mentirait.
  */
 const Constat: FunctionComponent<{ observation: CarnetVisite['observations'][number] }> = ({
   observation,
@@ -80,35 +87,46 @@ const Constat: FunctionComponent<{ observation: CarnetVisite['observations'][num
   const enTete = p ? p.texte : observation.aPropos;
 
   return (
-    <Stack direction="row" spacing={1.1}>
-      <Box sx={{ width: 7, flexShrink: 0, pt: enTete ? '6px' : '8px' }}>
-        {p && (
-          <Box aria-hidden sx={{ width: 7, height: 7, borderRadius: '50%', background: p.pastille }} />
-        )}
-      </Box>
-
-      <Box sx={{ flex: 1, minWidth: 0 }}>
-        {enTete && (
+    <Box>
+      {enTete && (
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={0.7}
+          sx={{
+            display: 'inline-flex',
+            px: 1.1,
+            py: 0.5,
+            borderRadius: 999,
+            background: p ? p.fond : 'rgba(55,75,70,0.07)',
+          }}
+        >
+          {p && (
+            <Box
+              aria-hidden
+              sx={{ width: 6, height: 6, borderRadius: '50%', background: p.pastille, flexShrink: 0 }}
+            />
+          )}
           <Typography
             sx={{
-              // Bas-de-casse et sans interlettrage : les capitales espacées sont
-              // réservées à l'en-tête du passage, le niveau au-dessus.
-              fontSize: 11.5,
-              fontWeight: 600,
-              lineHeight: 1.4,
-              color: p ? p.encre : '#5C5F5E',
+              fontSize: 12,
+              fontWeight: 700,
+              lineHeight: 1.25,
+              color: p ? p.encre : '#4A5350',
             }}
           >
             {enTete}
           </Typography>
-        )}
-        {observation.texte && (
-          <Typography sx={{ fontSize: 14, color: '#1A1C1B', lineHeight: 1.45, mt: enTete ? 0.15 : 0 }}>
-            {observation.texte}
-          </Typography>
-        )}
-      </Box>
-    </Stack>
+        </Stack>
+      )}
+      {observation.texte && (
+        <Typography
+          sx={{ fontSize: 14, color: '#1A1C1B', lineHeight: 1.45, mt: enTete ? 0.7 : 0 }}
+        >
+          {observation.texte}
+        </Typography>
+      )}
+    </Box>
   );
 };
 
@@ -407,11 +425,11 @@ export const CarnetTabContent: FunctionComponent<CarnetTabContentProps> = ({ vis
                   {visite.observations.map((observation, rang) => (
                     <Box
                       key={observation.id}
-                      // Les constats se suivent sans filet : la colonne de
-                      // pastilles suffit à les distinguer, et un écart franc
-                      // sépare mieux que trois traits dans une carte de cette
-                      // taille.
-                      sx={{ mt: rang === 0 ? (bande.length > 0 ? 1.5 : 0) : 1.35 }}
+                      // Ni filet ni gouttière : le pavé teinté ouvre assez
+                      // franchement chaque constat pour qu'un simple écart les
+                      // sépare. Trois traits dans une carte de cette taille
+                      // faisaient un tableau.
+                      sx={{ mt: rang === 0 ? (bande.length > 0 ? 1.6 : 0) : 1.7 }}
                     >
                       <Constat observation={observation} />
                     </Box>
