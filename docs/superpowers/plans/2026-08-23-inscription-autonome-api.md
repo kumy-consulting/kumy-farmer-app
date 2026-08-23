@@ -720,8 +720,35 @@ describe('PhoneOtpService.verifyCode', () => {
     await expect(service.verifyCode(PHONE, '000000')).rejects.toThrow(
       'Code invalide ou expiré',
     );
-    expect(otpUpdate).toHaveBeenCalledWith({ attempts: 1 });
+    // L'incrément passe par la transaction : `tx.update(ref, data)`.
+    expect(otpUpdate).toHaveBeenCalledWith(expect.anything(), { attempts: 1 });
     expect(tokenSet).not.toHaveBeenCalled();
+  });
+
+  it('lit le compteur et l incrémente dans la MÊME transaction', async () => {
+    const { service, runTransaction, otpUpdate } = makeService({
+      otpDoc: otpDocFor('123456'),
+    });
+
+    await expect(service.verifyCode(PHONE, '000000')).rejects.toThrow(
+      'Code invalide ou expiré',
+    );
+
+    // Sans indivisibilité, des essais simultanés liraient tous `attempts: 0`
+    // et le plafond de cinq tentatives ne tiendrait pas.
+    expect(runTransaction).toHaveBeenCalledTimes(1);
+    expect(otpUpdate).toHaveBeenCalled();
+  });
+
+  it('consomme le code dans la transaction, jamais après', async () => {
+    const { service, otpDelete, runTransaction } = makeService({
+      otpDoc: otpDocFor('123456'),
+    });
+
+    await service.verifyCode(PHONE, '123456');
+
+    expect(runTransaction).toHaveBeenCalledTimes(1);
+    expect(otpDelete).toHaveBeenCalledWith(expect.anything());
   });
 
   it('rejette un code expiré', async () => {
@@ -821,27 +848,33 @@ Puis, dans la classe, après `requestCode` :
       .collection(OTP_COLLECTION)
       .doc(phoneToDocId(phone));
 
-    const snapshot = await docRef.get();
-    const otp = snapshot.exists ? (snapshot.data() as OtpDocument) : null;
-
     // Message unique pour « pas de code », « expiré », « faux » et « trop de
     // tentatives » : distinguer ces cas renseignerait un attaquant sur l'état
     // de la cible sans jamais l'aider, lui, à taper le bon code.
     const invalid = () => new BadRequestException('Code invalide ou expiré');
 
-    const expiresAt = coerceDate(otp?.expiresAt);
-    if (!otp || !expiresAt || expiresAt.getTime() < Date.now()) throw invalid();
+    // Lecture, contrôle du compteur et écriture dans UNE transaction. Sans
+    // elle, mille essais simultanés liraient tous `attempts: 0`, passeraient
+    // tous le plafond de cinq, et le code à six chiffres tomberait par force
+    // brute — le plafond ne tient que s'il est indivisible.
+    await firestore.runTransaction(async (tx) => {
+      const snapshot = await tx.get(docRef);
+      const otp = snapshot.exists ? (snapshot.data() as OtpDocument) : null;
 
-    const attempts = otp.attempts ?? 0;
-    if (attempts >= OTP_MAX_ATTEMPTS) throw invalid();
+      const expiresAt = coerceDate(otp?.expiresAt);
+      if (!otp || !expiresAt || expiresAt.getTime() < Date.now()) throw invalid();
 
-    if (!hashesMatch(otp.codeHash, hashOtpCode(code, phone, this.hashSecret))) {
-      await docRef.update({ attempts: attempts + 1 });
-      throw invalid();
-    }
+      const attempts = otp.attempts ?? 0;
+      if (attempts >= OTP_MAX_ATTEMPTS) throw invalid();
 
-    // Un code vérifié est consommé : il ne servira pas une seconde fois.
-    await docRef.delete();
+      if (!hashesMatch(otp.codeHash, hashOtpCode(code, phone, this.hashSecret))) {
+        tx.update(docRef, { attempts: attempts + 1 });
+        throw invalid();
+      }
+
+      // Un code vérifié est consommé : il ne servira pas une seconde fois.
+      tx.delete(docRef);
+    });
 
     const account = await this.readAccount(phone);
 
@@ -900,7 +933,7 @@ Puis, dans la classe, après `requestCode` :
 npx jest src/auth/phone-registration/phone-otp.service.spec.ts
 ```
 
-Attendu : SUCCÈS, 15 tests (6 de la Task 2 + 9).
+Attendu : SUCCÈS, 17 tests (6 de la Task 2 + 11).
 
 - [ ] **Step 5 : Commit**
 

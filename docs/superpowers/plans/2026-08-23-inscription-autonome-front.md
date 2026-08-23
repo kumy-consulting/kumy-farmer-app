@@ -1205,21 +1205,16 @@ Dans `src/features/Auth/components/PinDisplay.tsx`, ajouter à l'interface :
 
 ```ts
   /**
-   * Libellé accessible de l'input caché. Par défaut « Code PIN » : le composant
-   * sert aussi à saisir le code SMS, qui n'est pas un code PIN.
+   * Libellé accessible de l'input caché. Par défaut « Code secret » — la valeur
+   * en place : le composant sert aussi à saisir le code SMS, qui n'est pas un
+   * code secret, et l'écran doit alors pouvoir le nommer autrement.
    */
   inputLabel?: string;
 ```
 
-Puis, dans la signature du composant, ajouter `inputLabel = 'Code PIN'` aux props déstructurées, et remplacer l'`aria-label` en dur de l'input caché par `aria-label={inputLabel}`.
+Puis, dans la signature du composant, ajouter `inputLabel = 'Code secret'` aux props déstructurées, et remplacer `aria-label="Code secret"` sur `HiddenInput` par `aria-label={inputLabel}`.
 
-Vérifier au préalable la valeur actuelle :
-
-```bash
-grep -n "aria-label" src/features/Auth/components/PinDisplay.tsx
-```
-
-Si le libellé actuel n'est pas `Code PIN`, conserver la valeur existante comme défaut afin de ne casser aucun test en place (`src/features/Auth/components/PinDisplay.test.tsx`).
+`Code secret` est bien la valeur en place (vérifiée) : la garder comme défaut ne change rien pour les appelants existants (`PinEntryPage`, `OnboardingPinPage`).
 
 - [ ] **Step 5 : Lancer les tests pour vérifier qu'ils passent**
 
@@ -1474,11 +1469,22 @@ describe('RegisterProfilePage', () => {
 
     expect(screen.getByLabelText('Prénom')).toHaveValue('Awa');
     expect(screen.getByLabelText('Nom')).toHaveValue('Diallo');
-    expect(screen.getByLabelText('Date de naissance')).toHaveValue('12/05/1990');
+    // MUI X v9 rend le MobileDatePicker en `role="group"`, pas en input labellisé :
+    // c'est la façon dont `OnboardingProfilePage.test.tsx` l'interroge déjà.
+    expect(screen.getByRole('group', { name: 'Date de naissance' }).textContent).toContain(
+      '12/05/1990',
+    );
   });
 
-  it('garde le bouton inerte tant que prénom, nom et date ne sont pas tous renseignés', async () => {
+  it('garde le bouton inerte tant que prénom et nom ne sont pas renseignés', async () => {
     const user = userEvent.setup();
+    // La date arrive pré-remplie : le MobileDatePicker ne se tape pas sous jsdom,
+    // on isole donc la validation des deux champs texte.
+    useRegisterStore.getState().setVerification('tok-gate', {
+      statut: 'pending',
+      profil: { firstName: '', lastName: '', birthDate: '1990-05-12' },
+    });
+
     renderPage();
 
     const bouton = () => screen.getByRole<HTMLButtonElement>('button', { name: 'Continuer' });
@@ -1488,10 +1494,16 @@ describe('RegisterProfilePage', () => {
     expect(bouton().disabled).toBe(true);
 
     await user.type(screen.getByLabelText('Nom'), 'Diallo');
-    expect(bouton().disabled).toBe(true);
-
-    await user.type(screen.getByLabelText('Date de naissance'), '12/05/1990');
     expect(bouton().disabled).toBe(false);
+  });
+
+  it('garde le bouton inerte quand la date de naissance manque', () => {
+    // Branche « absent » : profil vierge, donc aucune date.
+    renderPage();
+
+    expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Continuer' }).disabled).toBe(
+      true,
+    );
   });
 
   it('refuse un prénom d’une seule lettre', async () => {
@@ -1745,9 +1757,9 @@ export const RegisterProfilePage: FunctionComponent = () => {
 npx vitest run src/features/Register/pages/RegisterProfilePage.test.tsx
 ```
 
-Attendu : SUCCÈS, 7 tests.
+Attendu : SUCCÈS, 8 tests.
 
-Si le test de saisie de la date échoue parce que `MobileDatePicker` n'expose pas un champ tapable sous jsdom, remplacer dans le test la frappe `await user.type(screen.getByLabelText('Date de naissance'), '12/05/1990')` par une pré-alimentation du store (`setVerification` avec un `profil` portant `birthDate`) et ne conserver dans ce test que les assertions sur prénom et nom. Ne pas modifier le composant pour satisfaire le test.
+Le `MobileDatePicker` ne se tape pas sous jsdom et n'expose pas de champ labellisé : les tests le lisent par `getByRole('group', { name: 'Date de naissance' })` et l'alimentent via le store, exactement comme `src/features/Onboarding/pages/OnboardingProfilePage.test.tsx` (vérifié). Ne pas modifier le composant pour satisfaire un test.
 
 - [ ] **Step 5 : Commit**
 
@@ -2096,7 +2108,7 @@ npx vitest run src/features/Register/pages/RegisterAddressPage.test.tsx
 
 Attendu : SUCCÈS, 7 tests.
 
-Si l'assertion `aria-disabled` échoue, remplacer dans le test l'assertion par une vérification équivalente sur la classe MUI (`expect(screen.getByLabelText('Préfecture').closest('.Mui-disabled')).not.toBeNull()`). Ne pas modifier `ProfileSelect`, qui est partagé avec le parcours d'invitation.
+`ProfileSelect` pose `SelectDisplayProps={{ 'aria-label': label }}` : `getByLabelText` et l'assertion `aria-disabled` sont exactement la convention déjà employée par `src/features/Onboarding/components/ProfileSelect.test.tsx`. Ne pas modifier `ProfileSelect`, partagé avec le parcours d'invitation.
 
 - [ ] **Step 5 : Commit**
 
@@ -2887,13 +2899,7 @@ export const BienvenuePage: FunctionComponent = () => {
 };
 ```
 
-Vérifier au préalable la signature de `KumySprout` :
-
-```bash
-grep -n "interface\|Props\|FunctionComponent" src/shared/components/KumySprout.tsx | head
-```
-
-Si le composant n'accepte pas de prop `size`, l'utiliser sans prop et régler la taille par le conteneur.
+`KumySprout` accepte bien une prop `size?: number` (défaut 30) — vérifié.
 
 - [ ] **Step 7 : Brancher la mise en page**
 
