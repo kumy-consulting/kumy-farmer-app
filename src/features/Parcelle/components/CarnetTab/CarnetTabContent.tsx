@@ -4,7 +4,6 @@ import CheckRounded from '@mui/icons-material/CheckRounded';
 import ChevronLeftRounded from '@mui/icons-material/ChevronLeftRounded';
 import ChevronRightRounded from '@mui/icons-material/ChevronRightRounded';
 import CloseRounded from '@mui/icons-material/CloseRounded';
-import PersonPinCircleRounded from '@mui/icons-material/PersonPinCircleRounded';
 import { Box, Stack, Typography } from '@mui/material';
 import dayjs from 'dayjs';
 
@@ -372,25 +371,27 @@ export const CarnetTabContent: FunctionComponent<CarnetTabContentProps> = ({ vis
           // photographié ce jour-là, d'un coup d'œil.
           const bande = photosDuPassage(visite);
           return (
-            <Stack key={visite.id} direction="row" spacing={1.5} sx={{ position: 'relative' }}>
-              {/* Rail du temps : la pastille marque le passage, le trait relie au
-                  suivant et s'interrompt après le dernier. */}
-              <Stack alignItems="center" sx={{ flexShrink: 0, width: 32 }}>
+            <Stack key={visite.id} direction="row" spacing={1.25} sx={{ position: 'relative' }}>
+              {/* Rail du temps : le nœud marque le passage, le trait relie au
+                  suivant et s'interrompt après le dernier.
+
+                  Un nœud de 10 px, et non un médaillon à icône : la même icône
+                  revenait à chaque passage, répétant en pictogramme ce que
+                  l'en-tête dit déjà en toutes lettres. C'est le trait qui porte
+                  l'information — le fil du temps sur la parcelle — et il rendait
+                  60 px de marge gauche sur un écran qui en compte 360. */}
+              <Stack alignItems="center" sx={{ flexShrink: 0, width: 10 }}>
                 <Box
                   aria-hidden
                   sx={{
-                    width: 32,
-                    height: 32,
+                    width: 10,
+                    height: 10,
                     borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    background: 'rgba(58,90,140,0.12)',
-                    '& svg': { fontSize: 18, color: '#3A5A8C' },
+                    background: '#3A5A8C',
+                    // Centre le nœud sur la hauteur d'œil de l'en-tête.
+                    mt: '4px',
                   }}
-                >
-                  <PersonPinCircleRounded />
-                </Box>
+                />
                 {!dernier && (
                   <Box aria-hidden sx={{ flex: 1, width: '2px', background: 'rgba(55,75,70,0.12)', mt: 0.5 }} />
                 )}
