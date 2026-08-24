@@ -56,11 +56,7 @@ export const MonEspacePage: FunctionComponent = () => {
           Maquette — données fictives
         </Box>
 
-        <BlocOutils
-          eligibilite={demoEligibilite}
-          score={demoScore}
-          onOuvrir={(outil) => outil !== 'marche' && navigate(`/mon-espace/${outil}`)}
-        />
+        <BlocOutils eligibilite={demoEligibilite} score={demoScore} />
 
         <BlocReglages />
 

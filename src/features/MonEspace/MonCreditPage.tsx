@@ -55,7 +55,7 @@ export const MonCreditPage: FunctionComponent = () => {
           }}
           noWrap
         >
-          Mon crédit
+          Mon potentiel de crédit
         </Typography>
       </Stack>
 
