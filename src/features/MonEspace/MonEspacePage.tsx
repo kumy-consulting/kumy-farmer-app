@@ -38,24 +38,6 @@ export const MonEspacePage: FunctionComponent = () => {
       <CarteAgriculteur profil={demoProfil} onOuvrirInformations={() => navigate('/mon-espace/informations')} />
 
       <Stack spacing={3.5} sx={{ px: 2.5, pt: 2.5, pb: 3 }}>
-        <Box
-          sx={{
-            alignSelf: 'flex-start',
-            px: 1.2,
-            py: 0.5,
-            borderRadius: 999,
-            background: 'rgba(198,138,26,0.16)',
-            fontFamily: "'Ubuntu', sans-serif",
-            fontSize: 10.5,
-            fontWeight: 700,
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase',
-            color: '#8C5000',
-          }}
-        >
-          Maquette — données fictives
-        </Box>
-
         <BlocOutils eligibilite={demoEligibilite} score={demoScore} />
 
         <BlocReglages />

@@ -12,22 +12,14 @@ import type { EligibiliteCredit, ProfilAgriculteur, ScoreAgriculteur } from './m
 export const demoProfil: ProfilAgriculteur = {
   nomComplet: 'Mamadou Aliou Barry',
   code: 'KMY-DBK-0412',
-  age: '42 ans',
-  sexe: 'male',
-  situationFamiliale: 'Marié, 6 enfants',
-  niveauInstruction: 'Primaire achevé',
   telephone: '+224 621 45 78 90',
   telephoneSecondaire: '+224 664 12 03 55',
-  pieceIdentite: 'GN-CNI-004721',
+  adresse: 'Quartier Kaporo-Rails, près du marché central',
   village: 'Kaporo',
   sousPrefecture: 'Tanènè',
   prefecture: 'Dubréka',
   region: 'Kindia',
   cooperative: 'Coopérative maraîchère de Tanènè',
-  anneesExperience: 14,
-  culturesPrincipales: 'Ananas, piment, riz de bas-fond',
-  surfaceTotale: '18,4 ha',
-  irrigation: 'Goutte-à-goutte partiel',
   niveauAcces: 'full',
 };
 

@@ -101,9 +101,18 @@ export const CarteAgriculteur: FunctionComponent<CarteAgriculteurProps> = ({ pro
         <Typography
           sx={{
             fontFamily: "'Ubuntu', sans-serif",
-            fontSize: 19,
+            // Le nom s'accorde à la largeur du téléphone. La colonne de texte
+            // vaut la largeur d'écran moins ~184 px (marges, portrait, chevron),
+            // et 19 px fixes y cassaient « Mamadou Aliou Barry » en deux sur un
+            // écran de 360 px. Indexer le corps sur la largeur le fait tenir sur
+            // les petits appareils sans imposer leur taille aux grands, où le
+            // plafond de 19 px reprend la main. Un nom vraiment long passe
+            // encore à la ligne : c'est le nom qui commande, pas la hauteur de
+            // la carte.
+            fontSize: 'clamp(15px, 4.5vw, 19px)',
             fontWeight: 700,
-            lineHeight: 1.2,
+            lineHeight: 1.25,
+            letterSpacing: '-0.01em',
             color: '#1A1C1B',
             mt: 0.3,
           }}

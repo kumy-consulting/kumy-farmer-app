@@ -1,8 +1,6 @@
-import { useState, type FunctionComponent, type ReactNode } from 'react';
+import type { FunctionComponent, ReactNode } from 'react';
 
 import EditOffRounded from '@mui/icons-material/EditOffRounded';
-import VisibilityOffRounded from '@mui/icons-material/VisibilityOffRounded';
-import VisibilityRounded from '@mui/icons-material/VisibilityRounded';
 import { Box, Stack, Typography } from '@mui/material';
 
 import type { ProfilAgriculteur } from '../monEspace.types';
@@ -12,37 +10,38 @@ interface BlocInformationsProps {
   profil: ProfilAgriculteur;
 }
 
-const SEXE: Record<ProfilAgriculteur['sexe'], string> = { male: 'Homme', female: 'Femme' };
-
-/** Ne laisse voir que les quatre derniers caractères : « ••••••••4721 ». */
-const masque = (valeur: string): string => `${'•'.repeat(Math.max(0, valeur.length - 4))}${valeur.slice(-4)}`;
-
 /** Grille de deux colonnes : les faits courts s'apparient, les longs traversent. */
 const Grille: FunctionComponent<{ children: ReactNode }> = ({ children }) => (
   <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 2, rowGap: 1.9 }}>{children}</Box>
 );
 
 /**
- * Les informations personnelles de l'agriculteur — une fiche de registre, pas
- * un tableau de quatorze lignes.
+ * La fiche de l'agriculteur — une fiche de registre, pas un tableau de quatorze
+ * lignes.
  *
  * Trois décisions portent l'écran :
  *
- * 1. **Des rubriques, pas une liste.** État civil, pièce d'identité, contact,
- *    localisation sont quatre registres différents ; les fondre dans une seule
- *    carte oblige à tout parcourir pour vérifier un numéro.
- * 2. **La localisation est une descente, pas quatre lignes.** Un village est
- *    *dans* une sous-préfecture, elle-même dans une préfecture : l'emboîtement
- *    est l'information. Un rail et des pastilles qui s'éteignent le disent ;
- *    quatre lignes côte à côte le perdent.
+ * 1. **Aucune donnée personnelle n'est affichée, ni même chargée.** Âge, sexe,
+ *    situation familiale, instruction, expérience et numéro de pièce d'identité
+ *    ont quitté `ProfilAgriculteur` : le téléphone d'un agriculteur change de
+ *    mains, se prête, se perd, et rien de ce que l'écran ne sert pas ne mérite
+ *    d'y descendre. Restent l'identité, le contact et le lieu — ce qui sert à se
+ *    reconnaître et à se joindre.
+ * 2. **La localisation est une descente, pas cinq lignes.** L'adresse est *dans*
+ *    un village, lui-même dans une sous-préfecture, elle-même dans une
+ *    préfecture : l'emboîtement est l'information. Un rail et des pastilles qui
+ *    s'éteignent le disent ; cinq lignes côte à côte le perdent. L'adresse tient
+ *    la tête du rail parce qu'elle en est le degré le plus fin — on n'arrive pas
+ *    chez quelqu'un avec le nom d'une préfecture.
  * 3. **L'écran est en lecture seule, et le dit franchement.** Aucun endpoint
  *    d'écriture n'est ouvert au rôle FARMER : la note finale nomme la
  *    contrainte et la personne qui peut, elle, corriger.
  */
 export const BlocInformations: FunctionComponent<BlocInformationsProps> = ({ profil }) => {
-  const [idVisible, setIdVisible] = useState(false);
-
+  // L'adresse est facultative : sans elle, le rail reprend simplement au
+  // village, et c'est le village qui porte la pastille pleine.
   const echelons = [
+    ...(profil.adresse ? [{ rang: 'Adresse', valeur: profil.adresse }] : []),
     { rang: 'Village', valeur: profil.village },
     { rang: 'Sous-préfecture', valeur: profil.sousPrefecture },
     { rang: 'Préfecture', valeur: profil.prefecture },
@@ -51,96 +50,16 @@ export const BlocInformations: FunctionComponent<BlocInformationsProps> = ({ pro
 
   return (
     <Stack spacing={3}>
-      {/* — État civil — */}
+      {/* — Identité — */}
       <Box>
-        <SectionTitle>État civil</SectionTitle>
+        <SectionTitle>Identité</SectionTitle>
         <Card pad={2.25}>
           <Grille>
             <Donnee label="Nom complet" value={profil.nomComplet} pleineLargeur />
-            <Donnee label="Âge" value={profil.age} />
-            <Donnee label="Sexe" value={SEXE[profil.sexe]} />
-            {profil.situationFamiliale && (
-              <Donnee label="Situation familiale" value={profil.situationFamiliale} pleineLargeur />
-            )}
-            <Donnee label="Instruction" value={profil.niveauInstruction} />
-            {/* L'expérience est une qualification de la personne, pas une donnée
-                de parcellaire : sa place est ici, à côté de l'instruction. */}
-            <Donnee label="Expérience agricole" value={`${profil.anneesExperience} ans`} />
+            <Donnee label="Code agriculteur" value={profil.code} pleineLargeur />
           </Grille>
         </Card>
       </Box>
-
-      {/* — Pièce d'identité — */}
-      {profil.pieceIdentite && (
-        <Box>
-          <SectionTitle>Pièce d’identité</SectionTitle>
-          <Box
-            sx={{
-              borderRadius: '18px',
-              background: 'rgba(1,134,117,0.055)',
-              border: '1px solid rgba(1,134,117,0.16)',
-              p: 2.25,
-            }}
-          >
-            <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1.5}>
-              <Typography
-                sx={{
-                  fontFamily: "'Ubuntu', sans-serif",
-                  fontSize: 17,
-                  fontWeight: 700,
-                  letterSpacing: idVisible ? '0.04em' : '0.09em',
-                  color: '#1A1C1B',
-                  minWidth: 0,
-                  overflowWrap: 'anywhere',
-                }}
-              >
-                {idVisible ? profil.pieceIdentite : masque(profil.pieceIdentite)}
-              </Typography>
-
-              <Stack
-                component="button"
-                type="button"
-                direction="row"
-                alignItems="center"
-                spacing={0.6}
-                onClick={() => setIdVisible((visible) => !visible)}
-                aria-pressed={idVisible}
-                sx={{
-                  appearance: 'none',
-                  flexShrink: 0,
-                  font: 'inherit',
-                  cursor: 'pointer',
-                  height: 40,
-                  px: 1.4,
-                  my: '-8px',
-                  mr: '-6px',
-                  borderRadius: 999,
-                  border: '1px solid rgba(1,101,87,0.28)',
-                  background: '#FFFFFF',
-                  color: '#016557',
-                  '&:active': { background: '#F0FBF7' },
-                  '&:focus-visible': { outline: '2px solid #016557', outlineOffset: 2 },
-                }}
-              >
-                {idVisible ? (
-                  <VisibilityOffRounded sx={{ fontSize: 17 }} />
-                ) : (
-                  <VisibilityRounded sx={{ fontSize: 17 }} />
-                )}
-                <Typography component="span" sx={{ fontSize: 13, fontWeight: 700, color: 'inherit' }}>
-                  {idVisible ? 'Masquer' : 'Afficher'}
-                </Typography>
-              </Stack>
-            </Stack>
-
-            <Typography sx={{ fontSize: 12, color: '#5C5F5E', mt: 1.1, lineHeight: 1.45 }}>
-              {idVisible
-                ? 'Refermez-la avant de poser le téléphone.'
-                : 'Masquée par défaut, au cas où le téléphone change de mains.'}
-            </Typography>
-          </Box>
-        </Box>
-      )}
 
       {/* — Contact — */}
       <Box>
@@ -155,7 +74,7 @@ export const BlocInformations: FunctionComponent<BlocInformationsProps> = ({ pro
         </Card>
       </Box>
 
-      {/* — Localisation, du village vers la région — */}
+      {/* — Localisation, de l'adresse vers la région — */}
       <Box>
         <SectionTitle>Localisation</SectionTitle>
         <Card pad={2.25}>
@@ -201,6 +120,9 @@ export const BlocInformations: FunctionComponent<BlocInformationsProps> = ({ pro
                       fontWeight: premier ? 700 : 600,
                       color: '#1A1C1B',
                       lineHeight: 1.25,
+                      // L'adresse est une phrase, pas un toponyme : elle doit
+                      // pouvoir passer à la ligne sans déborder de la carte.
+                      overflowWrap: 'anywhere',
                     }}
                   >
                     {echelon.valeur}

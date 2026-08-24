@@ -50,32 +50,43 @@ export interface EligibiliteCredit {
   criteres: CritereEligibilite[];
 }
 
+/**
+ * Profil affiché dans « Mes informations ».
+ *
+ * **Les données personnelles n'y figurent pas, et n'y transitent pas.** Âge,
+ * sexe, situation familiale, niveau d'instruction, années d'expérience et
+ * numéro de pièce d'identité ont été retirés du type lui-même, pas seulement de
+ * l'affichage : un champ absent de l'interface ne peut pas réapparaître au
+ * branchement de `GET /scoring/farmers/:id/profile`, ni fuiter par un log ou un
+ * cache. Ces informations restent connues du réseau — elles ne sont simplement
+ * pas redescendues jusqu'au téléphone de l'agriculteur, qui peut changer de
+ * mains.
+ *
+ * Ce que l'écran garde est ce qui sert à *se reconnaître et se joindre* : une
+ * identité, un contact, un lieu.
+ *
+ * Cultures, surface et irrigation ont suivi le même chemin, pour une autre
+ * raison : aucun composant ne les affiche. Un champ transporté « au cas où »
+ * finit par fuiter. Ils reviendront le jour où un écran les demande, avec leur
+ * source.
+ */
 export interface ProfilAgriculteur {
   nomComplet: string;
   /** Référence de l'agriculteur dans le réseau — son identifiant lisible. */
   code: string;
-  /** L'API renvoie un texte libre (« 42 ans »), pas un nombre. */
-  age: string;
-  sexe: 'male' | 'female';
-  situationFamiliale?: string;
-  niveauInstruction: string;
   telephone: string;
   telephoneSecondaire?: string;
   /**
-   * Pièce d'identité. Jamais affichée en entier par défaut : c'est la donnée la
-   * plus sensible de l'écran, et la voir ne sert qu'à vérifier qu'elle est la
-   * bonne — les quatre derniers chiffres y suffisent.
+   * Adresse en texte libre — quartier, repère, secteur. Le niveau le plus fin
+   * de la localisation, celui qu'aucun découpage administratif ne porte : on
+   * n'arrive pas chez quelqu'un avec le nom d'une sous-préfecture.
    */
-  pieceIdentite?: string;
+  adresse?: string;
   village: string;
   sousPrefecture: string;
   prefecture: string;
   region: string;
   cooperative: string;
-  anneesExperience: number;
-  culturesPrincipales: string;
-  surfaceTotale: string;
-  irrigation: string;
   /** `simulation` = compte de démonstration : l'écran doit le dire franchement. */
   niveauAcces: 'full' | 'simulation';
 }
