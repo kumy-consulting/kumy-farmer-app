@@ -43,7 +43,7 @@ marché » reste en maquette.
 **Interfaces:**
 - Produces: `FarmerSelfDto`, `FarmersService.getSelf(userId: string): Promise<FarmerSelfDto>`
 
-- [ ] **Step 1 : le DTO**
+- [x] **Step 1 : le DTO**
 
 ```ts
 export class FarmerSelfAddressDto {
@@ -69,7 +69,7 @@ export class FarmerSelfDto {
 }
 ```
 
-- [ ] **Step 2 : le test qui échoue**
+- [x] **Step 2 : le test qui échoue**
 
 ```ts
 it('getSelf ne renvoie que les champs affichés par l’app', async () => {
@@ -90,9 +90,9 @@ it('getSelf lève 404 pour un uid sans fiche agriculteur', async () => {
 });
 ```
 
-- [ ] **Step 3 : lancer, vérifier l'échec** — `npm test -- farmers.service`
+- [x] **Step 3 : lancer, vérifier l'échec** — `npm test -- farmers.service`
 
-- [ ] **Step 4 : l'implémentation**
+- [x] **Step 4 : l'implémentation**
 
 ```ts
 async getSelf(userId: string): Promise<FarmerSelfDto> {
@@ -123,7 +123,7 @@ async getSelf(userId: string): Promise<FarmerSelfDto> {
 `findByUserId` enrichit déjà avec les noms d'échelons et les infos user : aucune
 requête Firestore supplémentaire.
 
-- [ ] **Step 5 : lancer, vérifier le passage, commiter**
+- [x] **Step 5 : lancer, vérifier le passage, commiter**
 
 ```bash
 git add src/farmers/dto/farmer-self.dto.ts src/farmers/dto/index.ts \
@@ -143,7 +143,7 @@ git commit -m "feat(farmers): FarmerSelfDto, la vue restreinte qu'un agriculteur
 - Consumes: `FarmersService.getSelf`
 - Produces: route `GET /api/v1/farmers/me`
 
-- [ ] **Step 1 : le test qui échoue**
+- [x] **Step 1 : le test qui échoue**
 
 ```ts
 it('« me » n’est pas capturé par la route :id', () => {
@@ -159,9 +159,9 @@ it('la route est ouverte au seul rôle FARMER', () => {
 });
 ```
 
-- [ ] **Step 2 : lancer, vérifier l'échec** — `npm test -- farmers.controller`
+- [x] **Step 2 : lancer, vérifier l'échec** — `npm test -- farmers.controller`
 
-- [ ] **Step 3 : la route, déclarée AVANT `@Get(':id')`**
+- [x] **Step 3 : la route, déclarée AVANT `@Get(':id')`**
 
 ```ts
 @Get('me')
@@ -179,7 +179,7 @@ async getSelf(@CurrentUser() user: AuthUserDto): Promise<FarmerSelfDto> {
 }
 ```
 
-- [ ] **Step 4 : lancer, vérifier le passage, commiter**
+- [x] **Step 4 : lancer, vérifier le passage, commiter**
 
 ```bash
 git add src/farmers/farmers.controller.ts src/farmers/farmers.controller.spec.ts
@@ -198,7 +198,7 @@ git commit -m "feat(farmers): expose GET /farmers/me, resolu depuis l'uid du jet
 **Interfaces:**
 - Produces: `FarmersService.updateOwnNotificationSettings(userId: string, sms: boolean): Promise<{ sms: boolean }>`
 
-- [ ] **Step 1 : le DTO**
+- [x] **Step 1 : le DTO**
 
 ```ts
 export class UpdateNotificationSettingsDto {
@@ -208,7 +208,7 @@ export class UpdateNotificationSettingsDto {
 }
 ```
 
-- [ ] **Step 2 : les tests qui échouent**
+- [x] **Step 2 : les tests qui échouent**
 
 ```ts
 it('n’écrase pas les autres réglages de notification', async () => {
@@ -232,9 +232,9 @@ it('matérialise le réglage quand il n’existe pas encore', async () => {
 });
 ```
 
-- [ ] **Step 3 : lancer, vérifier l'échec**
+- [x] **Step 3 : lancer, vérifier l'échec**
 
-- [ ] **Step 4 : l'implémentation — lire, fusionner, écrire**
+- [x] **Step 4 : l'implémentation — lire, fusionner, écrire**
 
 ```ts
 async updateOwnNotificationSettings(
@@ -263,7 +263,7 @@ async updateOwnNotificationSettings(
 }
 ```
 
-- [ ] **Step 5 : la route, elle aussi AVANT `@Get(':id')`**
+- [x] **Step 5 : la route, elle aussi AVANT `@Get(':id')`**
 
 ```ts
 @Patch('me/notification-settings')
@@ -280,7 +280,7 @@ async updateOwnNotificationSettings(
 
 `Patch` doit être ajouté aux imports `@nestjs/common` du contrôleur.
 
-- [ ] **Step 6 : `npm run lint && npm test`, puis commiter**
+- [x] **Step 6 : `npm run lint && npm test`, puis commiter**
 
 ```bash
 git commit -am "feat(farmers): PATCH /farmers/me/notification-settings, fusion sans ecrasement"
@@ -300,12 +300,12 @@ git commit -am "feat(farmers): PATCH /farmers/me/notification-settings, fusion s
 **Interfaces:**
 - Produces: `monEspaceApi.profil()`, `monEspaceApi.majAlertesSms(sms)`, `versProfil(dto, accessTier)`
 
-- [ ] **Step 1 : retirer du type les trois champs que rien n'affiche**
+- [x] **Step 1 : retirer du type les trois champs que rien n'affiche**
 
 `culturesPrincipales`, `surfaceTotale`, `irrigation` sortent de `ProfilAgriculteur`
 et de `monEspace.demo.ts`.
 
-- [ ] **Step 2 : le test du mapper**
+- [x] **Step 2 : le test du mapper**
 
 ```ts
 describe('versProfil', () => {
@@ -315,9 +315,9 @@ describe('versProfil', () => {
 });
 ```
 
-- [ ] **Step 3 : lancer, vérifier l'échec** — `npx vitest run monEspace.mapper`
+- [x] **Step 3 : lancer, vérifier l'échec** — `npx vitest run monEspace.mapper`
 
-- [ ] **Step 4 : l'implémentation**
+- [x] **Step 4 : l'implémentation**
 
 ```ts
 export function versProfil(
@@ -340,7 +340,7 @@ export function versProfil(
 }
 ```
 
-- [ ] **Step 5 : `monEspace.api.ts`**
+- [x] **Step 5 : `monEspace.api.ts`**
 
 ```ts
 export const monEspaceApi = {
@@ -358,7 +358,7 @@ export const monEspaceApi = {
 };
 ```
 
-- [ ] **Step 6 : `npx vitest run && npx tsc --noEmit && npx eslint src`, commiter**
+- [x] **Step 6 : `npx vitest run && npx tsc --noEmit && npx eslint src`, commiter**
 
 ---
 
@@ -374,7 +374,7 @@ export const monEspaceApi = {
 - Consumes: `monEspaceApi.profil`, `versProfil`
 - Produces: `useProfilAgriculteur(): { profil: ProfilAgriculteur | null; isLoading: boolean; alertesSms: boolean | null }`
 
-- [ ] **Step 1 : les tests du hook**
+- [x] **Step 1 : les tests du hook**
 
 ```ts
 it('rend le profil de l’agriculteur connecté', async () => { /* … */ });
@@ -388,20 +388,20 @@ it('se replie sur la session quand l’appel échoue', async () => {
 it('se replie de la même façon sur un 404', async () => { /* … */ });
 ```
 
-- [ ] **Step 2 : lancer, vérifier l'échec**
+- [x] **Step 2 : lancer, vérifier l'échec**
 
-- [ ] **Step 3 : le hook** — même forme que `useCompteNouveau` : `uid` absent ⇒ pas
+- [x] **Step 3 : le hook** — même forme que `useCompteNouveau` : `uid` absent ⇒ pas
   d'appel ; échec ⇒ profil de repli construit depuis `authStore.user`
   (`nomComplet: displayName`, `telephone: phone`, tout le reste vide).
 
-- [ ] **Step 4 : brancher `MonEspacePage`** — `demoProfil` disparaît de l'import,
+- [x] **Step 4 : brancher `MonEspacePage`** — `demoProfil` disparaît de l'import,
   `CarteAgriculteur` reçoit `profil` et un nouveau `isLoading` (squelette gris sur
   le code, le nom et la coopérative, hauteur de carte inchangée).
 
-- [ ] **Step 5 : brancher `MesInformationsPage`** et filtrer dans `BlocInformations`
+- [x] **Step 5 : brancher `MesInformationsPage`** et filtrer dans `BlocInformations`
   les échelons dont la valeur est vide, comme `adresse` l'est déjà.
 
-- [ ] **Step 6 : suite complète, puis commiter**
+- [x] **Step 6 : suite complète, puis commiter**
 
 ---
 
@@ -416,25 +416,25 @@ it('se replie de la même façon sur un 404', async () => { /* … */ });
 - Produces: `mesurerTuiles(): Promise<{ octets: number | null; tuiles: number } | null>`,
   `viderTuiles(): Promise<void>`
 
-- [ ] **Step 1 : les tests du cache** — faux `caches` global : comptage sur les deux
+- [x] **Step 1 : les tests du cache** — faux `caches` global : comptage sur les deux
   caches, suppression des deux, `null` quand `caches` n'existe pas, `octets: null`
   quand `navigator.storage.estimate` ne donne pas `usageDetails.caches`.
 
-- [ ] **Step 2 : lancer, vérifier l'échec**
+- [x] **Step 2 : lancer, vérifier l'échec**
 
-- [ ] **Step 3 : le service** — `CACHES = ['map-tiles-google', 'map-tiles-satellite']`,
+- [x] **Step 3 : le service** — `CACHES = ['map-tiles-google', 'map-tiles-satellite']`,
   comptage via `cache.keys()`, poids via `navigator.storage.estimate()`.
 
-- [ ] **Step 4 : la ligne « Cartes enregistrées »** — « 12 Mo pour vos parcelles hors
+- [x] **Step 4 : la ligne « Cartes enregistrées »** — « 12 Mo pour vos parcelles hors
   réseau » devient la mesure réelle, ou le nombre de tuiles quand le poids n'est pas
   lisible ; la ligne disparaît si `caches` est absent. « Vider » appelle
   `viderTuiles()` puis recalcule.
 
-- [ ] **Step 5 : la bascule des alertes** — état initial `alertesSms` du hook,
+- [x] **Step 5 : la bascule des alertes** — état initial `alertesSms` du hook,
   désactivée pendant le chargement, écriture optimiste, **retour en arrière et message
   court si le `PATCH` échoue**.
 
-- [ ] **Step 6 : suite complète + `tsc` + `eslint`, puis commiter**
+- [x] **Step 6 : suite complète + `tsc` + `eslint`, puis commiter**
 
 ---
 
