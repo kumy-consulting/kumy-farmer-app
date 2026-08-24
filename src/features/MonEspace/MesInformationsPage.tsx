@@ -6,11 +6,9 @@ import { useNavigate } from 'react-router-dom';
 import { BackButton } from '@/shared/components/BackButton';
 
 import { BlocInformations } from './components/BlocInformations';
-import { demoProfil } from './monEspace.demo';
+import { useProfilAgriculteur } from './useProfilAgriculteur';
 
 /**
- * ⚠️ MAQUETTE — les données viennent de `monEspace.demo`.
- *
  * La fiche personnelle, sortie de l'onglet : elle se consulte, elle ne se
  * parcourt pas. La laisser dans le flux de « Mon espace » obligeait à traverser
  * douze lignes d'état civil pour atteindre les réglages, alors qu'on n'ouvre sa
@@ -33,6 +31,7 @@ import { demoProfil } from './monEspace.demo';
  */
 export const MesInformationsPage: FunctionComponent = () => {
   const navigate = useNavigate();
+  const { profil, isLoading } = useProfilAgriculteur();
 
   return (
     <Box
@@ -64,7 +63,7 @@ export const MesInformationsPage: FunctionComponent = () => {
         </Typography>
       </Stack>
 
-      <BlocInformations profil={demoProfil} />
+      <BlocInformations profil={profil} isLoading={isLoading} />
     </Box>
   );
 };

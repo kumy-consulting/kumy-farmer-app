@@ -10,21 +10,24 @@ import { BlocOutils } from './components/BlocOutils';
 import { BlocReglages } from './components/BlocReglages';
 import { CarteAgriculteur } from './components/CarteAgriculteur';
 import { SectionTitle } from './components/espaceUi';
-import { demoEligibilite, demoProfil, demoScore } from './monEspace.demo';
+import { demoEligibilite, demoScore } from './monEspace.demo';
+import { useProfilAgriculteur } from './useProfilAgriculteur';
 
 /**
- * ⚠️ MAQUETTE — aucun appel réseau n'est branché, tout vient de `monEspace.demo`.
+ * L'identité et les réglages viennent de l'API (`GET /farmers/me`) ; le crédit,
+ * le score et la place de marché restent en maquette derrière leurs étiquettes
+ * « Bientôt ».
  *
  * L'onglet répond à une question : « qui la plateforme pense que je suis, et
  * qu'est-ce que ça m'ouvre ». D'où l'ordre : la carte d'agriculteur, puis le
  * versant économique qui en découle, et seulement ensuite la plomberie.
  *
  * `BlocCredit` et `BlocScore` ne sont pas supprimés : ils portent le détail
- * (critères manqués, six piliers) et attendent les écrans de détail sur
- * lesquels les tuiles ouvriront.
+ * (critères manqués, six piliers) et attendent que le scoring tourne réellement
+ * pour les agriculteurs de production.
  *
- * Les trois endpoints qui alimenteront ces blocs sont déjà ouverts au rôle
- * FARMER et ne sont appelés nulle part aujourd'hui :
+ * Les trois endpoints qui les alimenteront sont ouverts au rôle FARMER et ne
+ * sont appelés nulle part aujourd'hui :
  *   GET /scoring/farmers/:id/profile
  *   GET /scoring/farmers/:id
  *   GET /scoring/farmers/:id/credit-eligibility
@@ -32,15 +35,20 @@ import { demoEligibilite, demoProfil, demoScore } from './monEspace.demo';
 export const MonEspacePage: FunctionComponent = () => {
   const logout = useAuthStore((s) => s.logout);
   const navigate = useNavigate();
+  const { profil, isLoading, alertesSms, poserAlertesSms } = useProfilAgriculteur();
 
   return (
     <Box sx={{ minHeight: '100dvh', background: 'linear-gradient(180deg, #F3FFFA 0%, #F0F1EF 100%)' }}>
-      <CarteAgriculteur profil={demoProfil} onOuvrirInformations={() => navigate('/mon-espace/informations')} />
+      <CarteAgriculteur
+        profil={profil}
+        isLoading={isLoading}
+        onOuvrirInformations={() => navigate('/mon-espace/informations')}
+      />
 
       <Stack spacing={3.5} sx={{ px: 2.5, pt: 2.5, pb: 3 }}>
         <BlocOutils eligibilite={demoEligibilite} score={demoScore} />
 
-        <BlocReglages />
+        <BlocReglages alertesSms={alertesSms} onAlertesSmsChangees={poserAlertesSms} />
 
         <Box>
           <SectionTitle>Compte</SectionTitle>

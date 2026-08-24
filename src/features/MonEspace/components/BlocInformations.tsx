@@ -1,13 +1,15 @@
 import type { FunctionComponent, ReactNode } from 'react';
 
 import EditOffRounded from '@mui/icons-material/EditOffRounded';
-import { Box, Stack, Typography } from '@mui/material';
+import { Box, Skeleton, Stack, Typography } from '@mui/material';
 
 import type { ProfilAgriculteur } from '../monEspace.types';
 import { Card, Donnee, SectionTitle, Sourcil } from './espaceUi';
 
 interface BlocInformationsProps {
-  profil: ProfilAgriculteur;
+  /** `null` hors session — il n'y a alors personne à afficher. */
+  profil: ProfilAgriculteur | null;
+  isLoading?: boolean;
 }
 
 /** Grille de deux colonnes : les faits courts s'apparient, les longs traversent. */
@@ -36,17 +38,26 @@ const Grille: FunctionComponent<{ children: ReactNode }> = ({ children }) => (
  * 3. **L'écran est en lecture seule, et le dit franchement.** Aucun endpoint
  *    d'écriture n'est ouvert au rôle FARMER : la note finale nomme la
  *    contrainte et la personne qui peut, elle, corriger.
+ * 4. **Un champ vide ne s'affiche pas.** L'API rend les échelons qu'elle
+ *    connaît ; ceux qui manquent au dossier sortent vides. Une ligne
+ *    « Sous-préfecture » sans valeur, ou un « Non renseigné », donnerait à une
+ *    lacune l'apparence d'une donnée — et enverrait l'agriculteur corriger ce
+ *    qu'il croit être une erreur d'affichage.
  */
-export const BlocInformations: FunctionComponent<BlocInformationsProps> = ({ profil }) => {
-  // L'adresse est facultative : sans elle, le rail reprend simplement au
-  // village, et c'est le village qui porte la pastille pleine.
+export const BlocInformations: FunctionComponent<BlocInformationsProps> = ({ profil, isLoading }) => {
+  if (isLoading || !profil) {
+    return <FicheEnAttente />;
+  }
+
+  // Chaque échelon est facultatif : le rail démarre au degré le plus fin que le
+  // dossier connaisse, et c'est celui-là qui porte la pastille pleine.
   const echelons = [
-    ...(profil.adresse ? [{ rang: 'Adresse', valeur: profil.adresse }] : []),
+    { rang: 'Adresse', valeur: profil.adresse ?? '' },
     { rang: 'Village', valeur: profil.village },
     { rang: 'Sous-préfecture', valeur: profil.sousPrefecture },
     { rang: 'Préfecture', valeur: profil.prefecture },
     { rang: 'Région', valeur: profil.region },
-  ];
+  ].filter((echelon) => echelon.valeur.trim() !== '');
 
   return (
     <Stack spacing={3}>
@@ -56,7 +67,7 @@ export const BlocInformations: FunctionComponent<BlocInformationsProps> = ({ pro
         <Card pad={2.25}>
           <Grille>
             <Donnee label="Nom complet" value={profil.nomComplet} pleineLargeur />
-            <Donnee label="Code agriculteur" value={profil.code} pleineLargeur />
+            {profil.code && <Donnee label="Code agriculteur" value={profil.code} pleineLargeur />}
           </Grille>
         </Card>
       </Box>
@@ -66,7 +77,7 @@ export const BlocInformations: FunctionComponent<BlocInformationsProps> = ({ pro
         <SectionTitle>Contact</SectionTitle>
         <Card pad={2.25}>
           <Grille>
-            <Donnee label="Téléphone" value={profil.telephone} pleineLargeur />
+            {profil.telephone && <Donnee label="Téléphone" value={profil.telephone} pleineLargeur />}
             {profil.telephoneSecondaire && (
               <Donnee label="Autre téléphone" value={profil.telephoneSecondaire} pleineLargeur />
             )}
@@ -75,6 +86,7 @@ export const BlocInformations: FunctionComponent<BlocInformationsProps> = ({ pro
       </Box>
 
       {/* — Localisation, de l'adresse vers la région — */}
+      {echelons.length > 0 && (
       <Box>
         <SectionTitle>Localisation</SectionTitle>
         <Card pad={2.25}>
@@ -136,6 +148,7 @@ export const BlocInformations: FunctionComponent<BlocInformationsProps> = ({ pro
           })}
         </Card>
       </Box>
+      )}
 
       {/* — Ce que l'écran ne permet pas, dit avant qu'on le cherche — */}
       <Stack
@@ -161,3 +174,31 @@ export const BlocInformations: FunctionComponent<BlocInformationsProps> = ({ pro
     </Stack>
   );
 };
+
+/**
+ * Le squelette reprend la découpe de la fiche — trois cartes, pas une barre de
+ * progression : l'écran s'affiche à sa place définitive, puis se remplit.
+ */
+const FicheEnAttente: FunctionComponent = () => (
+  <Stack spacing={3}>
+    {[
+      { titre: 'Identité', lignes: 2 },
+      { titre: 'Contact', lignes: 1 },
+      { titre: 'Localisation', lignes: 4 },
+    ].map((section) => (
+      <Box key={section.titre}>
+        <SectionTitle>{section.titre}</SectionTitle>
+        <Card pad={2.25}>
+          <Stack spacing={1.9}>
+            {Array.from({ length: section.lignes }, (_, rang) => (
+              <Box key={rang}>
+                <Skeleton width={96} height={12} sx={{ bgcolor: 'rgba(1,134,117,0.09)' }} />
+                <Skeleton width={176} height={20} sx={{ bgcolor: 'rgba(1,134,117,0.09)' }} />
+              </Box>
+            ))}
+          </Stack>
+        </Card>
+      </Box>
+    ))}
+  </Stack>
+);

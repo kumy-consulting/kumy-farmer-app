@@ -1,15 +1,20 @@
 import type { FunctionComponent } from 'react';
 
 import ChevronRightRounded from '@mui/icons-material/ChevronRightRounded';
-import { Box, Stack, Typography } from '@mui/material';
+import { Box, Skeleton, Stack, Typography } from '@mui/material';
 
 import type { ProfilAgriculteur } from '../monEspace.types';
 
 interface CarteAgriculteurProps {
-  profil: ProfilAgriculteur;
+  /** `null` tant qu'aucune session n'est chargée. */
+  profil: ProfilAgriculteur | null;
+  isLoading?: boolean;
   /** Ouvre la fiche personnelle. */
   onOuvrirInformations?: () => void;
 }
+
+/** Teinte des squelettes : la même que celle des séparateurs de la carte. */
+const trait = { bgcolor: 'rgba(1,134,117,0.09)' } as const;
 
 const initiales = (nom: string): string =>
   nom
@@ -37,8 +42,16 @@ const initiales = (nom: string): string =>
  * 3. **L'adresse complète n'est pas ici.** Village, sous-préfecture, préfecture
  *    et région vivent dans la fiche, à un tap. La carte garde ce qui identifie :
  *    le nom, la référence, et la coopérative qui répond de lui.
+ * 4. **Une ligne sans valeur ne s'affiche pas.** Hors réseau, seuls le nom et
+ *    les initiales survivent — la référence et la coopérative disparaissent au
+ *    lieu de s'afficher en gabarit. Un « — » à la place d'un code agriculteur
+ *    donne à une lacune l'apparence d'une donnée.
  */
-export const CarteAgriculteur: FunctionComponent<CarteAgriculteurProps> = ({ profil, onOuvrirInformations }) => (
+export const CarteAgriculteur: FunctionComponent<CarteAgriculteurProps> = ({
+  profil,
+  isLoading,
+  onOuvrirInformations,
+}) => (
   <Box sx={{ px: 2.5, pt: 'max(calc(env(safe-area-inset-top, 0px) + 12px), 52px)' }}>
     <Stack
       component="button"
@@ -72,7 +85,9 @@ export const CarteAgriculteur: FunctionComponent<CarteAgriculteurProps> = ({ pro
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'linear-gradient(140deg, #018675 0%, #016557 100%)',
+          background: profil
+            ? 'linear-gradient(140deg, #018675 0%, #016557 100%)'
+            : 'rgba(1,134,117,0.12)',
           // Halo pâle plutôt qu'un contour net : le portrait se pose sur la
           // carte au lieu d'y être découpé.
           boxShadow: '0 0 0 5px rgba(1,134,117,0.09)',
@@ -83,23 +98,31 @@ export const CarteAgriculteur: FunctionComponent<CarteAgriculteurProps> = ({ pro
           color: '#FFFFFF',
         }}
       >
-        {initiales(profil.nomComplet)}
+        {profil ? initiales(profil.nomComplet) : ''}
       </Box>
 
       <Box sx={{ flex: 1, minWidth: 0 }}>
+        {isLoading ? (
+          <Skeleton width={104} height={13} sx={trait} />
+        ) : (
+          profil?.code && (
+            <Typography
+              sx={{
+                fontSize: 11,
+                fontWeight: 700,
+                letterSpacing: '0.14em',
+                textTransform: 'uppercase',
+                color: '#5C5F5E',
+              }}
+            >
+              {profil.code}
+            </Typography>
+          )
+        )}
+        {isLoading && <Skeleton width={186} height={24} sx={{ ...trait, mt: 0.3 }} />}
         <Typography
           sx={{
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: '0.14em',
-            textTransform: 'uppercase',
-            color: '#5C5F5E',
-          }}
-        >
-          {profil.code}
-        </Typography>
-        <Typography
-          sx={{
+            display: isLoading ? 'none' : 'block',
             fontFamily: "'Ubuntu', sans-serif",
             // Le nom s'accorde à la largeur du téléphone. La colonne de texte
             // vaut la largeur d'écran moins ~184 px (marges, portrait, chevron),
@@ -117,26 +140,32 @@ export const CarteAgriculteur: FunctionComponent<CarteAgriculteurProps> = ({ pro
             mt: 0.3,
           }}
         >
-          {profil.nomComplet}
+          {profil?.nomComplet ?? ''}
         </Typography>
-        <Typography
-          sx={{
-            fontSize: 13,
-            fontWeight: 500,
-            color: '#5C5F5E',
-            mt: 0.3,
-            // Une ligne, toujours : « Coopérative maraîchère de Tanènè » passait
-            // sur deux lignes et étirait la carte pour une information de
-            // troisième rang, lisible en entier dans la fiche.
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}
-        >
-          {profil.cooperative}
-        </Typography>
+        {isLoading ? (
+          <Skeleton width={168} height={15} sx={{ ...trait, mt: 0.3 }} />
+        ) : (
+          profil?.cooperative && (
+            <Typography
+              sx={{
+                fontSize: 13,
+                fontWeight: 500,
+                color: '#5C5F5E',
+                mt: 0.3,
+                // Une ligne, toujours : « Coopérative maraîchère de Tanènè »
+                // passait sur deux lignes et étirait la carte pour une
+                // information de troisième rang, lisible en entier dans la fiche.
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {profil.cooperative}
+            </Typography>
+          )
+        )}
 
-        {profil.niveauAcces === 'simulation' && (
+        {profil?.niveauAcces === 'simulation' && (
           // Un agriculteur en simulation doit le savoir, sinon il croit ses
           // chiffres réels — et sur un écran de crédit, c'est grave.
           <Box

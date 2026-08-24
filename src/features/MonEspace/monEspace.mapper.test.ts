@@ -68,13 +68,20 @@ describe('profilDeSecours', () => {
       role: 'farmer',
     });
 
-    expect(profil.nomComplet).toBe('Awa Diallo');
-    expect(profil.telephone).toBe('+224622201362');
     // Ce que la session ne sait pas reste vide : l'écran masque ces lignes
     // plutôt que d'afficher un gabarit.
-    expect(profil.code).toBe('');
-    expect(profil.cooperative).toBe('');
-    expect(profil.village).toBe('');
+    expect(profil).toEqual({
+      nomComplet: 'Awa Diallo',
+      code: '',
+      telephone: '+224622201362',
+      adresse: undefined,
+      village: '',
+      sousPrefecture: '',
+      prefecture: '',
+      region: '',
+      cooperative: '',
+      niveauAcces: 'full',
+    });
   });
 
   it('rend null sans session — il n’y a alors personne à afficher', async () => {
