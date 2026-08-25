@@ -58,7 +58,7 @@ describe('RegisterResultPage', () => {
       </StrictMode>,
     );
 
-    expect(await screen.findByText('Compte créé !')).toBeInTheDocument();
+    expect(await screen.findByText(/C’est fait/)).toBeInTheDocument();
 
     expect(creerSpy).toHaveBeenCalledTimes(1);
   });
@@ -69,9 +69,11 @@ describe('RegisterResultPage', () => {
 
     renderPage();
 
-    expect(await screen.findByText('Compte créé !')).toBeInTheDocument();
-    // Le prénom est recopié avant le vidage : le message reste complet.
-    expect(screen.getByText(/Bienvenue Awa/)).toBeInTheDocument();
+    expect(await screen.findByText(/C’est fait, Awa/)).toBeInTheDocument();
+    // Nom et numéro sont recopiés avant le vidage : la carte remise reste
+    // complète alors que le store est déjà vide.
+    expect(screen.getByText('Awa Diallo')).toBeInTheDocument();
+    expect(screen.getByText('+224 622 20 13 62')).toBeInTheDocument();
 
     // Le jeton et le code confidentiel ne survivent pas au parcours : un retour
     // matériel Android ne peut plus rejouer une création déjà consommée.
@@ -98,7 +100,7 @@ describe('RegisterResultPage', () => {
     await waitFor(() => expect(loginSpy).toHaveBeenCalledTimes(2));
     // La création ne doit jamais être rejouée : le jeton est déjà consommé.
     expect(creerSpy).toHaveBeenCalledTimes(1);
-    expect(await screen.findByText('Compte créé !')).toBeInTheDocument();
+    expect(await screen.findByText(/C’est fait/)).toBeInTheDocument();
   });
 
   it('création en échec 503 : message d’indisponibilité, pas de « la création a échoué »', async () => {
