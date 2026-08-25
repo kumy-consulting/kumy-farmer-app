@@ -10,6 +10,15 @@ const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 
 // Cache 30 jours des tuiles carto satellite (usage terrain hors-ligne).
 const THIRTY_DAYS = 30 * 24 * 60 * 60;
 
+// Cible du proxy de développement. Par défaut l'API DEV de Cloud Run ; posez
+// API_PROXY_TARGET=http://localhost:3000 pour dérouler un parcours contre une
+// API lancée en local — notamment les numéros de test OTP, qui exigent
+// OTP_TEST_NUMBERS=true et ne sont donc actifs sur aucun déploiement.
+// Le proxy garde l'app et l'API sur la même origine : les cookies de session
+// continuent de circuler, ce qu'une URL d'API absolue casserait.
+const API_PROXY_TARGET =
+  process.env.API_PROXY_TARGET ?? 'https://agripilot-backoffice-api-dev-rlsznfc4qq-ew.a.run.app';
+
 export default defineConfig({
   // Exposé à l'app via les globals déclarés dans src/vite-env.d.ts.
   define: {
@@ -24,9 +33,9 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://agripilot-backoffice-api-dev-rlsznfc4qq-ew.a.run.app',
+        target: API_PROXY_TARGET,
         changeOrigin: true,
-        secure: true,
+        secure: API_PROXY_TARGET.startsWith('https:'),
       },
     },
   },
