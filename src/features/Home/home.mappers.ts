@@ -1,6 +1,6 @@
 import dayjs, { type Dayjs } from 'dayjs';
 
-import type { AlertSeverity, FarmerAlert } from '@/features/Domaines/domaines.types';
+import type { AlertSeverity, FarmerAlert, FarmerVisit } from '@/features/Domaines/domaines.types';
 import type { FieldTask, FieldTaskType } from '@/features/FieldTasks/fieldTasks.types';
 import type { ItkParcelTasks, ItkTask } from '@/features/Parcelle/parcelle.types';
 
@@ -281,15 +281,53 @@ export function itkToFeed(sources: ParcelItkSource[], ctx: ItkFeedContext): Feed
 const VISIT_MAX_AGE_DAYS = 21;
 
 /**
- * Comptes rendus de visite, reconstitués depuis les consignes.
+ * Où le passage est raconté : le carnet de la parcelle visitée.
  *
- * Aucun endpoint de visite n'est ouvert au rôle FARMER : on regroupe les
- * consignes par `visitId`, la date de visite étant la plus ancienne création du
- * groupe. La carte est un récapitulatif en lecture — les consignes elles-mêmes
- * restent dans le fil à leur place d'urgence, une consigne en retard ne doit pas
- * être enterrée dans un compte rendu.
+ * Le carnet se tient par parcelle — c'est là que les constats, les photos et les
+ * consignes du technicien sont datés. Sans parcelle, il n'y a pas de carnet à
+ * ouvrir : le domaine est le plus près qu'on sache faire.
  */
-export function visitsToFeed(tasks: FieldTask[], names: NameIndex, now: Dayjs = dayjs()): FeedItemDraft[] {
+const carnetDe = (farmId: string | null, parcelId?: string | null): string | undefined => {
+  if (!farmId) return undefined;
+  return parcelId ? `/domaines/${farmId}/parcelles/${parcelId}?onglet=carnet` : `/domaines/${farmId}`;
+};
+
+/** Instant de référence d'une visite faite : elle est datée de sa fin. */
+const quandFaite = (visit: FarmerVisit): string | null =>
+  visit.endedAt ?? visit.startedAt ?? visit.scheduledFor;
+
+/**
+ * Comptes rendus de visite.
+ *
+ * Deux sources, et une seule carte par visite :
+ *
+ * 1. **`GET /farmers/:id/visits`** (`faites`) fait autorité. Une visite y existe
+ *    dès qu'elle a eu lieu, avec le nom du technicien — même si elle n'a laissé
+ *    aucune consigne derrière elle.
+ * 2. **Les consignes portant un `visitId`** complètent : elles seules disent
+ *    combien de travail la visite a laissé, et où il en est.
+ *
+ * Le fil ne s'est longtemps appuyé que sur la source 2, faute d'endpoint. Une
+ * visite sans consigne restait donc invisible, et « Aucune enregistrée »
+ * s'affichait alors que le technicien était bien passé.
+ *
+ * Le plafond d'âge ne vaut que pour la reconstitution : dès que l'API confirme
+ * la visite, ni elle ni ses consignes ne sont écartées pour leur âge. Un fait
+ * daté n'est pas une déduction, et la fiche d'accompagnement doit pouvoir nommer
+ * le dernier passage même s'il remonte à la saison dernière.
+ *
+ * **La parcelle du carnet** se cherche dans cet ordre : celle que la visite
+ * déclare (`parcelIds`), à défaut celle qu'une de ses consignes désigne, à
+ * défaut celle où le GPS a validé le passage (`visitedParcelId`). L'app
+ * technicien n'envoie pas `parcelIds` : sans les deux replis, le lien retomberait
+ * toujours sur le domaine.
+ */
+export function visitsToFeed(
+  tasks: FieldTask[],
+  names: NameIndex,
+  now: Dayjs = dayjs(),
+  faites: FarmerVisit[] = [],
+): FeedItemDraft[] {
   const byVisit = new Map<string, FieldTask[]>();
 
   for (const task of tasks) {
@@ -299,16 +337,24 @@ export function visitsToFeed(tasks: FieldTask[], names: NameIndex, now: Dayjs = 
     else byVisit.set(task.visitId, [task]);
   }
 
+  const confirmees = new Set(faites.filter((v) => v.status === 'done').map((v) => v.id));
   const items: FeedItemDraft[] = [];
+  /** Parcelle retenue par visite — c'est elle qui désigne le carnet à ouvrir. */
+  const parcelleDe = new Map<string, string>();
 
   for (const [visitId, group] of byVisit) {
     const sorted = [...group].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
     const first = sorted[0];
-    if (now.diff(dayjs(first.createdAt), 'day') > VISIT_MAX_AGE_DAYS) continue;
+    if (!confirmees.has(visitId) && now.diff(dayjs(first.createdAt), 'day') > VISIT_MAX_AGE_DAYS) continue;
 
     const done = group.filter((t) => t.status === 'done').length;
     const author = first.createdByName ?? 'votre technicien';
-    const parcelName = first.parcelId ? names.parcels.get(first.parcelId) : undefined;
+    // La première consigne qui nomme une parcelle, pas la première consigne :
+    // une visite peut ouvrir sur une tâche de domaine et n'atterrir sur une
+    // parcelle qu'ensuite — c'est pourtant elle qui tient le carnet.
+    const parcelId = sorted.find((t) => t.parcelId)?.parcelId ?? undefined;
+    if (parcelId) parcelleDe.set(visitId, parcelId);
+    const parcelName = parcelId ? names.parcels.get(parcelId) : undefined;
     // Accord en nombre : singulier pour 0 et 1, pluriel au-delà (0 faite, 1 consigne, 2 consignes).
     const consigneLabel = group.length > 1 ? 'consignes' : 'consigne';
     const doneLabel = done > 1 ? 'faites' : 'faite';
@@ -321,14 +367,54 @@ export function visitsToFeed(tasks: FieldTask[], names: NameIndex, now: Dayjs = 
       perimetre: {
         domaine: names.farms.get(first.farmId),
         parcelle: parcelName,
-        culture: first.parcelId ? names.crops.get(first.parcelId) : undefined,
+        culture: parcelId ? names.crops.get(parcelId) : undefined,
       },
       icon: 'visit',
       advice: `${group.length} ${consigneLabel} · ${done} ${doneLabel}`,
       at: first.createdAt,
       author: first.createdByName ?? undefined,
       visit: { id: visitId, author, date: first.createdAt, total: group.length, done },
-      target: `/domaines/${first.farmId}`,
+      target: carnetDe(first.farmId, parcelId),
+    });
+  }
+
+  // Les visites servies par l'API, ensuite : elles ajoutent celles qu'aucune
+  // consigne ne trahissait, et corrigent les autres avec ce que le serveur sait
+  // de mieux — le nom du technicien, la date de fin, le domaine visité.
+  for (const visite of faites) {
+    if (visite.status !== 'done') continue;
+    const at = quandFaite(visite);
+    if (!at) continue;
+
+    const nom = visite.technicianName ?? undefined;
+    const auteur = nom ?? 'votre technicien';
+    const domaine = visite.farmName ?? (visite.farmId ? names.farms.get(visite.farmId) : undefined);
+    const existant = items.find((item) => item.id === `visit:${visite.id}`);
+    const parcelle = visite.parcelIds[0] ?? parcelleDe.get(visite.id) ?? visite.visitedParcelId ?? undefined;
+
+    if (existant) {
+      existant.title = `Visite de ${auteur}`;
+      existant.author = nom;
+      existant.at = at;
+      existant.perimetre = { ...existant.perimetre, domaine: domaine ?? existant.perimetre.domaine };
+      if (existant.visit) existant.visit = { ...existant.visit, author: auteur, date: at };
+      existant.target = carnetDe(visite.farmId, parcelle) ?? existant.target;
+      continue;
+    }
+
+    items.push({
+      id: `visit:${visite.id}`,
+      kind: 'visit',
+      title: `Visite de ${auteur}`,
+      place: domaine ?? 'Mon exploitation',
+      perimetre: { domaine },
+      icon: 'visit',
+      at,
+      author: nom,
+      // Pas de compte de consignes : cette visite n'en a laissé aucune, et
+      // annoncer « 0 consigne » ferait passer un passage utile pour un vide.
+      visit: { id: visite.id, author: auteur, date: at, total: 0, done: 0 },
+      target: carnetDe(visite.farmId, parcelle),
     });
   }
 

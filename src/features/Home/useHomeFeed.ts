@@ -4,7 +4,7 @@ import dayjs from 'dayjs';
 
 import { prettyCrop } from '@/features/Domaines/components/domainesVisuals';
 import { domainesApi } from '@/features/Domaines/domaines.api';
-import type { FarmerAlert, Parcel } from '@/features/Domaines/domaines.types';
+import type { FarmerAlert, FarmerVisit, Parcel } from '@/features/Domaines/domaines.types';
 import { fieldTasksApi } from '@/features/FieldTasks/fieldTasks.api';
 import type { FieldTask } from '@/features/FieldTasks/fieldTasks.types';
 import { parcelleApi } from '@/features/Parcelle/parcelle.api';
@@ -118,6 +118,11 @@ export function useHomeFeed(): HomeFeedState {
   // pouvait pas être reconstituée depuis les consignes — une visite à venir n'en
   // a encore produit aucune.
   const [prochaineVisite, setProchaineVisite] = useState<HomeDashboard['accompagnement']['prochaineVisite']>(null);
+  // Visites déjà faites, du même endpoint. Le fil les reconstituait depuis les
+  // consignes portant un `visitId` : un passage sans consigne n'existait alors
+  // nulle part, et l'accompagnement affichait « Aucune enregistrée » à un
+  // agriculteur qui avait bien reçu son technicien.
+  const [visitesFaites, setVisitesFaites] = useState<FarmerVisit[]>([]);
   const [weather, setWeather] = useState<HomeWeather | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEnriching, setIsEnriching] = useState(true);
@@ -200,11 +205,15 @@ export function useHomeFeed(): HomeFeedState {
       // critique, son échec ne doit ni retarder le fil ni le vider.
       domainesApi
         .visits(farmerId)
-        .then(({ next }) => {
-          if (!active || !next?.scheduledFor) return;
+        .then(({ next, recent }) => {
+          if (!active) return;
+          setVisitesFaites(recent ?? []);
+          if (!next?.scheduledFor) return;
           setProchaineVisite({
             date: next.scheduledFor,
-            technicien: next.technicianName ?? 'Votre technicien',
+            // Pas de nom d'emprunt : « Votre technicien » se lisait comme un
+            // patronyme une fois remonté en tête de la carte d'accompagnement.
+            technicien: next.technicianName ?? null,
             domaine: next.farmName ?? undefined,
             objectif: next.note ?? undefined,
           });
@@ -375,12 +384,12 @@ export function useHomeFeed(): HomeFeedState {
       [
         ...fieldTasksToFeed(tasks, names, now),
         ...alertsToFeed(alerts, names),
-        ...visitsToFeed(tasks, names, now),
+        ...visitsToFeed(tasks, names, now, visitesFaites),
         ...itkDrafts,
       ],
       now,
     );
-  }, [tasks, alerts, itkDrafts, names]);
+  }, [tasks, alerts, itkDrafts, names, visitesFaites]);
 
   const dashboard = useMemo(
     () => buildDashboard({ sections, recap, names, alerts, tasks, chargeA, prochaineVisite }),

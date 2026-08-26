@@ -68,15 +68,19 @@ export interface EtatDomaines {
 }
 
 export interface Accompagnement {
-  /** Nom du technicien, reconstitué depuis la dernière visite. */
+  /**
+   * Nom du technicien : celui du dernier passage, à défaut celui de la visite
+   * annoncée. `null` tant qu'aucune visite ne le nomme — la carte dit alors
+   * « Votre technicien », qui est un rôle et non un nom d'emprunt.
+   */
   technicien: string | null;
   derniereVisite: FeedItem | null;
   /**
-   * Aucun endpoint de visite n'est ouvert au rôle FARMER : la prochaine visite
-   * est inconnue tant que l'API ne l'expose pas. On l'annonce comme telle
-   * plutôt que de l'inventer (§9).
+   * Prochaine visite planifiée, servie par `GET /farmers/:id/visits`. `null`
+   * signifie « aucune programmée », jamais « pas de suivi » : la carte parle
+   * donc de date non fixée, pas d'absence de technicien (§9).
    */
-  prochaineVisite: { date: string; technicien: string; domaine?: string; objectif?: string } | null;
+  prochaineVisite: { date: string; technicien: string | null; domaine?: string; objectif?: string } | null;
 }
 
 /** Ce qui s'est passé, du point de vue de l'agriculteur. */

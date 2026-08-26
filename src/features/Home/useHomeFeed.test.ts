@@ -279,6 +279,88 @@ describe('useHomeFeed', () => {
     });
   });
 
+  it('nomme le technicien et date le dernier passage depuis les visites effectuées', async () => {
+    mockedDomaines.visits.mockResolvedValue({
+      next: null,
+      recent: [
+        {
+          id: 'v7',
+          status: 'done',
+          type: 'consultation',
+          category: null,
+          scheduledFor: '2026-08-14T08:00:00.000Z',
+          startedAt: '2026-08-14T08:05:00.000Z',
+          endedAt: '2026-08-14T10:30:00.000Z',
+          farmId: 'f1',
+          farmName: 'Domaine Kaporo',
+          technicianName: 'Dr Camara',
+          parcelIds: [],
+          note: null,
+        },
+      ],
+    });
+
+    const { result } = renderHook(() => useHomeFeed());
+    await waitFor(() => expect(result.current.dashboard.accompagnement.derniereVisite).not.toBeNull());
+
+    // La visite n'a laissé aucune consigne : elle n'existe que dans l'endpoint,
+    // et c'est pourtant bien le dernier passage du technicien.
+    expect(result.current.dashboard.accompagnement.derniereVisite?.id).toBe('visit:v7');
+    expect(result.current.dashboard.accompagnement.derniereVisite?.at).toBe('2026-08-14T10:30:00.000Z');
+    expect(result.current.dashboard.accompagnement.technicien).toBe('Dr Camara');
+  });
+
+  it('nomme le technicien de la visite à venir tant qu’aucune n’a eu lieu', async () => {
+    mockedDomaines.visits.mockResolvedValue({
+      next: {
+        id: 'v9',
+        status: 'planned',
+        type: 'consultation',
+        category: null,
+        scheduledFor: '2026-08-27T08:00:00.000Z',
+        startedAt: null,
+        endedAt: null,
+        farmId: 'f1',
+        farmName: 'Domaine Kaporo',
+        technicianName: 'Mme Bah',
+        parcelIds: [],
+        note: null,
+      },
+      recent: [],
+    });
+
+    const { result } = renderHook(() => useHomeFeed());
+    await waitFor(() => expect(result.current.dashboard.accompagnement.technicien).toBe('Mme Bah'));
+
+    expect(result.current.dashboard.accompagnement.derniereVisite).toBeNull();
+  });
+
+  it('n’invente pas de nom quand l’API n’en donne aucun', async () => {
+    mockedDomaines.visits.mockResolvedValue({
+      next: {
+        id: 'v9',
+        status: 'planned',
+        type: 'consultation',
+        category: null,
+        scheduledFor: '2026-08-27T08:00:00.000Z',
+        startedAt: null,
+        endedAt: null,
+        farmId: 'f1',
+        farmName: 'Domaine Kaporo',
+        technicianName: null,
+        parcelIds: [],
+        note: null,
+      },
+      recent: [],
+    });
+
+    const { result } = renderHook(() => useHomeFeed());
+    await waitFor(() => expect(result.current.dashboard.accompagnement.prochaineVisite).not.toBeNull());
+
+    expect(result.current.dashboard.accompagnement.technicien).toBeNull();
+    expect(result.current.dashboard.accompagnement.prochaineVisite?.technicien).toBeNull();
+  });
+
   it('dégrade sans casser quand une source échoue', async () => {
     mockedParcelle.itkTasks.mockRejectedValue(new Error('400'));
     mockedFieldTasks.list.mockRejectedValue(new Error('500'));

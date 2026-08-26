@@ -329,7 +329,11 @@ export function buildDashboard(input: DashboardInput): HomeDashboard {
     seuilVisible: PRIORITES_VISIBLES,
     domaines: etatDomaines(farms, alerts, tasks, resume.surfaceHa),
     accompagnement: {
-      technicien: derniereVisite?.visit?.author ?? null,
+      // Le nom vient d'abord du dernier passage réel, puis de la visite
+      // annoncée. `visit.author` n'est pas retenu : il retombe sur « votre
+      // technicien » quand la consigne ne nomme personne, et un rôle affiché en
+      // tête de carte se lit comme un patronyme.
+      technicien: derniereVisite?.author ?? input.prochaineVisite?.technicien ?? null,
       derniereVisite,
       prochaineVisite: input.prochaineVisite ?? null,
     } satisfies Accompagnement,

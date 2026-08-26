@@ -262,7 +262,15 @@ export interface FarmerVisit {
   farmId: string | null;
   farmName: string | null;
   technicianName: string | null;
+  /** Parcelles que la visite déclare viser. L'app technicien ne les envoie pas. */
   parcelIds: string[];
+  /**
+   * Parcelle sur laquelle le GPS a validé le passage, quand la géovalidation a
+   * réussi. C'est la seule parcelle que le serveur sache attacher à une visite
+   * de terrain — et la seule façon d'ouvrir le bon carnet quand la visite n'a
+   * laissé aucune consigne. Absente d'une API antérieure à son ajout.
+   */
+  visitedParcelId?: string | null;
   note: string | null;
 }
 

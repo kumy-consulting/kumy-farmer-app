@@ -54,8 +54,8 @@ const Ligne: FunctionComponent<{ label: string; valeur: string; sourdine?: boole
  *
  * Deux points d'honnêteté :
  *
- * 1. **La prochaine visite est inconnue, pas inexistante.** Aucun endpoint de
- *    visite n'est ouvert au rôle FARMER. « Pas encore fixée » dit ce qu'on sait ;
+ * 1. **La prochaine visite est inconnue, pas inexistante.** L'API ne renvoie une
+ *    date que si quelqu'un l'a posée. « Pas encore fixée » dit ce qu'on sait ;
  *    « Non planifiée » affirmerait qu'il n'y en a pas.
  * 2. **Le lien n'apparaît que s'il mène quelque part.** Il pointait vers les
  *    domaines faute de mieux tout en s'annonçant « Voir l'accompagnement » — un
@@ -114,7 +114,14 @@ export const BlocAccompagnement: FunctionComponent<BlocAccompagnementProps> = ({
               {nom ?? 'Votre technicien'}
             </Typography>
             <Typography sx={{ fontSize: 12.5, color: '#5C5F5E', mt: 0.15 }} noWrap>
-              {nom ? 'Votre technicien' : 'Son nom s’affichera après sa première visite'}
+              {/* Promettre « après sa première visite » alors qu'une visite a
+                  déjà eu lieu ferait mentir la carte : le nom manque au dossier,
+                  ce n'est pas le passage qui manque. */}
+              {nom
+                ? 'Votre technicien'
+                : derniereVisite
+                  ? 'Son nom n’est pas encore renseigné'
+                  : 'Son nom s’affichera après sa première visite'}
             </Typography>
           </Box>
         </Stack>
