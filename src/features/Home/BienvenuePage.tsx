@@ -192,68 +192,74 @@ export const BienvenuePage: FunctionComponent = () => {
           })}
         </Box>
 
-        {/* Une issue, pas un pied de page : sans elle, un agriculteur que
-            personne ne rappelle n'a rien à faire de cet écran. Le numéro est
-            une cible tapable de plein droit — glissé dans la phrase, il ne
-            faisait que 16 px de haut, sous le doigt d'un pouce. */}
-        <Typography sx={{ fontSize: 12.5, color: '#5C5F5E', mt: 2.5, lineHeight: 2 }}>
-          Sans nouvelles, appelez Kumy au{' '}
+        {/* Le pied se centre, seul bloc de l'écran à ne pas suivre le bord
+            gauche : ce n'est plus de l'information à lire mais deux gestes à
+            faire, et les poser au centre les détache de la colonne au lieu de
+            les y laisser flotter mal alignés.
+
+            « Sans nouvelles, appelez Kumy » présupposait le silence de Kumy —
+            l'écran s'excusait d'avance. Une question ouverte invite au même
+            appel sans annoncer une panne. */}
+        <Stack alignItems="center" sx={{ mt: 3.5 }}>
+          <Typography sx={{ fontSize: 13, color: '#5C5F5E', lineHeight: 2 }}>
+            Une question ?{' '}
+            <Box
+              component="a"
+              href={SUPPORT_TEL_HREF}
+              sx={{
+                display: 'inline-block',
+                px: 0.9,
+                py: 0.5,
+                borderRadius: '9px',
+                background: 'rgba(1,134,117,0.09)',
+                color: '#016557',
+                fontWeight: 700,
+                textDecoration: 'none',
+                whiteSpace: 'nowrap',
+                '&:active': { background: 'rgba(1,134,117,0.16)' },
+                '&:focus-visible': { outline: '2px solid #016557', outlineOffset: 2 },
+              }}
+            >
+              {SUPPORT_TELEPHONE}
+            </Box>
+          </Typography>
+
+          {/* Même objet que le bouton de déconnexion de Mon espace : rouge pâle,
+              700, 14 de rayon. Se déconnecter n'est pas destructeur — on revient
+              avec son numéro et son code — mais ce n'est pas anodin non plus, et
+              un lien gris de la même couleur que le texte voisin ne disait ni
+              l'un ni l'autre. Il ne prend pas toute la largeur, lui : là-bas il
+              occupe seul sa section, ici il ferme un écran d'attente et n'a rien
+              à y dominer. */}
           <Box
-            component="a"
-            href={SUPPORT_TEL_HREF}
+            component="button"
+            type="button"
+            onClick={() => void logout()}
             sx={{
-              display: 'inline-block',
-              px: 0.9,
-              py: 0.5,
-              borderRadius: '9px',
-              background: 'rgba(1,134,117,0.09)',
-              color: '#016557',
+              appearance: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              mt: 2.5,
+              minHeight: 44,
+              px: 2.5,
+              border: '1px solid rgba(186,26,26,0.16)',
+              borderRadius: '14px',
+              background: 'linear-gradient(180deg, #FDEDED 0%, #FBDDDD 100%)',
+              font: 'inherit',
+              fontFamily: "'Ubuntu', sans-serif",
+              fontSize: 14,
               fontWeight: 700,
-              textDecoration: 'none',
-              whiteSpace: 'nowrap',
-              '&:active': { background: 'rgba(1,134,117,0.16)' },
-              '&:focus-visible': { outline: '2px solid #016557', outlineOffset: 2 },
+              color: error[40],
+              cursor: 'pointer',
+              transition: 'filter 0.2s ease',
+              '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+              '&:active': { filter: 'brightness(0.97)' },
+              '&:focus-visible': { outline: `2px solid ${error[40]}`, outlineOffset: 3 },
             }}
           >
-            {SUPPORT_TELEPHONE}
+            Se déconnecter
           </Box>
-        </Typography>
-
-        {/* Même objet que le bouton de déconnexion de Mon espace : rouge pâle,
-            700, 16 de rayon. Se déconnecter n'est pas destructeur — on revient
-            avec son numéro et son code — mais ce n'est pas anodin non plus, et
-            un lien gris de la même couleur que le texte voisin ne disait ni
-            l'un ni l'autre. Il ne prend pas toute la largeur, lui : là-bas il
-            occupe seul sa section, ici il ferme un écran d'attente et n'a rien
-            à y dominer. */}
-        <Box
-          component="button"
-          type="button"
-          onClick={() => void logout()}
-          sx={{
-            appearance: 'none',
-            display: 'inline-flex',
-            alignItems: 'center',
-            mt: 3,
-            minHeight: 44,
-            px: 2,
-            border: '1px solid rgba(186,26,26,0.16)',
-            borderRadius: '14px',
-            background: 'linear-gradient(180deg, #FDEDED 0%, #FBDDDD 100%)',
-            font: 'inherit',
-            fontFamily: "'Ubuntu', sans-serif",
-            fontSize: 14,
-            fontWeight: 700,
-            color: error[40],
-            cursor: 'pointer',
-            transition: 'filter 0.2s ease',
-            '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-            '&:active': { filter: 'brightness(0.97)' },
-            '&:focus-visible': { outline: `2px solid ${error[40]}`, outlineOffset: 3 },
-          }}
-        >
-          Se déconnecter
-        </Box>
+        </Stack>
       </Box>
     </Box>
   );
