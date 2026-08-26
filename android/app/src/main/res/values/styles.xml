@@ -60,7 +60,26 @@
             @capacitor/assets et servent aux versions anterieures a Android 12.
         -->
         <item name="windowSplashScreenBackground">@color/kumySplash</item>
-        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+
+        <!--
+            VECTORIEL, et surtout PAS @mipmap/ic_launcher. Deux defauts mesures
+            sur appareil avec le mipmap :
+
+            1. Flou. Le plus grand ic_launcher.png fait 192 px ; l'API l'etire
+               sur un gabarit de 288 dp, soit ~790 px sur un ecran 440 dpi.
+            2. Bordure. Ce mipmap est une icone ADAPTATIVE : le systeme, et plus
+               encore les surcouches (MIUI), lui appliquent leur masque. Le fond
+               creme cuit dans l'icone se retrouvait donc decoupe en carre
+               arrondi, dont le bord antialiase tracait un liseré sur le fond
+               creme quasi identique.
+
+            @drawable/splash_kumy corrige les deux : net a toute densite, et non
+            adaptatif donc jamais masque. Genere par scripts/build-splash-icon.mjs.
+
+            Aucun `windowSplashScreenIconBackgroundColor` : ce serait redonner a
+            l'icone le disque de fond dont on vient de la debarrasser.
+        -->
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_kumy</item>
         <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
 
         <!-- Le splash est creme plein ecran : il lui faut des icones systeme

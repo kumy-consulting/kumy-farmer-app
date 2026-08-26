@@ -20,7 +20,8 @@
     "test:watch": "vitest",
     "prepare": "husky",
     "cap:sync": "npm run build && cap sync",
-    "assets:native": "node scripts/build-native-assets.mjs && capacitor-assets generate --android",
+    "assets:native": "node scripts/build-native-assets.mjs && capacitor-assets generate --android && node scripts/build-splash-icon.mjs",
+    "assets:verif": "node scripts/verif-splash-icon.mjs",
     "cap:add:android": "cap add android",
     "cap:add:ios": "cap add ios"
   },

@@ -61,7 +61,39 @@ Après modification du logo, régénérer les deux familles :
 npm run assets:native   # écrit assets/*, public/icon-*, puis génère android/
 ```
 
-Le script `scripts/build-native-assets.mjs` explique chaque taille et chaque marge.
+Les scripts `scripts/build-native-assets.mjs` (rasters) et
+`scripts/build-splash-icon.mjs` (vectoriel du splash) expliquent chaque taille
+et chaque marge.
+
+### Les trois temps du démarrage
+
+L'agriculteur voit trois écrans avant l'app, et ils partagent un même objet : la
+**couronne de couverture**, l'instrument de Kumy.
+
+| Temps | Quoi | Où c'est défini |
+|---|---|---|
+| 1 | Splash système : pousse au centre de la couronne, sur crème | `android/.../drawable/splash_kumy.xml`, via `windowSplashScreenAnimatedIcon` |
+| 2 | Splash Capacitor : la même couronne, plus le dégradé, les marqueurs et le verrou | `drawable-*/splash.png`, généré par `build-native-assets.mjs` |
+| 3 | Écran d'attente web : la même composition, vivante | `#kumy-splash` dans `index.html` |
+
+Le temps 1 est **vectoriel** et ne doit pas redevenir `@mipmap/ic_launcher` :
+ce mipmap plafonne à 192 px alors que l'API l'étire sur 288 dp (~790 px en
+440 dpi), et comme c'est une icône *adaptative*, le système lui applique son
+masque — d'où le carré arrondi et son liseré sur fond crème. `styles.xml`
+détaille les deux mesures.
+
+Il ne porte ni texte ni animation, à dessein : le seul emplacement de texte
+offert par l'API est bitmap (le flou reviendrait), et le splash se retire dès la
+première image de l'app — une séquence coupée à un instant arbitraire se lirait
+comme un raté. Les mots et le mouvement commencent au temps 2.
+
+```bash
+npm run assets:verif   # la pousse vectorielle est-elle toujours celle du SVG ?
+```
+
+Ce garde-fou existe parce que `build-splash-icon.mjs` réécrit les nombres du
+tracé pour y aplatir la rotation : une erreur de signe donnerait une pousse
+retournée, invisible à la relecture du XML.
 
 ### L'écran d'attente
 
