@@ -18,6 +18,7 @@ import {
   Title,
 } from '@/features/Onboarding/onboarding.styled';
 import { CollapseOnKeyboard, OnboardingLayout } from '@/features/Onboarding/OnboardingLayout';
+import { BackButton } from '@/shared/components/BackButton';
 
 export const PhoneEntryPage: FunctionComponent = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -32,6 +33,22 @@ export const PhoneEntryPage: FunctionComponent = () => {
 
   return (
     <OnboardingLayout>
+      {/*
+        Route explicite plutôt que `navigate(-1)` : on n'arrive pas toujours ici
+        depuis l'écran de bienvenue (repli `*`, lien profond, retour matériel
+        Android), et l'historique pourrait alors ramener hors de l'app.
+      */}
+      <Box
+        sx={{
+          position: 'absolute',
+          top: 'calc(env(safe-area-inset-top, 0px) + 14px)',
+          left: 16,
+          zIndex: 2,
+        }}
+      >
+        <BackButton onClick={() => navigate('/welcome')} label="Retour à l'écran de bienvenue" />
+      </Box>
+
       <CollapseOnKeyboard>
         <Medallion>
           <CallOutlinedIcon />
