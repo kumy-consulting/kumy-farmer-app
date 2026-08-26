@@ -40,7 +40,7 @@ export const demoScore: ScoreAgriculteur = {
 export const demoEligibilite: EligibiliteCredit = {
   eligible: true,
   montantMax: 1_500_000,
-  montantMaxFormate: '1 500 000 GNF',
+  montantMaxFormate: '5 500 000 GNF',
   criteres: [
     { libelle: 'Campagnes terminées', valeur: '3 sur 2 requises', rempli: true },
     { libelle: 'Parcelles cartographiées', valeur: '12 sur 12', rempli: true },

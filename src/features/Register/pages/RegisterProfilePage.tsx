@@ -297,7 +297,10 @@ export const RegisterProfilePage: FunctionComponent = () => {
                   fullWidth: true,
                   variant: 'standard',
                   label: 'Date de naissance',
-                  InputLabelProps: { shrink: true },
+                  // Pas d'`InputLabelProps` ici : le champ de date n'est pas un
+                  // TextField mais un `PickersTextField`, qui ne connaît pas
+                  // cette propriété — et le libellé n'en a pas besoin, `rubriqueSx`
+                  // le sort déjà de sa position flottante.
                   sx: birthDate ? rubriqueSx : { ...rubriqueSx, ...dateVideSx },
                 },
               }}

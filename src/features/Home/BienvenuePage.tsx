@@ -1,14 +1,12 @@
 import type { FunctionComponent } from 'react';
 
 import CheckRounded from '@mui/icons-material/CheckRounded';
-import { Box, Button, Stack, Typography } from '@mui/material';
+import { Box, Stack, Typography } from '@mui/material';
 
 import { formatE164ForDisplay } from '@/features/Auth/phone.util';
 import { useAuthStore } from '@/shared/stores/authStore';
-import { neutral } from '@/theme/colors';
-
-/** Le numéro du support, le même que celui de l'écran « compte suspendu ». */
-const SUPPORT_TELEPHONE = '+224 622 20 13 62';
+import { SUPPORT_TEL_HREF, SUPPORT_TELEPHONE } from '@/shared/support';
+import { error } from '@/theme/colors';
 
 type EtatEtape = 'fait' | 'encours' | 'avenir';
 
@@ -195,31 +193,67 @@ export const BienvenuePage: FunctionComponent = () => {
         </Box>
 
         {/* Une issue, pas un pied de page : sans elle, un agriculteur que
-            personne ne rappelle n'a rien à faire de cet écran. */}
-        <Typography sx={{ fontSize: 12.5, color: '#5C5F5E', mt: 2.5, lineHeight: 1.5 }}>
+            personne ne rappelle n'a rien à faire de cet écran. Le numéro est
+            une cible tapable de plein droit — glissé dans la phrase, il ne
+            faisait que 16 px de haut, sous le doigt d'un pouce. */}
+        <Typography sx={{ fontSize: 12.5, color: '#5C5F5E', mt: 2.5, lineHeight: 2 }}>
           Sans nouvelles, appelez Kumy au{' '}
           <Box
             component="a"
-            href={`tel:${SUPPORT_TELEPHONE.replace(/\s/g, '')}`}
+            href={SUPPORT_TEL_HREF}
             sx={{
+              display: 'inline-block',
+              px: 0.9,
+              py: 0.5,
+              borderRadius: '9px',
+              background: 'rgba(1,134,117,0.09)',
               color: '#016557',
               fontWeight: 700,
               textDecoration: 'none',
               whiteSpace: 'nowrap',
-              '&:focus-visible': { outline: '2px solid #016557', outlineOffset: 2, borderRadius: 4 },
+              '&:active': { background: 'rgba(1,134,117,0.16)' },
+              '&:focus-visible': { outline: '2px solid #016557', outlineOffset: 2 },
             }}
           >
             {SUPPORT_TELEPHONE}
           </Box>
-          .
         </Typography>
 
-        <Button
+        {/* Même objet que le bouton de déconnexion de Mon espace : rouge pâle,
+            700, 16 de rayon. Se déconnecter n'est pas destructeur — on revient
+            avec son numéro et son code — mais ce n'est pas anodin non plus, et
+            un lien gris de la même couleur que le texte voisin ne disait ni
+            l'un ni l'autre. Il ne prend pas toute la largeur, lui : là-bas il
+            occupe seul sa section, ici il ferme un écran d'attente et n'a rien
+            à y dominer. */}
+        <Box
+          component="button"
+          type="button"
           onClick={() => void logout()}
-          sx={{ mt: 2.5, ml: -1, color: neutral[50], fontSize: 13, textTransform: 'none' }}
+          sx={{
+            appearance: 'none',
+            display: 'inline-flex',
+            alignItems: 'center',
+            mt: 3,
+            minHeight: 44,
+            px: 2,
+            border: '1px solid rgba(186,26,26,0.16)',
+            borderRadius: '14px',
+            background: 'linear-gradient(180deg, #FDEDED 0%, #FBDDDD 100%)',
+            font: 'inherit',
+            fontFamily: "'Ubuntu', sans-serif",
+            fontSize: 14,
+            fontWeight: 700,
+            color: error[40],
+            cursor: 'pointer',
+            transition: 'filter 0.2s ease',
+            '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+            '&:active': { filter: 'brightness(0.97)' },
+            '&:focus-visible': { outline: `2px solid ${error[40]}`, outlineOffset: 3 },
+          }}
         >
           Se déconnecter
-        </Button>
+        </Box>
       </Box>
     </Box>
   );

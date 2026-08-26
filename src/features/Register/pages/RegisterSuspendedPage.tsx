@@ -15,9 +15,7 @@ import {
 import { OnboardingLayout } from '@/features/Onboarding/OnboardingLayout';
 import { ROUTES_INSCRIPTION } from '@/features/Register/register.routing';
 import { useRegisterStore } from '@/features/Register/register.store';
-
-/** Le numéro du support, affiché en clair : c'est la seule issue depuis cet écran. */
-const SUPPORT_TELEPHONE = '+224 622 20 13 62';
+import { SUPPORT_TELEPHONE } from '@/shared/support';
 
 /**
  * Un compte suspendu mérite son propre écran. L'envoyer se connecter le
