@@ -145,9 +145,9 @@ const yieldEstimate: YieldEstimate = {
   daysSinceSowing: 34,
 };
 
-const renderPage = () =>
+const renderPage = (url = '/domaines/farm-1/parcelles/p1') =>
   render(
-    <MemoryRouter initialEntries={['/domaines/farm-1/parcelles/p1']}>
+    <MemoryRouter initialEntries={[url]}>
       <Routes>
         <Route path="/domaines/:id/parcelles/:parcelId" element={<ParcelDetailPage />} />
       </Routes>
@@ -341,6 +341,22 @@ describe('ParcelDetailPage', () => {
     expect(await screen.findByText(/Paillage trop mince/)).toBeDefined();
     expect(screen.getByText(/13 août · Dr Camara/)).toBeDefined();
     expect(screen.getAllByRole('img').length).toBeGreaterThan(0);
+  });
+
+  it('ouvre directement le carnet quand l’URL le demande', async () => {
+    // Le lien « Voir la dernière visite » de l'accueil mène ici : arriver sur la
+    // vue d'ensemble obligerait à retrouver l'onglet à la main, après un tap qui
+    // promettait le passage du technicien.
+    renderPage('/domaines/farm-1/parcelles/p1?onglet=carnet');
+
+    expect(await screen.findByText('Aucun passage enregistré')).toBeDefined();
+    expect(screen.queryByText('Informations générales')).toBeNull();
+  });
+
+  it('reste sur la vue d’ensemble quand l’onglet demandé n’existe pas', async () => {
+    renderPage('/domaines/farm-1/parcelles/p1?onglet=inconnu');
+
+    expect(await screen.findByText('Informations générales')).toBeDefined();
   });
 
   it('annonce franchement un carnet vide plutôt que de laisser l’onglet muet', async () => {

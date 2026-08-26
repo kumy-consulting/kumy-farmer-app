@@ -3,7 +3,7 @@ import { useState, type FunctionComponent, type ReactNode } from 'react';
 import ReplayRounded from '@mui/icons-material/ReplayRounded';
 import { Box, CircularProgress, Stack, Typography } from '@mui/material';
 import { keyframes } from '@mui/material/styles';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 import { BackButton } from '@/shared/components/BackButton';
 import { NAV_HEIGHT } from '@/shared/components/BottomNav';
@@ -24,6 +24,16 @@ const CONTENT_BOTTOM_PADDING = NAV_HEIGHT + 40;
 // objet que l'encadrement agricole tient réellement, et le mot dit ce qu'on y
 // trouve — des pages datées, écrites par quelqu'un.
 const TABS = ["Vue d'ensemble", 'Calendrier', 'Conseils', 'Carnet'];
+
+/**
+ * Onglet ouvert à l'arrivée, quand l'appelant le désigne (`?onglet=carnet`).
+ *
+ * Un lien qui promet « la dernière visite » doit déposer sur la page où elle est
+ * racontée, pas sur la vue d'ensemble à charge de retrouver l'onglet. Les clés
+ * sont des mots, pas des index : `?onglet=3` deviendrait faux le jour où un
+ * onglet s'intercale.
+ */
+const ONGLETS: Record<string, number> = { vue: 0, calendrier: 1, conseils: 2, carnet: 3 };
 
 /** Fondu doux au changement d'onglet. */
 const tabIn = keyframes`
@@ -145,7 +155,10 @@ export const ParcelDetailPage: FunctionComponent = () => {
   const { id: farmId, parcelId } = useParams<{ id: string; parcelId: string }>();
   const navigate = useNavigate();
   const { detail, isLoading, error, reload } = useParcelDetail(farmId, parcelId);
-  const [activeTab, setActiveTab] = useState(0);
+  const [params] = useSearchParams();
+  // Lu une fois : ensuite l'onglet appartient au doigt de l'utilisateur, pas à
+  // l'URL qui l'a amené ici.
+  const [activeTab, setActiveTab] = useState(() => ONGLETS[params.get('onglet') ?? ''] ?? 0);
 
   const backToDomaine = () => navigate(`/domaines/${farmId ?? ''}`);
 
