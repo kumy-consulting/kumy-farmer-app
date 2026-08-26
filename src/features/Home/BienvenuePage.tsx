@@ -93,20 +93,43 @@ export const BienvenuePage: FunctionComponent = () => {
     <Box
       sx={{
         minHeight: '100dvh',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        px: 3,
-        py: 6,
         background: 'linear-gradient(180deg, #F3FFFA 0%, #F0F1EF 100%)',
       }}
     >
-      <Box sx={{ width: '100%', maxWidth: 380 }}>
-        {/* Un bonjour, pas un « bienvenue » : le premier se redit tous les
-            jours, le second vieillit dès la deuxième ouverture. */}
+      {/* Le bandeau de l'accueil, repris tel quel — même dégradé, même encre,
+          même formule de safe-area. Cet écran ne se contente pas de ressembler
+          à l'accueil : il le remplace tant que l'exploitation n'existe pas, et
+          il doit donc en porter la tête. Sans lui, l'écran flottait au milieu
+          d'un vide pâle, sans un gramme d'identité — le logo que j'avais retiré
+          était illisible, mais il occupait cette fonction-là.
+
+          Bord franc, ni arrondi ni ombre : le changement de couleur suffit à
+          séparer la tête du contenu, et la carte qui suit a déjà ses angles. */}
+      <Box
+        sx={{
+          padding: 'max(calc(env(safe-area-inset-top, 0px) + 12px), 48px) 24px 22px',
+          background: 'linear-gradient(155deg, #0E7A67 0%, #0C6E5C 50%, #0A6152 100%)',
+          color: '#EAF7F1',
+        }}
+      >
+        {/* La salutation situe, elle n'informe pas : petite capitale, comme sur
+            l'accueil. La hiérarchie tient au corps et à la graisse, jamais à un
+            texte plus pâle — sur ce vert, chaque cran d'opacité sous 0,96 passe
+            sous le seuil de contraste, et de toute façon un gris clair ne se lit
+            pas en plein soleil. */}
         {prenom && (
-          <Typography sx={{ fontSize: 13, color: '#5C5F5E', mb: 0.5 }}>Bonjour {prenom}</Typography>
+          <Typography
+            sx={{
+              fontFamily: "'Ubuntu', sans-serif",
+              fontSize: 11.5,
+              fontWeight: 700,
+              letterSpacing: '0.14em',
+              textTransform: 'uppercase',
+              mb: 0.75,
+            }}
+          >
+            Bonjour {prenom}
+          </Typography>
         )}
 
         <Typography
@@ -116,18 +139,19 @@ export const BienvenuePage: FunctionComponent = () => {
             fontWeight: 700,
             letterSpacing: '-0.02em',
             lineHeight: 1.2,
-            color: '#1A1C1B',
+            color: '#FFFFFF',
             mb: 1,
           }}
         >
           Votre exploitation reste à ouvrir
         </Typography>
 
-        <Typography sx={{ fontSize: 14, color: 'rgba(55,75,70,0.7)', lineHeight: 1.55, mb: 3 }}>
-          Votre compte existe, mais il ne contient encore aucune parcelle. C’est un technicien Kumy
-          qui les trace avec vous, sur le terrain.
+        <Typography sx={{ fontSize: 13.5, fontWeight: 500, lineHeight: 1.5 }}>
+          Un technicien Kumy vient tracer vos parcelles avec vous, sur le terrain.
         </Typography>
+      </Box>
 
+      <Box sx={{ px: 2.5, pt: 2.5, pb: 5 }}>
         <Box
           sx={{
             p: 2.25,
