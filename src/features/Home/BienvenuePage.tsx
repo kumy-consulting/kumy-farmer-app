@@ -4,6 +4,8 @@ import CheckRounded from '@mui/icons-material/CheckRounded';
 import { Box, Stack, Typography } from '@mui/material';
 
 import { formatE164ForDisplay } from '@/features/Auth/phone.util';
+import { CarteEtudeDeSol } from '@/features/Home/components/CarteEtudeDeSol';
+import { useEtudeDeSol } from '@/features/Home/useEtudeDeSol';
 import { useAuthStore } from '@/shared/stores/authStore';
 import { SUPPORT_TEL_HREF, SUPPORT_TELEPHONE } from '@/shared/support';
 import { error } from '@/theme/colors';
@@ -88,6 +90,7 @@ export const BienvenuePage: FunctionComponent = () => {
   const prenom = useAuthStore((s) => s.user?.displayName?.split(' ')[0]);
   const telephone = useAuthStore((s) => s.user?.phone);
   const logout = useAuthStore((s) => s.logout);
+  const etudeDeSol = useEtudeDeSol();
 
   return (
     <Box
@@ -215,6 +218,18 @@ export const BienvenuePage: FunctionComponent = () => {
             );
           })}
         </Box>
+
+        {/* L'étude de sol est le seul geste offert sur cet écran d'attente :
+            tout le reste s'y raconte au futur. Elle vient donc après le rail,
+            dans sa propre carte — pas entre deux étapes, où elle passerait pour
+            une promesse de plus alors qu'elle demande une action. */}
+        <CarteEtudeDeSol
+          requestedAt={etudeDeSol.requestedAt}
+          isLoading={etudeDeSol.isLoading}
+          isSending={etudeDeSol.isSending}
+          error={etudeDeSol.error}
+          demander={() => void etudeDeSol.demander()}
+        />
 
         {/* Le pied se centre, seul bloc de l'écran à ne pas suivre le bord
             gauche : ce n'est plus de l'information à lire mais deux gestes à
