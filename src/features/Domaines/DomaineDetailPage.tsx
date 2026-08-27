@@ -342,7 +342,7 @@ export const DomaineDetailPage: FunctionComponent = () => {
               )}
             </Box>
           ) : (
-            <DomaineWeather liveStation={detail.liveStation} />
+            <DomaineWeather liveStation={detail.liveStation} forecast={detail.forecast} />
           )}
         </Box>
       </DraggableBottomSheet>

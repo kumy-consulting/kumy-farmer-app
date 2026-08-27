@@ -6,7 +6,7 @@ import { useAuthStore } from '@/shared/stores/authStore';
 
 import { DomaineDetailPage } from './DomaineDetailPage';
 import { domainesApi } from './domaines.api';
-import type { Domain, FarmerFarmsVegetation, Parcel } from './domaines.types';
+import type { Domain, FarmerFarmsVegetation, FarmForecast, Parcel } from './domaines.types';
 
 vi.mock('./domaines.api', () => ({
   domainesApi: {
@@ -16,6 +16,7 @@ vi.mock('./domaines.api', () => ({
     alerts: vi.fn(),
     summary: vi.fn(),
     liveStation: vi.fn(),
+    forecast: vi.fn(),
   },
 }));
 
@@ -109,6 +110,45 @@ const renderPage = () =>
     </MemoryRouter>,
   );
 
+const conf = (value: number) => ({ value, confidence: 0.9, tier: 'c1' as const });
+
+/** Prévision minimale : une seule journée, aucune heure. */
+const forecast: FarmForecast = {
+  resolvedFrom: {
+    source: 'station',
+    track: 'A',
+    stationId: 'KMY-WE-2606-00001-K',
+    distanceM: 120,
+    cellId: '9.6_-13.5',
+  },
+  daily5d: [
+    {
+      date: '2026-08-28',
+      tmin: conf(23),
+      tmax: conf(30),
+      tavg: conf(27),
+      humidity: conf(90),
+      windMax: conf(13.7),
+      windGust: conf(18),
+      solar: conf(18),
+      etp: conf(4),
+      rain: {
+        probGt1mm: 0.97,
+        probGt10mm: 0.4,
+        probGt20mm: 0.1,
+        expectedMm: 6,
+        p10Mm: 0,
+        p90Mm: 18,
+        spreadMm: 9,
+        confidence: 0.5,
+        tier: 'c3',
+      },
+    },
+  ],
+  todayHourly: [],
+  overallConfidence: { daily: 0.82, hourly: 0.6 },
+};
+
 describe('DomaineDetailPage', () => {
   beforeEach(() => {
     useAuthStore.setState({
@@ -129,6 +169,8 @@ describe('DomaineDetailPage', () => {
       alerts: { total: 0, critical: 0, warning: 0, info: 0 },
     });
     mocked.liveStation.mockResolvedValue({ station: null });
+    // Par défaut : prévision pas encore calculée (404) — le bloc reste masqué.
+    mocked.forecast.mockRejectedValue(new Error('404'));
   });
 
   afterEach(() => {
@@ -161,11 +203,28 @@ describe('DomaineDetailPage', () => {
   });
 
   it('bascule sur l’onglet Météos et affiche l’état sans station', async () => {
-    const { findByText, getByText } = renderPage();
+    const { findByText, getByText, queryByText } = renderPage();
     await findByText('Ananas 2');
 
     getByText('Météos').click();
 
     expect(await findByText(/Aucune station météo installée/)).toBeDefined();
+    // Prévision en échec (404 par défaut) → aucun encart vide à sa place.
+    expect(queryByText(/Prévision 5 jours/i)).toBeNull();
+  });
+
+  it('affiche la prévision du domaine quand l’API la renvoie', async () => {
+    // Régression : `GET /farms/:id/forecast` a longtemps répondu 403 au rôle
+    // FARMER. Ce test tient le câblage — hook → page → onglet — le jour où
+    // l'API redevient muette pour de mauvaises raisons.
+    mocked.forecast.mockResolvedValue(forecast);
+
+    const { findByText, getByText } = renderPage();
+    await findByText('Ananas 2');
+
+    getByText('Météos').click();
+
+    expect(await findByText(/Prévision 5 jours/i)).toBeDefined();
+    expect(getByText('30°')).toBeDefined();
   });
 });

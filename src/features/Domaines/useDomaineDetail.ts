@@ -8,6 +8,7 @@ import type {
   AlertSeverity,
   DetailParcel,
   FarmerAlert,
+  FarmForecast,
   FarmLiveStation,
   Parcel,
   ParcelAlert,
@@ -76,6 +77,13 @@ export interface DomaineDetail {
   parcels: DetailParcel[];
   stats: DomaineStats;
   liveStation: FarmLiveStation | null;
+  /**
+   * Prévision du domaine, `null` dès que l'API n'a rien à donner : 404 (pas
+   * encore calculée), 403 (route ouverte au FARMER seulement depuis son
+   * ouverture côté API) ou appel impossible hors ligne. L'onglet Météos masque
+   * alors le bloc — le kit, lui, reste affiché.
+   */
+  forecast: FarmForecast | null;
 }
 
 interface DomaineDetailState {
@@ -114,8 +122,9 @@ export function useDomaineDetail(farmId: string | undefined): DomaineDetailState
       domainesApi.parcels(farmId),
       domainesApi.alerts(farmerId),
       domainesApi.liveStation(farmId),
+      domainesApi.forecast(farmId),
     ])
-      .then(([vegRes, farmsRes, parcelsRes, alertsRes, stationRes]) => {
+      .then(([vegRes, farmsRes, parcelsRes, alertsRes, stationRes, forecastRes]) => {
         if (!active) return;
 
         const vegFarm =
@@ -136,6 +145,7 @@ export function useDomaineDetail(farmId: string | undefined): DomaineDetailState
         const vegParcels = vegFarm?.parcels ?? [];
         const alerts = alertsRes.status === 'fulfilled' ? alertsRes.value : [];
         const liveStation = stationRes.status === 'fulfilled' ? stationRes.value : null;
+        const forecast = forecastRes.status === 'fulfilled' ? forecastRes.value : null;
 
         const farmAlerts = alerts.filter((a) => a.farmId === farmId && a.status === 'active');
         const byParcel = alertsByParcel(farmAlerts);
@@ -216,6 +226,7 @@ export function useDomaineDetail(farmId: string | undefined): DomaineDetailState
           parcels,
           stats,
           liveStation,
+          forecast,
         });
         setIsLoading(false);
       })

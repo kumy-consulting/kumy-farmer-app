@@ -6,6 +6,7 @@ import type {
   DomainsSummary,
   FarmerAlert,
   FarmerFarmsVegetation,
+  FarmForecast,
   FarmLiveStation,
   Paginated,
   Parcel,
@@ -72,6 +73,19 @@ export const domainesApi = {
   /** Station météo live d'un domaine (onglet Météos). */
   async liveStation(farmId: string): Promise<FarmLiveStation> {
     const { data } = await apiClient.get<FarmLiveStation>(`/farms/${farmId}/live-station`);
+    return data;
+  },
+
+  /**
+   * Prévision 5 jours + heure par heure du domaine (onglet Météos).
+   *
+   * Ouverte au rôle FARMER depuis l'ajout de `UserRole.FARMER` sur
+   * `GET /farms/:id/forecast` ; contre une API antérieure elle répond 403. Un
+   * 404 veut dire « aucune parcelle du domaine n'a encore de prévision
+   * calculée ». Dans les deux cas l'appelant se contente de masquer le bloc.
+   */
+  async forecast(farmId: string): Promise<FarmForecast> {
+    const { data } = await apiClient.get<FarmForecast>(`/farms/${farmId}/forecast`);
     return data;
   },
 };

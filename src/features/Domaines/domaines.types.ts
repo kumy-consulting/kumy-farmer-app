@@ -223,27 +223,100 @@ export interface StationLiveMeasure {
  * station, pas la pluie du moment — pour « il pleut maintenant » c'est `rainRate`
  * (mm/h), et pour un cumul lisible c'est `rainfall24h`, que l'API calcule.
  */
+export interface FarmStationLive {
+  id: string;
+  stationId: string;
+  label: string | null;
+  online: boolean;
+  status: string;
+  lastSeen: string | null;
+  batteryLevel?: number | null;
+  signalStrength?: number | null;
+  live: {
+    temperature?: StationLiveMeasure;
+    humidity?: StationLiveMeasure;
+    pressure?: StationLiveMeasure;
+    windSpeed?: StationLiveMeasure;
+    windDir?: { value: number; label: string; at: string | null };
+    rainfall?: StationLiveMeasure;
+    rainRate?: StationLiveMeasure;
+    rainfall24h?: { valueMm: number; windowHours: number; at: string | null };
+  };
+}
+
+/** `station: null` = aucun kit météo posé sur le domaine. */
 export interface FarmLiveStation {
-  station: {
-    id: string;
-    stationId: string;
-    label: string | null;
-    online: boolean;
-    status: string;
-    lastSeen: string | null;
-    batteryLevel?: number | null;
-    signalStrength?: number | null;
-    live: {
-      temperature?: StationLiveMeasure;
-      humidity?: StationLiveMeasure;
-      pressure?: StationLiveMeasure;
-      windSpeed?: StationLiveMeasure;
-      windDir?: { value: number; label: string; at: string | null };
-      rainfall?: StationLiveMeasure;
-      rainRate?: StationLiveMeasure;
-      rainfall24h?: { valueMm: number; windowHours: number; at: string | null };
-    };
-  } | null;
+  station: FarmStationLive | null;
+}
+
+/**
+ * Prévision météo d'un domaine (`GET /farms/:id/forecast`).
+ *
+ * Le backend renvoie la prévision localisée la plus fiable parmi les parcelles
+ * du domaine — en pratique celle calibrée sur le kit météo quand il y en a un.
+ * Chaque variable porte sa confiance ; l'app agriculteur ne l'affiche pas, mais
+ * le champ reste typé pour rester fidèle au contrat serveur.
+ *
+ * La route n'a été ouverte au rôle FARMER qu'après coup : sur une API plus
+ * ancienne elle répond 403, et un 404 signifie « prévision pas encore calculée ».
+ * Les deux cas se traitent pareil côté écran — pas de bloc prévision.
+ */
+export interface VarConf {
+  value: number | null;
+  confidence: number;
+  tier: 'c1' | 'c2' | 'c3' | 'c4';
+}
+
+/** Probabilités et cumuls de pluie d'une journée prévue. */
+export interface ForecastRain {
+  probGt1mm: number;
+  probGt10mm: number;
+  probGt20mm: number;
+  expectedMm: number;
+  p10Mm: number;
+  p90Mm: number;
+  spreadMm: number;
+  confidence: number;
+  tier: 'c1' | 'c2' | 'c3' | 'c4';
+}
+
+/** Une journée de la prévision 5 jours (`date` au format 'YYYY-MM-DD'). */
+export interface ForecastDay {
+  date: string;
+  tmin: VarConf;
+  tmax: VarConf;
+  tavg: VarConf;
+  humidity: VarConf;
+  windMax: VarConf;
+  windGust: VarConf;
+  solar: VarConf;
+  etp: VarConf;
+  rain: ForecastRain;
+}
+
+/** Une heure du jour. `ts` est un epoch en SECONDES, pas en millisecondes. */
+export interface ForecastHour {
+  ts: number;
+  temp: VarConf;
+  humidity: VarConf;
+  wind: VarConf;
+  windGust: VarConf;
+  solar: VarConf;
+  rainRisk: VarConf;
+  regime: string;
+}
+
+export interface FarmForecast {
+  resolvedFrom: {
+    source: 'station' | 'cell' | 'station_corrected';
+    track: 'A' | 'B';
+    stationId: string | null;
+    distanceM: number | null;
+    cellId: string;
+  };
+  daily5d: ForecastDay[];
+  todayHourly: ForecastHour[];
+  overallConfidence: { daily: number | null; hourly: number | null };
 }
 
 // ─── Accompagnement ───
