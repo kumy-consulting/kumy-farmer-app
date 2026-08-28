@@ -34,18 +34,34 @@ const ICONE = 1024;
 const SPLASH = 2732;
 
 /**
- * Largeur du verrou dans l'icône, en fraction du carré.
+ * Largeur du verrou dans une icône CARRÉE, en fraction du côté.
  *
- * Calée non pas sur le FICHIER d'AgriPilot (48 % de son carré) mais sur son
- * rendu À L'ÉCRAN, les deux icônes côte à côte dans le tiroir d'applications :
- * Android ne présente pas de la même façon une icône adaptative native et
- * l'icône maskable d'une WebAPK, et 48 % donnait un verrou 10 % trop petit.
- *
- * 54 % rétablit l'égalité. À cette taille le verrou reste dans le disque du
- * masque le plus serré : son demi-diagonal vaut 32 % du carré, pour un rayon
- * visible de 50 %.
+ * 48 % : mesuré sur `agripilot-pwa/public/icons/icon-512x512.png` (246 px
+ * d'encre dans 512). Vaut pour tous les contextes où le carré entier est
+ * visible — icônes web, `ic_launcher.png` d'Android < 26, iOS.
  */
-const VERROU = 0.54;
+const VERROU = 0.48;
+
+/**
+ * Largeur du verrou dans l'AVANT-PLAN de l'icône adaptative (Android 26+).
+ *
+ * Plus grande, et ce n'est pas une incohérence. Deux réductions s'y ajoutent que
+ * le carré ne subit pas :
+ *
+ * 1. `mipmap-anydpi-v26/ic_launcher.xml` insère les deux couches de 16,7 %,
+ *    ramenant l'avant-plan à la zone sûre.
+ * 2. Le masque du lanceur ne montre que le disque inscrit dans cette zone.
+ *
+ * À 48 %, le verrou occupait donc à peine plus de la moitié du disque visible,
+ * là où l'icône d'AgriPilot en remplit 83 % — mesuré, les deux côte à côte dans
+ * le tiroir. 72 % ramène Kumy dans cette famille.
+ *
+ * La limite est géométrique : le verrou fait une fois et demie plus large que
+ * haut, sa demi-diagonale vaut donc 0,60 × sa largeur. À 72 % du disque elle
+ * atteint 87 % du rayon — le mot approche du bord sans le toucher. Au-delà de
+ * 83 %, il en sortirait.
+ */
+const VERROU_ADAPTATIF = 0.72;
 
 /**
  * Rend un SVG à la largeur voulue, puis le centre sur un canevas carré.
@@ -85,17 +101,13 @@ await writeFile(
   }),
 );
 
-// Avant-plan de l'icône adaptative Android (API 26+).
-//
-// Même proportion, et non une plus petite : `mipmap-anydpi-v26/ic_launcher.xml`
-// insère déjà les deux couches de 16,7 %, si bien que ce canevas ne couvre que
-// la zone sûre — celle que le masque laisse voir. Le verrou y occupe donc 48 %
-// de ce qui est RÉELLEMENT affiché, comme sur l'icône d'AgriPilot.
+// Avant-plan de l'icône adaptative Android (API 26+), à sa propre proportion :
+// ce canevas est réduit à la zone sûre avant d'être masqué (cf. VERROU_ADAPTATIF).
 await writeFile(
   'assets/icon-foreground.png',
   await centrer({
     source: 'public/logo-kumy.svg',
-    largeurLogo: Math.round(ICONE * VERROU),
+    largeurLogo: Math.round(ICONE * VERROU_ADAPTATIF),
     canevas: ICONE,
     fond: TRANSPARENT,
   }),
