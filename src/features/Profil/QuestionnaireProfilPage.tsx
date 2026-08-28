@@ -1,4 +1,4 @@
-import { useState, type FunctionComponent } from 'react';
+import { useEffect, useState, type FunctionComponent } from 'react';
 
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import { Box, Stack, Typography } from '@mui/material';
@@ -134,6 +134,17 @@ export const QuestionnaireProfilPage: FunctionComponent = () => {
   // deux, l'écran garde son propre curseur pour avancer/reculer localement.
   const [etapeAffichee, setEtapeAffichee] = useState<Etape>(1);
   const [etapeAlignee, setEtapeAlignee] = useState(false);
+  // Masque le message d'échec du hook quand l'agriculteur revient en arrière :
+  // sans ça, la bannière « Envoi impossible » de l'étape 2 resterait affichée
+  // à l'étape 1, sans plus aucun rapport avec ce que montre l'écran. Le hook
+  // ne pose pas de setter public sur `error` (il le remet à zéro lui-même au
+  // prochain `envoyerEtape`) — cet effet resynchronise donc l'écran à chaque
+  // changement réel du message, pour ne pas rester désynchronisé après.
+  const [erreurMasquee, setErreurMasquee] = useState(false);
+
+  useEffect(() => {
+    setErreurMasquee(false);
+  }, [error]);
 
   if (!isLoading && !etapeAlignee) {
     setEtapeAffichee(etapeCourante);
@@ -142,6 +153,7 @@ export const QuestionnaireProfilPage: FunctionComponent = () => {
 
   const precedent = () => {
     setErreurs({});
+    setErreurMasquee(true);
     setEtapeAffichee((e) => Math.max(1, e - 1) as Etape);
   };
 
@@ -242,7 +254,7 @@ export const QuestionnaireProfilPage: FunctionComponent = () => {
           <EtapeAffichee reponses={reponses} setReponses={setReponses} erreurs={erreurs} />
         )}
 
-        {error && (
+        {error && !erreurMasquee && (
           <Typography
             role="alert"
             sx={{ mt: 2, fontSize: 13, fontWeight: 600, color: '#B3261E', textAlign: 'center' }}
@@ -275,7 +287,11 @@ export const QuestionnaireProfilPage: FunctionComponent = () => {
               Précédent
             </Box>
           )}
-          <BoutonPrincipal derniere={etapeAffichee === 3} disabled={isSending} onClick={() => void suivant()} />
+          <BoutonPrincipal
+            derniere={etapeAffichee === 3}
+            disabled={isSending || isLoading}
+            onClick={() => void suivant()}
+          />
         </Stack>
 
         <Typography sx={{ mt: 1.5, fontSize: 11.5, color: 'rgba(55,75,70,0.55)', textAlign: 'center' }}>

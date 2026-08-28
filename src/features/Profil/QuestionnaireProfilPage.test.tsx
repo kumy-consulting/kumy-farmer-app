@@ -76,6 +76,37 @@ describe('QuestionnaireProfilPage', () => {
     expect(await screen.findByText('Zone d’exploitation')).toBeDefined();
   });
 
+  it('efface le message d’échec quand on revient à l’étape précédente', async () => {
+    // L’étape 2 a elle aussi ses champs obligatoires (tâche 7) : sans eux, le
+    // clic sur « Suivant » resterait bloqué par la validation locale, avant
+    // même d’atteindre l’appel réseau que ce test veut faire échouer.
+    mocked.lireProfil.mockResolvedValue({
+      ...profil(0),
+      questionnaire: {
+        ...profil(0).questionnaire,
+        farmingExperience: 5,
+        cooperative: { isMember: true },
+        hasCreditRuralAccount: true,
+      },
+    });
+    mocked.envoyerEtape
+      .mockResolvedValueOnce({ step: 1, completedAt: null })
+      .mockRejectedValueOnce(new Error('réseau'));
+    rendre();
+    await screen.findByText('Informations personnelles');
+
+    await userEvent.click(screen.getByRole('button', { name: /Suivant/ }));
+    await screen.findByText('Expériences et parcours');
+
+    await userEvent.click(screen.getByRole('button', { name: /Suivant/ }));
+    await screen.findByText(/Envoi impossible/);
+
+    await userEvent.click(screen.getByRole('button', { name: /Précédent/ }));
+
+    expect(await screen.findByText('Informations personnelles')).toBeDefined();
+    expect(screen.queryByText(/Envoi impossible/)).toBeNull();
+  });
+
   it('ferme par « Enregistrer » à la troisième étape', async () => {
     mocked.lireProfil.mockResolvedValue(profil(2));
     mocked.envoyerEtape.mockResolvedValue({ step: 3, completedAt: '2026-08-28T09:12:00.000Z' });
