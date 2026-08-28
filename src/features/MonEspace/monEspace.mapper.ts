@@ -1,4 +1,5 @@
 import type { UserProfile } from '@/features/Auth/auth.types';
+import type { MarqueurQuestionnaire } from '@/features/Profil/profil.types';
 
 import type { FarmerSelfDto } from './monEspace.api';
 import type { ProfilAgriculteur } from './monEspace.types';
@@ -52,4 +53,17 @@ export function profilDeSecours(user: UserProfile | null): ProfilAgriculteur | n
     cooperative: '',
     niveauAcces: user.accessTier === 'simulation' ? 'simulation' : 'full',
   };
+}
+
+/**
+ * `FarmerSelfDto.profileSurvey` → `MarqueurQuestionnaire`.
+ *
+ * Un simple passage, mais nécessaire : sans lui, `profileSurvey` s'arrêterait
+ * au DTO et l'entrée du questionnaire ne saurait jamais où en est l'agriculteur.
+ * Absent (compte pas encore passé par `PATCH /farmers/me/profil`, ou API pas
+ * encore alignée), on retombe sur un questionnaire vierge plutôt que de
+ * planter l'écran.
+ */
+export function versMarqueurQuestionnaire(dto: FarmerSelfDto): MarqueurQuestionnaire {
+  return dto.profileSurvey ?? { step: 0, completedAt: null };
 }

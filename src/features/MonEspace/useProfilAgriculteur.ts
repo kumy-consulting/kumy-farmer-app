@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 
+import type { MarqueurQuestionnaire } from '@/features/Profil/profil.types';
 import { useAuthStore } from '@/shared/stores/authStore';
 
 import { monEspaceApi } from './monEspace.api';
-import { profilDeSecours, versProfil } from './monEspace.mapper';
+import { profilDeSecours, versMarqueurQuestionnaire, versProfil } from './monEspace.mapper';
 import type { ProfilAgriculteur } from './monEspace.types';
 
 export interface ProfilAgriculteurState {
@@ -17,6 +18,12 @@ export interface ProfilAgriculteurState {
   alertesSms: boolean | null;
   /** Confirme localement une bascule que le serveur a acceptée. */
   poserAlertesSms: (sms: boolean) => void;
+  /**
+   * Avancement du questionnaire de profil — `null` tant que le serveur n'a
+   * pas répondu, ou quand on est retombé sur le profil de secours (l'API n'a
+   * alors rien dit sur le questionnaire non plus).
+   */
+  marqueurQuestionnaire: MarqueurQuestionnaire | null;
 }
 
 /**
@@ -40,11 +47,13 @@ export function useProfilAgriculteur(): ProfilAgriculteurState {
   const [profil, setProfil] = useState<ProfilAgriculteur | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [alertesSms, setAlertesSms] = useState<boolean | null>(null);
+  const [marqueurQuestionnaire, setMarqueurQuestionnaire] = useState<MarqueurQuestionnaire | null>(null);
 
   useEffect(() => {
     if (!uid) {
       setProfil(null);
       setAlertesSms(null);
+      setMarqueurQuestionnaire(null);
       setIsLoading(false);
       return;
     }
@@ -58,12 +67,14 @@ export function useProfilAgriculteur(): ProfilAgriculteurState {
         if (!actif) return;
         setProfil(versProfil(dto, useAuthStore.getState().user?.accessTier));
         setAlertesSms(dto.notificationSettings.sms);
+        setMarqueurQuestionnaire(versMarqueurQuestionnaire(dto));
         setIsLoading(false);
       })
       .catch(() => {
         if (!actif) return;
         setProfil(profilDeSecours(useAuthStore.getState().user));
         setAlertesSms(null);
+        setMarqueurQuestionnaire(null);
         setIsLoading(false);
       });
 
@@ -74,5 +85,5 @@ export function useProfilAgriculteur(): ProfilAgriculteurState {
 
   const poserAlertesSms = useCallback((sms: boolean) => setAlertesSms(sms), []);
 
-  return { profil, isLoading, alertesSms, poserAlertesSms };
+  return { profil, isLoading, alertesSms, poserAlertesSms, marqueurQuestionnaire };
 }

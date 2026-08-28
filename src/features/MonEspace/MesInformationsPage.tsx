@@ -3,6 +3,7 @@ import type { FunctionComponent } from 'react';
 import { Box, Stack, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 
+import { EntreeQuestionnaire } from '@/features/Profil/components/EntreeQuestionnaire';
 import { BackButton } from '@/shared/components/BackButton';
 
 import { BlocInformations } from './components/BlocInformations';
@@ -31,7 +32,7 @@ import { useProfilAgriculteur } from './useProfilAgriculteur';
  */
 export const MesInformationsPage: FunctionComponent = () => {
   const navigate = useNavigate();
-  const { profil, isLoading } = useProfilAgriculteur();
+  const { profil, isLoading, marqueurQuestionnaire } = useProfilAgriculteur();
 
   return (
     <Box
@@ -64,6 +65,10 @@ export const MesInformationsPage: FunctionComponent = () => {
       </Stack>
 
       <BlocInformations profil={profil} isLoading={isLoading} />
+
+      {marqueurQuestionnaire && (
+        <EntreeQuestionnaire marqueur={marqueurQuestionnaire} onOuvrir={() => navigate('/mon-profil/completer')} />
+      )}
     </Box>
   );
 };

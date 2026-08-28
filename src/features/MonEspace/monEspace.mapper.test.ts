@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { FarmerSelfDto } from './monEspace.api';
-import { versProfil } from './monEspace.mapper';
+import { versMarqueurQuestionnaire, versProfil } from './monEspace.mapper';
 
 const DTO: FarmerSelfDto = {
   farmerCode: 'KMY-DBK-0412',
@@ -87,5 +87,17 @@ describe('profilDeSecours', () => {
   it('rend null sans session — il n’y a alors personne à afficher', async () => {
     const { profilDeSecours } = await import('./monEspace.mapper');
     expect(profilDeSecours(null)).toBeNull();
+  });
+});
+
+describe('versMarqueurQuestionnaire', () => {
+  it('laisse passer le marqueur du questionnaire jusqu’à l’écran', () => {
+    const marqueur = versMarqueurQuestionnaire({ ...DTO, profileSurvey: { step: 2, completedAt: null } });
+    expect(marqueur).toEqual({ step: 2, completedAt: null });
+  });
+
+  it('retombe sur un questionnaire vierge quand l’API ne le renvoie pas encore', () => {
+    const marqueur = versMarqueurQuestionnaire(DTO);
+    expect(marqueur).toEqual({ step: 0, completedAt: null });
   });
 });

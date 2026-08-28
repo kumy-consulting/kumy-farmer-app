@@ -1,3 +1,4 @@
+import type { MarqueurQuestionnaire } from '@/features/Profil/profil.types';
 import { apiClient } from '@/shared/api/client';
 
 /**
@@ -22,6 +23,12 @@ export interface FarmerSelfDto {
   };
   cooperativeName?: string;
   notificationSettings: { sms: boolean };
+  /**
+   * Avancement du questionnaire de profil (voir `feature/Profil`) — optionnel
+   * pour ne pas casser un client encore ancien devant une API qui ne le
+   * renverrait pas encore.
+   */
+  profileSurvey?: MarqueurQuestionnaire;
 }
 
 export const monEspaceApi = {
