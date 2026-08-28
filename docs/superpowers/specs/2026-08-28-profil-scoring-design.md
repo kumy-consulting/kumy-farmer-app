@@ -118,7 +118,7 @@ s'est arrêté. Les champs marqués \* bloquent le passage à l'étape suivante.
 | Question | Champ écrit | Forme | Effet |
 |---|---|---|---|
 | Depuis combien de temps cultivez-vous ? \* | `farmingExperience` | cinq tranches | **Social 0.30** |
-| Êtes-vous membre d'une coopérative ? \* | `cooperativeMembership` | oui/non + nom + année d'adhésion | **Social 0.40** |
+| Êtes-vous membre d'une coopérative ? \* | `cooperative` | oui/non + nom + année d'adhésion | **Social 0.40** |
 | Avez-vous un compte au Crédit Rural ? \* | `hasCreditRuralAccount` | oui/non | Prépare le financier |
 | Formations suivies | `declaredTrainings` | texte libre, facultatif | Accompagnement |
 | Équipements agricoles | `declaredEquipment` | texte libre, facultatif | Accompagnement |
@@ -162,7 +162,7 @@ routes `me`.
 {
   "step": 2,                       // 1 | 2 | 3 — l'étape validée
   "farmingExperience": 5,
-  "cooperativeMembership": { "isMember": true, "name": "Coopérative de Tanènè", "since": 2019 },
+  "cooperative": { "isMember": true, "name": "Coopérative de Tanènè", "joinDate": "2019-01-01" },
   "hasCreditRuralAccount": false
 }
 ```
@@ -187,7 +187,7 @@ marqueur :
 
 `step` ne régresse jamais (`max(actuel, reçu)`), et `completedAt` se pose à
 l'envoi de l'étape 3. Le déduire de la présence des champs serait faux : « pas de
-coopérative » est une réponse valide qui laisse `cooperativeMembership.name`
+coopérative » est une réponse valide qui laisse `cooperative.name`
 vide.
 
 Réponses : **200** avec le marqueur à jour, **400** sur un champ hors liste ou

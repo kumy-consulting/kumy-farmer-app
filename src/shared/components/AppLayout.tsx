@@ -35,7 +35,7 @@ export const AppLayout: FunctionComponent = () => {
   const { estNouveau, aDesDomaines, isLoading } = useCompteNouveau();
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const { ouverte, fermer } = useInvitationProfil({ aDesDomaines, isLoading });
+  const { ouverte, fermer } = useInvitationProfil({ aDesDomaines, isLoading, surAccueil: pathname === '/' });
 
   // `/mon-profil/completer` n'a pas sa place dans `PORTES_COMPTE_SANS_DOMAINE` :
   // cette route vit hors d'`AppLayout` (voir `shared/routes/index.tsx`, à côté de

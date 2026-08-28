@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useInvitationProfilStore } from './invitationProfil.store';
 import { profilApi } from './profil.api';
-import { useInvitationProfil } from './useInvitationProfil';
+import { useInvitationProfil, type CompteInvitationProfil } from './useInvitationProfil';
 
 vi.mock('./profil.api', () => ({ profilApi: { lireProfil: vi.fn(), envoyerEtape: vi.fn() } }));
 
@@ -36,7 +36,7 @@ describe('useInvitationProfil', () => {
   });
 
   it('s’ouvre cinq secondes après l’arrivée, pas avant', async () => {
-    const { result } = renderHook(() => useInvitationProfil({ aDesDomaines: false, isLoading: false }));
+    const { result } = renderHook(() => useInvitationProfil({ aDesDomaines: false, isLoading: false, surAccueil: true }));
 
     await vi.advanceTimersByTimeAsync(4_000);
     expect(result.current.ouverte).toBe(false);
@@ -46,7 +46,7 @@ describe('useInvitationProfil', () => {
   });
 
   it('ne s’ouvre pas quand un domaine est déjà tracé', async () => {
-    const { result } = renderHook(() => useInvitationProfil({ aDesDomaines: true, isLoading: false }));
+    const { result } = renderHook(() => useInvitationProfil({ aDesDomaines: true, isLoading: false, surAccueil: true }));
     await vi.advanceTimersByTimeAsync(6_000);
 
     expect(result.current.ouverte).toBe(false);
@@ -55,19 +55,19 @@ describe('useInvitationProfil', () => {
   it('ne s’ouvre pas quand le questionnaire est terminé', async () => {
     mocked.lireProfil.mockResolvedValue(profilTermine);
 
-    const { result } = renderHook(() => useInvitationProfil({ aDesDomaines: false, isLoading: false }));
+    const { result } = renderHook(() => useInvitationProfil({ aDesDomaines: false, isLoading: false, surAccueil: true }));
     await vi.advanceTimersByTimeAsync(6_000);
 
     expect(result.current.ouverte).toBe(false);
   });
 
   it('ne s’ouvre qu’une fois par session', async () => {
-    const premier = renderHook(() => useInvitationProfil({ aDesDomaines: false, isLoading: false }));
+    const premier = renderHook(() => useInvitationProfil({ aDesDomaines: false, isLoading: false, surAccueil: true }));
     await vi.advanceTimersByTimeAsync(6_000);
     expect(premier.result.current.ouverte).toBe(true);
     premier.unmount();
 
-    const second = renderHook(() => useInvitationProfil({ aDesDomaines: false, isLoading: false }));
+    const second = renderHook(() => useInvitationProfil({ aDesDomaines: false, isLoading: false, surAccueil: true }));
     await vi.advanceTimersByTimeAsync(6_000);
 
     expect(second.result.current.ouverte).toBe(false);
@@ -76,7 +76,7 @@ describe('useInvitationProfil', () => {
   it('annule la minuterie au démontage', async () => {
     // Un agriculteur qui ouvre une parcelle dans les cinq secondes ne doit pas
     // se faire interrompre par une modale remontant d'un écran qu'il a quitté.
-    const { unmount } = renderHook(() => useInvitationProfil({ aDesDomaines: false, isLoading: false }));
+    const { unmount } = renderHook(() => useInvitationProfil({ aDesDomaines: false, isLoading: false, surAccueil: true }));
     await vi.advanceTimersByTimeAsync(2_000);
     unmount();
 
@@ -95,12 +95,36 @@ describe('useInvitationProfil', () => {
         }),
     );
 
-    const { result } = renderHook(() => useInvitationProfil({ aDesDomaines: false, isLoading: false }));
+    const { result } = renderHook(() => useInvitationProfil({ aDesDomaines: false, isLoading: false, surAccueil: true }));
 
     await vi.advanceTimersByTimeAsync(5_500);
     expect(result.current.ouverte).toBe(false);
 
     await vi.advanceTimersByTimeAsync(1_000);
+    expect(result.current.ouverte).toBe(true);
+  });
+
+  it('ne s’ouvre pas si l’échéance tombe hors de l’accueil (I4)', async () => {
+    // `AppLayout` ne se démonte pas entre onglets : sans ce garde, l'échéance
+    // atteinte pendant qu'on lit « Mes informations » ferait remonter la
+    // modale par-dessus cet écran.
+    const { result } = renderHook(() => useInvitationProfil({ aDesDomaines: false, isLoading: false, surAccueil: false }));
+
+    await vi.advanceTimersByTimeAsync(6_000);
+
+    expect(result.current.ouverte).toBe(false);
+  });
+
+  it('s’ouvre si on est revenu à l’accueil avant l’échéance', async () => {
+    const compte: CompteInvitationProfil = { aDesDomaines: false, isLoading: false, surAccueil: false };
+    const { result, rerender } = renderHook((props: CompteInvitationProfil) => useInvitationProfil(props), {
+      initialProps: compte,
+    });
+
+    await vi.advanceTimersByTimeAsync(2_000);
+    rerender({ ...compte, surAccueil: true });
+    await vi.advanceTimersByTimeAsync(3_500);
+
     expect(result.current.ouverte).toBe(true);
   });
 });

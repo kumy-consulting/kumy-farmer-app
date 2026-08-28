@@ -1,5 +1,6 @@
 import { useEffect, useState, type FunctionComponent } from 'react';
 
+import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import { Box, Stack, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
@@ -115,6 +116,62 @@ const BoutonPrincipal: FunctionComponent<{ derniere: boolean; disabled: boolean;
 );
 
 /**
+ * L'écran de confirmation promis par la spec (§Écrans) : « un écran de
+ * confirmation sobre, puis retour à l'accueil. » Sobre veut dire sobre — une
+ * coche, une phrase qui accuse réception, un bouton. Reprend le vocabulaire
+ * visuel de `CarteEtudeDeSol` (état « Demande envoyée ») plutôt que d'inventer
+ * une deuxième façon de dire « c'est fait » dans la même app.
+ */
+const ConfirmationEnvoi: FunctionComponent<{ onRetour: () => void }> = ({ onRetour }) => (
+  <Stack spacing={2} alignItems="center" justifyContent="center" sx={{ flex: '1 1 auto', textAlign: 'center' }}>
+    <Box
+      aria-hidden
+      sx={{
+        width: 52,
+        height: 52,
+        borderRadius: '50%',
+        display: 'grid',
+        placeItems: 'center',
+        background: 'rgba(1,134,117,0.10)',
+        '& svg': { fontSize: 28, color: '#016557' },
+      }}
+    >
+      <CheckCircleRoundedIcon />
+    </Box>
+
+    <Typography sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 17.5, fontWeight: 700, color: '#1A1C1B' }}>
+      Merci, votre profil est enregistré
+    </Typography>
+    <Typography sx={{ fontSize: 13.5, color: '#5C5F5E', lineHeight: 1.5, maxWidth: 300 }}>
+      Ces informations nous aident à mieux vous accompagner.
+    </Typography>
+
+    <Box
+      component="button"
+      type="button"
+      onClick={onRetour}
+      sx={{
+        mt: 1.5,
+        minHeight: 48,
+        minWidth: 220,
+        px: 3,
+        border: 'none',
+        borderRadius: '999px',
+        fontFamily: "'Ubuntu', sans-serif",
+        fontSize: 14.5,
+        fontWeight: 700,
+        color: '#FFFFFF',
+        background: 'linear-gradient(135deg, #018675 0%, #016557 100%)',
+        cursor: 'pointer',
+        '&:focus-visible': { outline: '2px solid #016557', outlineOffset: 2 },
+      }}
+    >
+      Retour à l’accueil
+    </Box>
+  </Stack>
+);
+
+/**
  * Le questionnaire de profil en trois étapes.
  *
  * Vit hors d'`AppLayout` (voir `src/shared/routes/index.tsx`) : c'est
@@ -141,6 +198,9 @@ export const QuestionnaireProfilPage: FunctionComponent = () => {
   // prochain `envoyerEtape`) — cet effet resynchronise donc l'écran à chaque
   // changement réel du message, pour ne pas rester désynchronisé après.
   const [erreurMasquee, setErreurMasquee] = useState(false);
+  // Passe à `true` une fois l'étape 3 envoyée avec succès — remplace tout
+  // l'écran par `ConfirmationEnvoi` plutôt que de naviguer directement.
+  const [confirme, setConfirme] = useState(false);
 
   useEffect(() => {
     setErreurMasquee(false);
@@ -164,11 +224,38 @@ export const QuestionnaireProfilPage: FunctionComponent = () => {
 
     const envoye = await envoyerEtape(etapeAffichee);
     if (!envoye) return; // le hook a posé le message ; l'étape ne bouge pas
-    if (etapeAffichee === 3) navigate('/');
+    if (etapeAffichee === 3) setConfirme(true);
     else setEtapeAffichee((e) => (e + 1) as Etape);
   };
 
   const EtapeAffichee = COMPOSANTS_ETAPES[etapeAffichee];
+
+  if (confirme) {
+    return (
+      <Box
+        sx={{
+          height: '100dvh',
+          display: 'flex',
+          flexDirection: 'column',
+          background: 'linear-gradient(155deg, #0E7A67 0%, #0C6E5C 50%, #0A6152 100%)',
+        }}
+      >
+        <Box
+          sx={{
+            flex: '1 1 auto',
+            display: 'flex',
+            mt: 'clamp(48px, 16vh, 120px)',
+            background: '#FFFFFF',
+            borderRadius: '26px 26px 0 0',
+            px: 3,
+            pb: 'max(env(safe-area-inset-bottom, 0px), 24px)',
+          }}
+        >
+          <ConfirmationEnvoi onRetour={() => navigate('/')} />
+        </Box>
+      </Box>
+    );
+  }
 
   return (
     <Box
@@ -254,15 +341,6 @@ export const QuestionnaireProfilPage: FunctionComponent = () => {
           <EtapeAffichee reponses={reponses} setReponses={setReponses} erreurs={erreurs} />
         )}
 
-        {error && !erreurMasquee && (
-          <Typography
-            role="alert"
-            sx={{ mt: 2, fontSize: 13, fontWeight: 600, color: '#B3261E', textAlign: 'center' }}
-          >
-            {error}
-          </Typography>
-        )}
-
         <Stack direction="row" spacing={1.5} sx={{ mt: 'auto', pt: 3 }}>
           {etapeAffichee > 1 && (
             <Box
@@ -293,6 +371,17 @@ export const QuestionnaireProfilPage: FunctionComponent = () => {
             onClick={() => void suivant()}
           />
         </Stack>
+
+        {/* Sous le bouton, pas au-dessus (spec, cas limites) : l'échec suit le
+            geste qui l'a déclenché plutôt que de précéder le contenu qu'il commente. */}
+        {error && !erreurMasquee && (
+          <Typography
+            role="alert"
+            sx={{ mt: 1.5, fontSize: 13, fontWeight: 600, color: '#B3261E', textAlign: 'center' }}
+          >
+            {error}
+          </Typography>
+        )}
 
         <Typography sx={{ mt: 1.5, fontSize: 11.5, color: 'rgba(55,75,70,0.55)', textAlign: 'center' }}>
           Vos informations sont sécurisées et confidentielles

@@ -54,6 +54,7 @@ export const EtapeParcours: FunctionComponent<EtapeProps> = ({ reponses, setRepo
             value={reponses.nomCooperative ?? ''}
             onChange={(value) => setReponses({ nomCooperative: value })}
             erreur={erreurs.nomCooperative}
+            maxLength={120}
           />
 
           <ChampNombre
@@ -63,6 +64,7 @@ export const EtapeParcours: FunctionComponent<EtapeProps> = ({ reponses, setRepo
             erreur={erreurs.anneeAdhesion}
             min={1900}
             max={new Date().getFullYear()}
+            entier
           />
         </>
       )}
@@ -74,6 +76,7 @@ export const EtapeParcours: FunctionComponent<EtapeProps> = ({ reponses, setRepo
         erreur={erreurs.formations}
         multiline
         placeholder="Ex. formation en agroécologie, gestion de coopérative…"
+        maxLength={500}
       />
     </Stack>
 
@@ -95,6 +98,7 @@ export const EtapeParcours: FunctionComponent<EtapeProps> = ({ reponses, setRepo
         erreur={erreurs.equipements}
         multiline
         placeholder="Ex. tracteur, motopompe, kit d’irrigation…"
+        maxLength={500}
       />
     </Stack>
   </Stack>

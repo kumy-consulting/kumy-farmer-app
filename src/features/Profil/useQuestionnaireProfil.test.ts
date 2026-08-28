@@ -184,4 +184,64 @@ describe('useQuestionnaireProfil', () => {
     expect(result.current.error).toMatch(/réessay/i);
     expect(result.current.isSending).toBe(false);
   });
+
+  it('distingue un 400 — une réponse refusée — d’une panne réseau', async () => {
+    // Un 400 dit « ce que vous avez envoyé est refusé » : accuser le réseau
+    // pousse à réessayer indéfiniment sans jamais pouvoir réussir.
+    mocked.envoyerEtape.mockRejectedValue(new ApiRequestError('Bad Request', 400));
+
+    const { result } = renderHook(() => useQuestionnaireProfil());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.envoyerEtape(3);
+    });
+
+    expect(result.current.error).toMatch(/n['’]a pas été acceptée/i);
+    expect(result.current.error).not.toMatch(/réessay/i);
+  });
+
+  it('garde le message réseau pour tout ce qui n’est pas un 400', async () => {
+    mocked.envoyerEtape.mockRejectedValue(new ApiRequestError('Erreur serveur', 500));
+
+    const { result } = renderHook(() => useQuestionnaireProfil());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await result.current.envoyerEtape(1);
+    });
+
+    expect(result.current.error).toMatch(/réessay/i);
+  });
+
+  it('déduit « non membre » quand l’étape 2 est validée sans coopérative', async () => {
+    // Le serveur n'écrit rien pour un non-membre (voulu) : sans cette
+    // déduction, l'agriculteur qui a répondu « non » retrouve une question
+    // obligatoire vierge en reprenant le questionnaire.
+    mocked.lireProfil.mockResolvedValue({
+      displayName: 'Mamadou Aliou Barry',
+      address: {},
+      profileSurvey: { step: 2, completedAt: null },
+      questionnaire: {},
+    });
+
+    const { result } = renderHook(() => useQuestionnaireProfil());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.reponses.estMembreCooperative).toBe(false);
+  });
+
+  it('laisse la question ouverte tant que l’étape 2 n’est pas encore validée', async () => {
+    mocked.lireProfil.mockResolvedValue({
+      displayName: 'Mamadou Aliou Barry',
+      address: {},
+      profileSurvey: { step: 1, completedAt: null },
+      questionnaire: {},
+    });
+
+    const { result } = renderHook(() => useQuestionnaireProfil());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.reponses.estMembreCooperative).toBeUndefined();
+  });
 });

@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { profilApi } from './profil.api';
@@ -114,5 +114,49 @@ describe('QuestionnaireProfilPage', () => {
     await screen.findByText('Zone d’exploitation');
 
     expect(screen.getByRole('button', { name: /Enregistrer/ })).toBeDefined();
+  });
+
+  it('préremplit la date de naissance dans la forme que rend l’API (yyyy-mm-dd)', async () => {
+    // `GET /farmers/me` rend désormais `dateOfBirth` tronqué à dix caractères
+    // (fixé côté API) — un `input[type=date]` vide silencieusement toute
+    // valeur qui ne suit pas ce format, d'où l'assertion sur la valeur rendue.
+    rendre();
+    await screen.findByText('Informations personnelles');
+
+    expect(screen.getByLabelText('Date de naissance')).toHaveValue('1986-04-12');
+  });
+
+  it('affiche un écran de confirmation sobre à la fin, puis revient à l’accueil', async () => {
+    mocked.lireProfil.mockResolvedValue({
+      ...profil(2),
+      questionnaire: {
+        ...profil(2).questionnaire,
+        cultivatedHectares: 2.5,
+        primaryCrops: ['Riz'],
+        declaredLandTenure: 'owned',
+      },
+    });
+    mocked.envoyerEtape.mockResolvedValue({ step: 3, completedAt: '2026-08-28T09:12:00.000Z' });
+    render(
+      <MemoryRouter initialEntries={['/mon-profil/completer']}>
+        <Routes>
+          <Route path="/mon-profil/completer" element={<QuestionnaireProfilPage />} />
+          <Route path="/" element={<div>tableau de bord</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    await screen.findByText('Zone d’exploitation');
+
+    await userEvent.click(screen.getByRole('button', { name: /Enregistrer/ }));
+
+    // Sobre : ni rail, ni formulaire — une accusé de réception et un retour.
+    // (Le message évite `/enregistr/i` seul : « Enregistrer », le bouton
+    // qu'on vient de cliquer, matcherait ce motif aussi.)
+    expect(await screen.findByText('Merci, votre profil est enregistré')).toBeDefined();
+    expect(screen.queryByText('tableau de bord')).toBeNull();
+    expect(screen.queryByText('Zone d’exploitation')).toBeNull();
+
+    await userEvent.click(screen.getByRole('button', { name: /Retour à l’accueil/i }));
+    expect(await screen.findByText('tableau de bord')).toBeDefined();
   });
 });

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { useInvitationProfilStore } from './invitationProfil.store';
 import { profilApi } from './profil.api';
@@ -17,6 +17,16 @@ const DELAI_MS = 5_000;
 export interface CompteInvitationProfil {
   aDesDomaines: boolean;
   isLoading: boolean;
+  /**
+   * `pathname === '/'` au sens de l'appelant. `AppLayout` ne se démonte PAS
+   * quand on change d'onglet (contrairement à ce que suppose le nettoyage de
+   * la minuterie ci-dessous) : sans ce garde-fou, une échéance atteinte
+   * pendant qu'on lit « Mes informations » ferait remonter la modale
+   * par-dessus cet écran. Lu via une ref pour ne pas redémarrer la minuterie
+   * à chaque changement d'onglet — seule sa valeur AU MOMENT de l'échéance
+   * compte.
+   */
+  surAccueil: boolean;
 }
 
 /**
@@ -37,10 +47,18 @@ export interface CompteInvitationProfil {
  * la lecture répond en retard.
  */
 export function useInvitationProfil(compte: CompteInvitationProfil): { ouverte: boolean; fermer: () => void } {
-  const { aDesDomaines, isLoading } = compte;
+  const { aDesDomaines, isLoading, surAccueil } = compte;
   const dejaProposee = useInvitationProfilStore((s) => s.dejaProposee);
   const marquerProposee = useInvitationProfilStore((s) => s.marquerProposee);
   const [ouverte, setOuverte] = useState(false);
+
+  // Ref plutôt que dépendance d'effet : un changement d'onglet ne doit ni
+  // redémarrer la minuterie, ni la relire avant son échéance — seule la
+  // valeur au moment où `verifier` tranche compte.
+  const surAccueilRef = useRef(surAccueil);
+  useEffect(() => {
+    surAccueilRef.current = surAccueil;
+  }, [surAccueil]);
 
   useEffect(() => {
     if (isLoading || aDesDomaines || dejaProposee) return;
@@ -53,6 +71,10 @@ export function useInvitationProfil(compte: CompteInvitationProfil): { ouverte: 
     // arrive forcément en second, et c'est celui-là qui doit décider.
     const verifier = () => {
       if (!actif || !echeanceAtteinte || termine !== false) return;
+      // Ne pas interrompre un agriculteur qui a quitté l'accueil (promesse de
+      // la spec) : `AppLayout` ne se démonte pas entre onglets, donc c'est ce
+      // garde qui la tient désormais, pas le nettoyage d'effet ci-dessous.
+      if (!surAccueilRef.current) return;
       setOuverte(true);
       marquerProposee();
     };

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
+import { ApiRequestError } from '@/shared/api/client';
+
 import { profilApi } from './profil.api';
 import type { ProfilLu, ReponsesQuestionnaire } from './profil.types';
 
@@ -33,9 +35,15 @@ function versReponses(profil: ProfilLu): ReponsesQuestionnaire {
     nombreEnfants: questionnaire.childrenCount,
     farmingExperience: questionnaire.farmingExperience,
     // Convention du moteur de score : `cooperative` n'existe que pour un
-    // membre. Son absence ne dit pas « non membre » pour autant — tant que
-    // l'agriculteur n'a rien répondu, on laisse la question ouverte.
-    estMembreCooperative: questionnaire.cooperative ? true : undefined,
+    // membre. Son absence ne dit donc pas « non membre » par défaut — SAUF si
+    // l'étape 2 a déjà été validée : le serveur n'écrit rien pour un non-membre
+    // (c'est voulu), donc une absence après cette étape EST la réponse « non »,
+    // pas une question restée sans réponse. Avant l'étape 2, elle reste ouverte.
+    estMembreCooperative: questionnaire.cooperative
+      ? true
+      : profil.profileSurvey.step >= 2
+        ? false
+        : undefined,
     nomCooperative: questionnaire.cooperative?.name,
     anneeAdhesion,
     compteCreditRural: questionnaire.hasCreditRuralAccount,
@@ -153,8 +161,16 @@ export function useQuestionnaireProfil(): QuestionnaireProfilState {
         const marqueur = await profilApi.envoyerEtape(corps);
         setTermine(marqueur.completedAt !== null);
         return true;
-      } catch {
-        setError("Envoi impossible pour l'instant. Réessayez dans un moment.");
+      } catch (erreur) {
+        // Un 400 n'est pas une panne réseau : les bornes de saisie côté app
+        // (tâche C1) sont censées l'éviter, mais si l'une d'elles a un trou, dire
+        // « réessayez » à l'infini enfermerait l'agriculteur à cette étape sans
+        // qu'aucun nouvel essai ne puisse jamais réussir.
+        setError(
+          erreur instanceof ApiRequestError && erreur.status === 400
+            ? "Cette réponse n'a pas été acceptée. Vérifiez ce que vous avez saisi."
+            : "Envoi impossible pour l'instant. Réessayez dans un moment.",
+        );
         return false;
       } finally {
         setIsSending(false);

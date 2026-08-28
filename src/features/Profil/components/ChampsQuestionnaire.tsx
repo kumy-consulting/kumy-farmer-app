@@ -159,6 +159,8 @@ export interface ChampTexteProps {
   /** `date` réutilise le même habillage capsule qu'un champ texte classique. */
   type?: 'text' | 'date';
   multiline?: boolean;
+  /** Reflète le `@MaxLength` du DTO serveur — un 400 évité vaut mieux qu'un 400 traduit. */
+  maxLength?: number;
 }
 
 export const ChampTexte: FunctionComponent<ChampTexteProps> = ({
@@ -170,6 +172,7 @@ export const ChampTexte: FunctionComponent<ChampTexteProps> = ({
   placeholder,
   type = 'text',
   multiline = false,
+  maxLength,
 }) => (
   <Box sx={{ width: '100%', maxWidth: 395 }}>
     <Libelle>{texteLibelle(label, obligatoire)}</Libelle>
@@ -183,7 +186,7 @@ export const ChampTexte: FunctionComponent<ChampTexteProps> = ({
       error={Boolean(erreur)}
       fullWidth
       slotProps={{
-        htmlInput: { 'aria-label': label },
+        htmlInput: { 'aria-label': label, maxLength },
         inputLabel: type === 'date' ? { shrink: true } : undefined,
       }}
     />
@@ -205,7 +208,12 @@ export interface ChampNombreProps {
   suffixe?: string;
   min?: number;
   max?: number;
+  /** Le serveur valide `@IsInt()` sur ce champ : une décimale saisie ici recevrait un 400. */
+  entier?: boolean;
 }
+
+/** Touches qui introduiraient une décimale ou une notation scientifique. */
+const TOUCHES_DECIMALES = ['.', ',', 'e', 'E'];
 
 export const ChampNombre: FunctionComponent<ChampNombreProps> = ({
   label,
@@ -216,6 +224,7 @@ export const ChampNombre: FunctionComponent<ChampNombreProps> = ({
   suffixe,
   min,
   max,
+  entier = false,
 }) => {
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     const brut = event.target.value;
@@ -224,7 +233,15 @@ export const ChampNombre: FunctionComponent<ChampNombreProps> = ({
       return;
     }
     const nombre = Number(brut);
-    if (!Number.isNaN(nombre)) onChange(nombre);
+    if (Number.isNaN(nombre)) return;
+    // Un filet en plus du blocage à la frappe : couvre le collage et la
+    // saisie via les flèches du champ number, que `onKeyDown` ne voit pas.
+    if (entier && !Number.isInteger(nombre)) return;
+    onChange(nombre);
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (entier && TOUCHES_DECIMALES.includes(event.key)) event.preventDefault();
   };
 
   return (
@@ -234,10 +251,11 @@ export const ChampNombre: FunctionComponent<ChampNombreProps> = ({
         type="number"
         value={value ?? ''}
         onChange={handleChange}
+        onKeyDown={entier ? handleKeyDown : undefined}
         error={Boolean(erreur)}
         fullWidth
         slotProps={{
-          htmlInput: { min, max, inputMode: 'numeric', 'aria-label': label },
+          htmlInput: { min, max, step: entier ? 1 : undefined, inputMode: 'numeric', 'aria-label': label },
           input: suffixe ? { endAdornment: <InputAdornment position="end">{suffixe}</InputAdornment> } : undefined,
         }}
       />
@@ -318,6 +336,10 @@ export interface ChoixMultipleProps {
   erreur?: string;
   /** Puces proposées d'emblée (ex. `CULTURES_COURANTES`) — l'agriculteur peut en ajouter d'autres. */
   suggestions?: readonly string[];
+  /** Reflète `@ArrayMaxSize` côté serveur — au-delà, une nouvelle entrée est ignorée. */
+  maxItems?: number;
+  /** Reflète `@MaxLength` par entrée côté serveur. */
+  maxLongueurItem?: number;
 }
 
 export const ChoixMultiple: FunctionComponent<ChoixMultipleProps> = ({
@@ -327,16 +349,21 @@ export const ChoixMultiple: FunctionComponent<ChoixMultipleProps> = ({
   obligatoire = false,
   erreur,
   suggestions = [],
+  maxItems,
+  maxLongueurItem,
 }) => {
   const [ajout, setAjout] = useState('');
+  const plafondAtteint = maxItems !== undefined && value.length >= maxItems;
 
   const basculer = (item: string) => {
+    // Désélectionner reste toujours possible même au plafond ; seul l'ajout est bloqué.
+    if (!value.includes(item) && plafondAtteint) return;
     onChange(value.includes(item) ? value.filter((v) => v !== item) : [...value, item]);
   };
 
   const ajouterLibre = () => {
-    const texte = ajout.trim();
-    if (!texte || value.includes(texte)) {
+    const texte = ajout.trim().slice(0, maxLongueurItem);
+    if (!texte || value.includes(texte) || plafondAtteint) {
       setAjout('');
       return;
     }
@@ -371,14 +398,20 @@ export const ChoixMultiple: FunctionComponent<ChoixMultipleProps> = ({
           onChange={(event: ChangeEvent<HTMLInputElement>) => setAjout(event.target.value)}
           placeholder="Ajouter…"
           size="small"
-          slotProps={{ htmlInput: { 'aria-label': `Ajouter à ${label}` } }}
+          disabled={plafondAtteint}
+          slotProps={{ htmlInput: { 'aria-label': `Ajouter à ${label}`, maxLength: maxLongueurItem } }}
           onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => {
             if (event.key !== 'Enter') return;
             event.preventDefault();
             ajouterLibre();
           }}
         />
-        <IconButton onClick={ajouterLibre} aria-label={`Valider l’ajout à ${label}`} sx={{ color: '#016557' }}>
+        <IconButton
+          onClick={ajouterLibre}
+          disabled={plafondAtteint}
+          aria-label={`Valider l’ajout à ${label}`}
+          sx={{ color: '#016557' }}
+        >
           <AddRoundedIcon />
         </IconButton>
       </Stack>

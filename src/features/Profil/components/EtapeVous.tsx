@@ -82,6 +82,7 @@ export const EtapeVous: FunctionComponent<EtapeProps> = ({ reponses, setReponses
         onChange={(value) => setReponses({ nombreEnfants: value })}
         erreur={erreurs.nombreEnfants}
         min={0}
+        entier
       />
     </Stack>
   </Stack>
