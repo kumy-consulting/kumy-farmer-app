@@ -7,7 +7,7 @@ import { formatE164ForDisplay } from '@/features/Auth/phone.util';
 import { CarteEtudeDeSol } from '@/features/Home/components/CarteEtudeDeSol';
 import { useEtudeDeSol } from '@/features/Home/useEtudeDeSol';
 import { useAuthStore } from '@/shared/stores/authStore';
-import { SUPPORT_TEL_HREF, SUPPORT_TELEPHONE } from '@/shared/support';
+import { SUPPORT_TEL_HREF, SUPPORT_TELEPHONE_LOCAL } from '@/shared/support';
 import { error } from '@/theme/colors';
 
 type EtatEtape = 'fait' | 'encours' | 'avenir';
@@ -237,11 +237,15 @@ export const BienvenuePage: FunctionComponent = () => {
             les y laisser flotter mal alignés.
 
             « Sans nouvelles, appelez Kumy » présupposait le silence de Kumy —
-            l'écran s'excusait d'avance. Une question ouverte invite au même
-            appel sans annoncer une panne. */}
+            l'écran s'excusait d'avance. Une invitation ouverte obtient le même
+            appel sans annoncer une panne.
+
+            Le numéro s'affiche sans l'indicatif : c'est sous cette forme qu'on
+            le compose et qu'on le retient ici. Le lien `tel:`, lui, garde le
+            +224 — un appel depuis un téléphone à l'étranger doit aboutir. */}
         <Stack alignItems="center" sx={{ mt: 3.5 }}>
           <Typography sx={{ fontSize: 13, color: '#5C5F5E', lineHeight: 2 }}>
-            Une question ?{' '}
+            Pour plus d&apos;infos, contactez-nous au{' '}
             <Box
               component="a"
               href={SUPPORT_TEL_HREF}
@@ -259,7 +263,7 @@ export const BienvenuePage: FunctionComponent = () => {
                 '&:focus-visible': { outline: '2px solid #016557', outlineOffset: 2 },
               }}
             >
-              {SUPPORT_TELEPHONE}
+              {SUPPORT_TELEPHONE_LOCAL}
             </Box>
           </Typography>
 
