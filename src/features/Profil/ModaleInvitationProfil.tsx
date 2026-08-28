@@ -9,6 +9,11 @@ interface ModaleInvitationProfilProps {
   onCompleter: () => void;
 }
 
+// Relient le dialogue à son titre et à sa phrase pour les lecteurs d'écran —
+// sans eux, un `Dialog` MUI s'annonce sans nom (« dialogue »), premier de l'app.
+const TITRE_ID = 'modale-invitation-profil-titre';
+const DESCRIPTION_ID = 'modale-invitation-profil-description';
+
 /**
  * L'invitation à compléter le profil, proposée une fois par session.
  *
@@ -31,11 +36,15 @@ export const ModaleInvitationProfil: FunctionComponent<ModaleInvitationProfilPro
     onClose={onFermer}
     maxWidth="xs"
     fullWidth
-    PaperProps={{
-      sx: {
-        borderRadius: '24px',
-        p: 'clamp(20px, 5vw, 28px)',
-        fontFamily: "'Ubuntu', sans-serif",
+    aria-labelledby={TITRE_ID}
+    aria-describedby={DESCRIPTION_ID}
+    slotProps={{
+      paper: {
+        sx: {
+          borderRadius: '24px',
+          p: 'clamp(20px, 5vw, 28px)',
+          fontFamily: "'Ubuntu', sans-serif",
+        },
       },
     }}
   >
@@ -56,6 +65,7 @@ export const ModaleInvitationProfil: FunctionComponent<ModaleInvitationProfilPro
       </Box>
 
       <Typography
+        id={TITRE_ID}
         sx={{
           fontFamily: "'Ubuntu', sans-serif",
           fontSize: 18,
@@ -67,7 +77,7 @@ export const ModaleInvitationProfil: FunctionComponent<ModaleInvitationProfilPro
         Complétez votre profil
       </Typography>
 
-      <Typography sx={{ fontSize: 14.5, color: '#5C5F5E', lineHeight: 1.5 }}>
+      <Typography id={DESCRIPTION_ID} sx={{ fontSize: 14.5, color: '#5C5F5E', lineHeight: 1.5 }}>
         Ces réponses nous aident à mieux vous accompagner, et comptent dans votre AgriScore.
       </Typography>
 
