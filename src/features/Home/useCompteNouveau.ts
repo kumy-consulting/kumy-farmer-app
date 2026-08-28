@@ -7,6 +7,8 @@ import { useAuthStore } from '@/shared/stores/authStore';
 export interface CompteNouveauState {
   /** Aucun domaine et aucun technicien : le compte n'a pas encore été adopté. */
   estNouveau: boolean;
+  /** Au moins un domaine tracé — indépendant du rattachement à un technicien. */
+  aDesDomaines: boolean;
   isLoading: boolean;
 }
 
@@ -25,6 +27,7 @@ export function useCompteNouveau(): CompteNouveauState {
   const uid = useAuthStore((s) => s.user?.uid);
   const [state, setState] = useState<CompteNouveauState>({
     estNouveau: false,
+    aDesDomaines: false,
     isLoading: true,
   });
 
@@ -32,7 +35,7 @@ export function useCompteNouveau(): CompteNouveauState {
     // Aperçu de démonstration : il montre l'app garnie, pas l'écran d'accueil
     // d'un compte neuf.
     if (isDemoMode() || !uid) {
-      setState({ estNouveau: false, isLoading: false });
+      setState({ estNouveau: false, aDesDomaines: false, isLoading: false });
       return;
     }
 
@@ -45,12 +48,13 @@ export function useCompteNouveau(): CompteNouveauState {
         if (!actif) return;
         setState({
           estNouveau: !etat.hasFarms && !etat.hasEngineer,
+          aDesDomaines: etat.hasFarms,
           isLoading: false,
         });
       })
       .catch(() => {
         if (!actif) return;
-        setState({ estNouveau: false, isLoading: false });
+        setState({ estNouveau: false, aDesDomaines: false, isLoading: false });
       });
 
     return () => {
