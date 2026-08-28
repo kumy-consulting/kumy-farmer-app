@@ -15,8 +15,10 @@ export interface ReponsesQuestionnaire {
   nomCooperative?: string;
   anneeAdhesion?: number;
   compteCreditRural?: boolean;
-  formations?: string[];
-  equipements?: string[];
+  /** Texte libre — pas une liste : le serveur valide `@IsString() @MaxLength(500)`. */
+  formations?: string;
+  /** Texte libre — pas une liste : le serveur valide `@IsString() @MaxLength(500)`. */
+  equipements?: string;
   regionId?: string;
   prefectureId?: string;
   sousPrefectureId?: string;
@@ -48,8 +50,10 @@ export interface ProfilLu {
       joinDate?: string;
     };
     hasCreditRuralAccount?: boolean;
-    declaredTrainings?: string[];
-    declaredEquipment?: string[];
+    /** Texte libre — pas une liste : le serveur valide `@IsString() @MaxLength(500)`. */
+    declaredTrainings?: string;
+    /** Texte libre — pas une liste : le serveur valide `@IsString() @MaxLength(500)`. */
+    declaredEquipment?: string;
     cultivatedHectares?: number;
     primaryCrops?: string[];
     declaredLandTenure?: string;

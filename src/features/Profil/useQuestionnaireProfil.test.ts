@@ -106,6 +106,69 @@ describe('useQuestionnaireProfil', () => {
     );
   });
 
+  it('préremplit les formations et équipements en chaîne, pas en tableau', async () => {
+    mocked.lireProfil.mockResolvedValue({
+      displayName: 'Mamadou Aliou Barry',
+      address: { regionId: 'reg-1', prefectureId: 'pref-1', sousPrefectureId: 'sp-1' },
+      profileSurvey: { step: 0, completedAt: null },
+      questionnaire: {
+        declaredTrainings: 'Formation compostage 2023',
+        declaredEquipment: 'Motoculteur, brouette',
+      },
+    });
+
+    const { result } = renderHook(() => useQuestionnaireProfil());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.reponses.formations).toBe('Formation compostage 2023');
+    expect(result.current.reponses.equipements).toBe('Motoculteur, brouette');
+  });
+
+  it('envoie les formations et équipements en chaîne à l’étape 2', async () => {
+    const { result } = renderHook(() => useQuestionnaireProfil());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() =>
+      result.current.setReponses({
+        formations: 'Formation compostage 2023',
+        equipements: 'Motoculteur, brouette',
+      }),
+    );
+    await act(async () => {
+      await result.current.envoyerEtape(2);
+    });
+
+    expect(mocked.envoyerEtape).toHaveBeenCalledWith(
+      expect.objectContaining({
+        declaredTrainings: 'Formation compostage 2023',
+        declaredEquipment: 'Motoculteur, brouette',
+      }),
+    );
+  });
+
+  it('omet le nom de famille quand le nom complet n’a qu’un mot', async () => {
+    const { result } = renderHook(() => useQuestionnaireProfil());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() => result.current.setReponses({ nomComplet: 'Kadiatou' }));
+    await act(async () => {
+      await result.current.envoyerEtape(1);
+    });
+
+    const corps = mocked.envoyerEtape.mock.calls[0][0] as Record<string, unknown>;
+    expect(corps.firstName).toBe('Kadiatou');
+    expect(corps).not.toHaveProperty('lastName');
+  });
+
+  it('signale un dossier illisible au montage plutôt que de rester muette', async () => {
+    mocked.lireProfil.mockRejectedValue(new ApiRequestError('réseau', 500));
+
+    const { result } = renderHook(() => useQuestionnaireProfil());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.error).toMatch(/réessay/i);
+  });
+
   it('n’avance pas l’étape quand l’envoi échoue', async () => {
     mocked.envoyerEtape.mockRejectedValue(new ApiRequestError('réseau', 500));
 

@@ -57,8 +57,11 @@ function versCorpsEtape(step: Etape, reponses: ReponsesQuestionnaire): Record<st
   if (step === 1) {
     if (reponses.nomComplet) {
       const mots = reponses.nomComplet.trim().split(/\s+/);
+      const nom = mots.slice(1).join(' ');
       corps.firstName = mots[0];
-      corps.lastName = mots.slice(1).join(' ');
+      // Un nom d'un seul mot ne doit pas écraser le nom de famille du dossier
+      // avec une chaîne vide : on omet le champ plutôt que de l'envoyer vide.
+      if (nom) corps.lastName = nom;
     }
     if (reponses.dateNaissance !== undefined) corps.dateOfBirth = reponses.dateNaissance;
     if (reponses.genre !== undefined) corps.gender = reponses.genre;
@@ -122,7 +125,12 @@ export function useQuestionnaireProfil(): QuestionnaireProfilState {
         setEtapeCourante(Math.min(profil.profileSurvey.step + 1, 3) as Etape);
         setTermine(profil.profileSurvey.completedAt !== null);
       })
-      .catch(() => undefined)
+      .catch(() => {
+        // Un dossier illisible au montage ne doit pas laisser l'agriculteur
+        // face à un formulaire muet sans recours : même message que pour un
+        // envoi raté, pour rester cohérent à l'écran.
+        if (actif) setError("Envoi impossible pour l'instant. Réessayez dans un moment.");
+      })
       .finally(() => {
         if (actif) setIsLoading(false);
       });
