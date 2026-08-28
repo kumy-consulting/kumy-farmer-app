@@ -310,6 +310,41 @@ describe('useHomeFeed', () => {
     expect(result.current.dashboard.accompagnement.technicien).toBe('Dr Camara');
   });
 
+  it('ouvre le carnet de la parcelle où le GPS a validé le passage', async () => {
+    mockedDomaines.visits.mockResolvedValue({
+      next: null,
+      recent: [
+        {
+          id: 'v7',
+          status: 'done',
+          type: 'consultation',
+          category: null,
+          scheduledFor: '2026-08-14T08:00:00.000Z',
+          startedAt: '2026-08-14T08:05:00.000Z',
+          endedAt: '2026-08-14T10:30:00.000Z',
+          farmId: 'f1',
+          farmName: 'Domaine Kaporo',
+          technicianName: 'Dr Camara',
+          // Une visite de terrain ne déclare aucune parcelle : l'app technicien
+          // envoie le domaine et une position, rien de plus.
+          parcelIds: [],
+          visitedParcelId: 'p1',
+          note: null,
+        },
+      ],
+    });
+
+    const { result } = renderHook(() => useHomeFeed());
+    await waitFor(() => expect(result.current.dashboard.accompagnement.derniereVisite).not.toBeNull());
+
+    // Le lien « Voir la dernière visite » de la carte accompagnement. Sans
+    // `visitedParcelId`, il retombait sur le domaine — l'agriculteur ouvrait
+    // une page qui ne dit rien du passage.
+    expect(result.current.dashboard.accompagnement.derniereVisite?.target).toBe(
+      '/domaines/f1/parcelles/p1?onglet=carnet',
+    );
+  });
+
   it('nomme le technicien de la visite à venir tant qu’aucune n’a eu lieu', async () => {
     mockedDomaines.visits.mockResolvedValue({
       next: {
