@@ -1,15 +1,19 @@
 /**
  * Génère les sources d'icônes et de splash natifs à partir des logos de `public/`.
  *
- * Pourquoi un script plutôt qu'un simple `capacitor-assets generate` : l'app a
- * besoin de DEUX visuels distincts, que le mode « easy » ne sait pas produire
- * depuis une source unique.
+ * Pourquoi un script plutôt qu'un simple `capacitor-assets generate` : le mode
+ * « easy » ne sait produire ni les cinq fichiers du mode « contrôle total », ni
+ * deux fonds différents.
  *
- *   - Icône d'application → la POUSSE seule (`public/logo-mark.svg`). Le verrou
- *     complet « pousse + kumy » est large (340×250) : réduit au carré puis rogné
- *     par le masque adaptatif Android, le mot deviendrait illisible.
- *   - Splash → le VERROU complet (`public/logo-kumy.svg`), qui a la place de
- *     s'afficher en entier et identifie la marque.
+ * Icône d'application et splash portent tous deux le VERROU complet
+ * (`public/logo-kumy.svg`, pousse + « kumy »). L'icône reprend les proportions
+ * MESURÉES sur celle d'AgriPilot — verrou à 48 % du carré, fond blanc — pour
+ * que les deux applications de la suite se reconnaissent d'un coup d'œil sur
+ * l'écran d'accueil.
+ *
+ * Le verrou est large (340×250). À 48 % il reste dans la zone sûre du masque
+ * adaptatif d'Android, y compris circulaire ; plus haut, les surcouches qui
+ * masquent serré rogneraient le mot.
  *
  * Sortie : les cinq fichiers du mode « contrôle total » de @capacitor/assets,
  * dans `assets/`. Enchaîner ensuite `npx capacitor-assets generate --android`.
@@ -20,16 +24,41 @@ import { mkdir, writeFile } from 'node:fs/promises';
 
 import sharp from 'sharp';
 
-/** Fond crème Kumy — aligné sur capacitor.config.ts et le fond de l'app. */
+/** Fond crème Kumy — aligné sur capacitor.config.ts et le fond de l'app. Splash. */
 const CREME = { r: 0xf7, g: 0xf4, b: 0xe9, alpha: 1 };
+/** Fond des ICÔNES : blanc, comme celle d'AgriPilot. */
+const BLANC = { r: 0xff, g: 0xff, b: 0xff, alpha: 1 };
 const TRANSPARENT = { r: 0, g: 0, b: 0, alpha: 0 };
 
 const ICONE = 1024;
 const SPLASH = 2732;
 
-/** Rend un SVG à la largeur voulue, puis le centre sur un canevas carré. */
+/**
+ * Largeur du verrou dans l'icône, en fraction du carré.
+ *
+ * Calée non pas sur le FICHIER d'AgriPilot (48 % de son carré) mais sur son
+ * rendu À L'ÉCRAN, les deux icônes côte à côte dans le tiroir d'applications :
+ * Android ne présente pas de la même façon une icône adaptative native et
+ * l'icône maskable d'une WebAPK, et 48 % donnait un verrou 10 % trop petit.
+ *
+ * 54 % rétablit l'égalité. À cette taille le verrou reste dans le disque du
+ * masque le plus serré : son demi-diagonal vaut 32 % du carré, pour un rayon
+ * visible de 50 %.
+ */
+const VERROU = 0.54;
+
+/**
+ * Rend un SVG à la largeur voulue, puis le centre sur un canevas carré.
+ *
+ * On rogne d'abord sur l'ENCRE. `logo-kumy.svg` porte une marge interne large :
+ * son encre ne fait que 48 % de la largeur de sa viewBox. Dimensionner le
+ * canevas du SVG donnait donc un verrou deux fois trop petit que la proportion
+ * demandée — mesuré, et visible à l'œil à côté de l'icône d'AgriPilot.
+ */
 async function centrer({ source, largeurLogo, canevas, fond }) {
-  const logo = await sharp(source, { density: 600 })
+  const rendu = await sharp(source, { density: 600 }).png().toBuffer();
+  const logo = await sharp(rendu)
+    .trim({ threshold: 1 })
     .resize({ width: largeurLogo, fit: 'inside' })
     .png()
     .toBuffer();
@@ -44,19 +73,29 @@ async function centrer({ source, largeurLogo, canevas, fond }) {
 
 await mkdir('assets', { recursive: true });
 
-// Icône pleine (iOS, PWA) : la pousse occupe 68 % du carré.
+// Icône pleine : Android < 26 (ic_launcher.png) et iOS. Tout le carré est
+// visible, on reprend donc exactement la proportion d'AgriPilot.
 await writeFile(
   'assets/icon-only.png',
-  await centrer({ source: 'public/logo-mark.svg', largeurLogo: Math.round(ICONE * 0.68), canevas: ICONE, fond: CREME }),
+  await centrer({
+    source: 'public/logo-kumy.svg',
+    largeurLogo: Math.round(ICONE * VERROU),
+    canevas: ICONE,
+    fond: BLANC,
+  }),
 );
 
-// Avant-plan de l'icône adaptative Android. Plus petit (60 %) : le système
-// rogne hors de la zone sûre centrale et anime cette couche indépendamment.
+// Avant-plan de l'icône adaptative Android (API 26+).
+//
+// Même proportion, et non une plus petite : `mipmap-anydpi-v26/ic_launcher.xml`
+// insère déjà les deux couches de 16,7 %, si bien que ce canevas ne couvre que
+// la zone sûre — celle que le masque laisse voir. Le verrou y occupe donc 48 %
+// de ce qui est RÉELLEMENT affiché, comme sur l'icône d'AgriPilot.
 await writeFile(
   'assets/icon-foreground.png',
   await centrer({
-    source: 'public/logo-mark.svg',
-    largeurLogo: Math.round(ICONE * 0.6),
+    source: 'public/logo-kumy.svg',
+    largeurLogo: Math.round(ICONE * VERROU),
     canevas: ICONE,
     fond: TRANSPARENT,
   }),
@@ -65,7 +104,7 @@ await writeFile(
 // Arrière-plan de l'icône adaptative : aplat, sans motif (il subit le masque).
 await writeFile(
   'assets/icon-background.png',
-  await sharp({ create: { width: ICONE, height: ICONE, channels: 4, background: CREME } })
+  await sharp({ create: { width: ICONE, height: ICONE, channels: 4, background: BLANC } })
     .png()
     .toBuffer(),
 );
@@ -139,26 +178,26 @@ for (const taille of [192, 512]) {
   await writeFile(
     `public/icon-${taille}.png`,
     await centrer({
-      source: 'public/logo-mark.svg',
-      largeurLogo: Math.round(taille * 0.68),
+      source: 'public/logo-kumy.svg',
+      largeurLogo: Math.round(taille * VERROU),
       canevas: taille,
-      fond: CREME,
+      fond: BLANC,
     }),
   );
 }
 
-// Variante `maskable` : la zone sûre est le disque central de 80 %. La pousse
-// n'occupe donc que 55 % du carré, sans quoi le masque d'Android lui couperait
-// les feuilles.
+// Variante `maskable` : la zone sûre est le disque central de 80 %. Le verrou y
+// est resserré à 40 %, sans quoi le masque couperait le mot par les côtés — il
+// est deux fois plus large que haut, c'est lui que le disque contraint.
 await writeFile(
   'public/icon-maskable-512.png',
-  await centrer({ source: 'public/logo-mark.svg', largeurLogo: Math.round(512 * 0.55), canevas: 512, fond: CREME }),
+  await centrer({ source: 'public/logo-kumy.svg', largeurLogo: Math.round(512 * 0.4), canevas: 512, fond: BLANC }),
 );
 
 // iOS n'applique aucun masque et ne gère pas la transparence : fond opaque.
 await writeFile(
   'public/apple-touch-icon.png',
-  await centrer({ source: 'public/logo-mark.svg', largeurLogo: Math.round(180 * 0.68), canevas: 180, fond: CREME }),
+  await centrer({ source: 'public/logo-kumy.svg', largeurLogo: Math.round(180 * VERROU), canevas: 180, fond: BLANC }),
 );
 
 console.log('assets/ : icon-only, icon-foreground, icon-background, splash, splash-dark');
