@@ -3,6 +3,7 @@ import { createBrowserRouter, createHashRouter, Navigate } from 'react-router-do
 
 import { PhoneEntryPage } from '@/features/Auth/pages/PhoneEntryPage';
 import { PinEntryPage } from '@/features/Auth/pages/PinEntryPage';
+import { BonnesPratiquesPage } from '@/features/BonnesPratiques/BonnesPratiquesPage';
 import { DomaineDetailPage } from '@/features/Domaines/DomaineDetailPage';
 import { DomainesPage } from '@/features/Domaines/DomainesPage';
 import { HomePage } from '@/features/Home/HomePage';
@@ -61,6 +62,23 @@ export const router = createRouter([
   { path: '/inscription/adresse', element: <RegisterAddressPage /> },
   { path: '/inscription/code-confidentiel', element: <RegisterPinPage /> },
   { path: '/inscription/resultat', element: <RegisterResultPage /> },
+  /**
+   * Les bonnes pratiques vivent SOUS `ProtectedRoute` mais HORS d'`AppLayout`.
+   *
+   * `AppLayout` court-circuite l'`Outlet` pour un compte encore sans domaine :
+   * il rend l'écran d'attente à la place. Placée parmi ses enfants, cette route
+   * serait donc inatteignable pour ceux à qui elle s'adresse d'abord — un
+   * agriculteur qui attend son technicien et à qui on n'a rien d'autre à lire.
+   */
+  {
+    path: '/bonnes-pratiques',
+    element: (
+      <ProtectedRoute>
+        <BonnesPratiquesPage />
+      </ProtectedRoute>
+    ),
+  },
+
   {
     element: (
       <ProtectedRoute>
