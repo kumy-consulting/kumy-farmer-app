@@ -18,6 +18,7 @@ import { OnboardingProfilePage } from '@/features/Onboarding/pages/OnboardingPro
 import { OnboardingSuccessPage } from '@/features/Onboarding/pages/OnboardingSuccessPage';
 import { WelcomeChoicePage } from '@/features/Onboarding/pages/WelcomeChoicePage';
 import { ParcelDetailPage } from '@/features/Parcelle/ParcelDetailPage';
+import { QuestionnaireProfilPage } from '@/features/Profil/QuestionnaireProfilPage';
 import { RegisterAddressPage } from '@/features/Register/pages/RegisterAddressPage';
 import { RegisterCodePage } from '@/features/Register/pages/RegisterCodePage';
 import { RegisterKnownAccountPage } from '@/features/Register/pages/RegisterKnownAccountPage';
@@ -75,6 +76,19 @@ export const router = createRouter([
     element: (
       <ProtectedRoute>
         <BonnesPratiquesPage />
+      </ProtectedRoute>
+    ),
+  },
+  /**
+   * Même raison qu'au-dessus : le questionnaire de profil s'adresse d'abord au
+   * compte encore sans domaine, exactement celui pour qui `AppLayout` rend
+   * l'écran d'attente à la place de l'`Outlet`.
+   */
+  {
+    path: '/mon-profil/completer',
+    element: (
+      <ProtectedRoute>
+        <QuestionnaireProfilPage />
       </ProtectedRoute>
     ),
   },

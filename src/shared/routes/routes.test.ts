@@ -17,4 +17,12 @@ describe('table de routage', () => {
     const enfantsDeLaCoquille = router.routes.flatMap((route) => route.children ?? []).map((route) => route.path);
     expect(enfantsDeLaCoquille).not.toContain('/bonnes-pratiques');
   });
+
+  it('garde le questionnaire de profil hors de la coquille AppLayout', () => {
+    const racines = router.routes.filter((route) => route.path === '/mon-profil/completer');
+    expect(racines).toHaveLength(1);
+
+    const enfants = router.routes.flatMap((route) => route.children ?? []).map((route) => route.path);
+    expect(enfants).not.toContain('/mon-profil/completer');
+  });
 });
