@@ -57,28 +57,19 @@ export const CarteEtudeDeSol: FunctionComponent<CarteEtudeDeSolProps> = ({
   const envoyee = requestedAt !== null;
 
   return (
-    <Box
-      sx={{
-        mt: 2,
-        p: 2.25,
-        borderRadius: '22px',
-        background: '#FFFFFF',
-        border: '1px solid rgba(55,75,70,0.07)',
-        boxShadow: '0 10px 26px rgba(1,134,117,0.10)',
-      }}
-    >
-      <Stack direction="row" spacing={1.6} alignItems="flex-start">
+    <Box>
+      <Stack direction="row" spacing={1.5} alignItems="flex-start">
         <Box
           aria-hidden
           sx={{
-            width: 38,
-            height: 38,
+            width: 34,
+            height: 34,
             flexShrink: 0,
-            borderRadius: '12px',
+            borderRadius: '11px',
             display: 'grid',
             placeItems: 'center',
             background: 'rgba(1,134,117,0.10)',
-            '& svg': { fontSize: 20, color: '#016557' },
+            '& svg': { fontSize: 19, color: '#016557' },
           }}
         >
           <ScienceRounded />
@@ -96,7 +87,7 @@ export const CarteEtudeDeSol: FunctionComponent<CarteEtudeDeSolProps> = ({
           >
             Étude de sol
           </Typography>
-          <Typography sx={{ fontSize: 13.5, color: '#5C5F5E', lineHeight: 1.5, mt: 0.25 }}>
+          <Typography sx={{ fontSize: 13, color: '#5C5F5E', lineHeight: 1.45, mt: 0.15 }}>
             Savoir ce que votre terre peut porter, avant de semer.
           </Typography>
         </Box>
@@ -108,9 +99,9 @@ export const CarteEtudeDeSol: FunctionComponent<CarteEtudeDeSolProps> = ({
           alignItems="center"
           spacing={0.75}
           sx={{
-            mt: 2,
+            mt: 'clamp(8px, 1.5vh, 19px)',
             px: 1.5,
-            py: 1.25,
+            py: 1.15,
             borderRadius: '14px',
             background: 'rgba(1,134,117,0.08)',
             '& svg': { fontSize: 18, color: '#016557' },
@@ -146,7 +137,7 @@ export const CarteEtudeDeSol: FunctionComponent<CarteEtudeDeSolProps> = ({
               alignItems: 'center',
               justifyContent: 'center',
               width: '100%',
-              mt: 2,
+              mt: 'clamp(8px, 1.5vh, 19px)',
               minHeight: 48,
               px: 2.5,
               border: 0,
@@ -154,9 +145,7 @@ export const CarteEtudeDeSol: FunctionComponent<CarteEtudeDeSolProps> = ({
               // Vert plein assourdi plutôt qu'un vert transparent : sur fond
               // blanc, 45 % d'opacité faisait passer le libellé blanc sous le
               // seuil de contraste au moment précis où il faut le lire.
-              background: isSending
-                ? '#5FA598'
-                : 'linear-gradient(140deg, #018675 0%, #016557 100%)',
+              background: isSending ? '#5FA598' : 'linear-gradient(140deg, #018675 0%, #016557 100%)',
               font: 'inherit',
               fontFamily: "'Ubuntu', sans-serif",
               fontSize: 14.5,
@@ -172,11 +161,7 @@ export const CarteEtudeDeSol: FunctionComponent<CarteEtudeDeSolProps> = ({
             {isSending ? 'Envoi en cours…' : 'Demander une étude de sol'}
           </Box>
 
-          {error && (
-            <Typography sx={{ fontSize: 12.5, color: '#BA1A1A', mt: 1, lineHeight: 1.45 }}>
-              {error}
-            </Typography>
-          )}
+          {error && <Typography sx={{ fontSize: 12.5, color: '#BA1A1A', mt: 1, lineHeight: 1.45 }}>{error}</Typography>}
         </>
       )}
     </Box>

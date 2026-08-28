@@ -1,7 +1,7 @@
 import type { FunctionComponent } from 'react';
 
 import { Box } from '@mui/material';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 
 import { BienvenuePage } from '@/features/Home/BienvenuePage';
 import { useCompteNouveau } from '@/features/Home/useCompteNouveau';
@@ -9,15 +9,29 @@ import { BottomNav, NAV_HEIGHT } from '@/shared/components/BottomNav';
 import { ErrorBoundary } from '@/shared/components/ErrorBoundary';
 
 /**
+ * Les écrans qu'un compte encore sans domaine peut atteindre malgré le
+ * court-circuit ci-dessous.
+ *
+ * Sa fiche personnelle en fait partie : elle ne lit que `GET /farmers/me`, donc
+ * elle a le même contenu avec ou sans exploitation, et l'écran d'attente offre
+ * un bouton pour l'ouvrir. Sans cette porte, ce bouton ramènerait à l'écran
+ * d'attente — un bouton qui ne fait rien.
+ */
+const PORTES_COMPTE_SANS_DOMAINE = ['/mon-espace/informations'];
+
+/**
  * Coquille des écrans authentifiés : rend l'onglet courant (`Outlet`) au-dessus
  * de la barre de navigation basse Kumy, en réservant l'espace du dock + safe-area.
  *
  * Sauf pour un compte auto-inscrit que personne n'a encore adopté : il n'a ni
  * domaine ni technicien, les quatre onglets mèneraient à des écrans vides. Il
- * reçoit alors un écran de bienvenue unique, sans barre de navigation.
+ * reçoit alors un écran de bienvenue unique, sans barre de navigation — et,
+ * pour les quelques adresses qui gardent un sens sans exploitation, la page
+ * demandée, toujours sans barre.
  */
 export const AppLayout: FunctionComponent = () => {
   const { estNouveau, isLoading } = useCompteNouveau();
+  const { pathname } = useLocation();
 
   // Ni squelette ni écran vide pendant la résolution : afficher la barre puis la
   // retirer produirait un clignotement au premier rendu de chaque session.
@@ -26,7 +40,7 @@ export const AppLayout: FunctionComponent = () => {
   if (estNouveau) {
     return (
       <ErrorBoundary>
-        <BienvenuePage />
+        {PORTES_COMPTE_SANS_DOMAINE.includes(pathname) ? <Outlet /> : <BienvenuePage />}
       </ErrorBoundary>
     );
   }
