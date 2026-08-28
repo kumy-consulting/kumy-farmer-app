@@ -4,6 +4,11 @@ import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import { Box, Chip, IconButton, InputAdornment, Stack, TextField, Typography } from '@mui/material';
 import { styled } from '@mui/material/styles';
 
+import { ProfileSelect } from '@/features/Onboarding/components/ProfileSelect';
+import type { ReferentialItem } from '@/features/Onboarding/onboarding.api';
+
+import type { ReponsesQuestionnaire } from '../profil.types';
+
 /**
  * Briques de saisie du questionnaire de profil, habillées comme
  * `ProfileSelect` (@/features/Onboarding/components/ProfileSelect) : capsule
@@ -381,3 +386,70 @@ export const ChoixMultiple: FunctionComponent<ChoixMultipleProps> = ({
     </Box>
   );
 };
+
+// ---------------------------------------------------------------------------
+// EtapeProps
+// ---------------------------------------------------------------------------
+
+/**
+ * Signature commune aux trois étapes (figée pour la tâche 8) : l'écran
+ * porteur possède les réponses, chaque étape ne fait que les lire et les
+ * corriger via `setReponses`.
+ */
+export interface EtapeProps {
+  reponses: ReponsesQuestionnaire;
+  setReponses: (partiel: Partial<ReponsesQuestionnaire>) => void;
+  erreurs: Record<string, string>;
+}
+
+// ---------------------------------------------------------------------------
+// ChampListe
+// ---------------------------------------------------------------------------
+//
+// `ProfileSelect` (@/features/Onboarding/components/ProfileSelect) rend la
+// capsule mais pas le libellé ni l'astérisque : il n'a jamais eu à le faire,
+// `RegisterAddressPage` place son propre `Typography` ailleurs dans la page.
+// Les trois étapes du questionnaire en ont toutes besoin — d'où sa place ici,
+// au même endroit que `ChampTexte` et consorts, plutôt que dans l'une des
+// étapes elles-mêmes. Le libellé visible ET l'`aria-label` du contrôle
+// portent le même texte : `ProfileSelect` transmet `label` en `aria-label`,
+// donc c'est ce qui associe vraiment le texte au select pour un lecteur
+// d'écran — un `Typography` posé à côté ne l'aurait pas fait.
+
+export interface ChampListeProps {
+  label: string;
+  value: string;
+  options: ReferentialItem[];
+  onChange: (id: string, name: string) => void;
+  obligatoire?: boolean;
+  erreur?: string;
+  disabled?: boolean;
+  placeholder?: string;
+  icon?: ReactNode;
+}
+
+export const ChampListe: FunctionComponent<ChampListeProps> = ({
+  label,
+  value,
+  options,
+  onChange,
+  obligatoire = false,
+  erreur,
+  disabled = false,
+  placeholder,
+  icon,
+}) => (
+  <Box sx={{ width: '100%', maxWidth: 395 }}>
+    <Libelle>{texteLibelle(label, obligatoire)}</Libelle>
+    <ProfileSelect
+      label={label}
+      value={value}
+      options={options}
+      onChange={onChange}
+      disabled={disabled}
+      placeholder={placeholder}
+      icon={icon}
+    />
+    {erreur && <TexteErreur role="alert">{erreur}</TexteErreur>}
+  </Box>
+);

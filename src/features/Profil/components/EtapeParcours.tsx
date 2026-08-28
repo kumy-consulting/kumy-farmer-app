@@ -5,8 +5,14 @@ import { Stack } from '@mui/material';
 import type { ReferentialItem } from '@/features/Onboarding/onboarding.api';
 
 import { TRANCHES_EXPERIENCE } from '../questionnaire.content';
-import { ChampNombre, ChampTexte, ChoixOuiNon, TitreSection } from './ChampsQuestionnaire';
-import { ChampListe, type EtapeProps } from './EtapeVous';
+import {
+  ChampListe,
+  ChampNombre,
+  ChampTexte,
+  ChoixOuiNon,
+  TitreSection,
+  type EtapeProps,
+} from './ChampsQuestionnaire';
 
 const TRANCHES_OPTIONS: ReferentialItem[] = TRANCHES_EXPERIENCE.map(({ valeur, libelle }) => ({
   id: String(valeur),

@@ -1,101 +1,11 @@
-import type { FunctionComponent, ReactNode } from 'react';
+import type { FunctionComponent } from 'react';
 
-import { Box, Stack, Typography } from '@mui/material';
-import { styled } from '@mui/material/styles';
+import { Stack } from '@mui/material';
 
-import { ProfileSelect } from '@/features/Onboarding/components/ProfileSelect';
 import type { ReferentialItem } from '@/features/Onboarding/onboarding.api';
 
-import type { ReponsesQuestionnaire } from '../profil.types';
 import { NIVEAUX_EDUCATION, SITUATIONS_MATRIMONIALES } from '../questionnaire.content';
-import { ChampNombre, ChampTexte, ChoixOuiNon, TitreSection } from './ChampsQuestionnaire';
-
-/**
- * Signature commune aux trois étapes (figée pour la tâche 8) : l'écran
- * porteur possède les réponses, chaque étape ne fait que les lire et les
- * corriger via `setReponses`.
- */
-export interface EtapeProps {
-  reponses: ReponsesQuestionnaire;
-  setReponses: (partiel: Partial<ReponsesQuestionnaire>) => void;
-  erreurs: Record<string, string>;
-}
-
-// ---------------------------------------------------------------------------
-// ChampListe
-// ---------------------------------------------------------------------------
-//
-// `ProfileSelect` (@/features/Onboarding/components/ProfileSelect) rend la
-// capsule mais pas le libellé ni l'astérisque : il n'a jamais eu à le faire,
-// `RegisterAddressPage` place son propre `Typography` ailleurs dans la page.
-// Ici les trois étapes en ont toutes besoin, habillé comme `ChampTexte` —
-// défini une fois dans cette étape, réimporté par les deux autres plutôt que
-// dupliqué. Le libellé visible ET l'`aria-label` du contrôle portent le même
-// texte : `ProfileSelect` transmet `label` en `aria-label`, donc c'est ce qui
-// associe vraiment le texte au select pour un lecteur d'écran — un
-// `Typography` posé à côté ne l'aurait pas fait.
-
-const Libelle = styled(Typography)({
-  fontFamily: "'Ubuntu', sans-serif",
-  fontSize: 13.5,
-  fontWeight: 600,
-  color: 'rgba(55,75,70,0.75)',
-  marginBottom: 6,
-});
-
-const TexteErreur = styled(Typography)({
-  fontFamily: "'Ubuntu', sans-serif",
-  fontSize: 12,
-  fontWeight: 600,
-  color: '#B3261E',
-  marginTop: 4,
-});
-
-function texteLibelle(label: string, obligatoire?: boolean): string {
-  return obligatoire ? `${label} *` : label;
-}
-
-export interface ChampListeProps {
-  label: string;
-  value: string;
-  options: ReferentialItem[];
-  onChange: (id: string, name: string) => void;
-  obligatoire?: boolean;
-  erreur?: string;
-  disabled?: boolean;
-  placeholder?: string;
-  icon?: ReactNode;
-}
-
-export const ChampListe: FunctionComponent<ChampListeProps> = ({
-  label,
-  value,
-  options,
-  onChange,
-  obligatoire = false,
-  erreur,
-  disabled = false,
-  placeholder,
-  icon,
-}) => (
-  <Box sx={{ width: '100%', maxWidth: 395 }}>
-    <Libelle>{texteLibelle(label, obligatoire)}</Libelle>
-    <ProfileSelect
-      label={label}
-      value={value}
-      options={options}
-      onChange={onChange}
-      disabled={disabled}
-      placeholder={placeholder}
-      icon={icon}
-    />
-    {erreur && <TexteErreur role="alert">{erreur}</TexteErreur>}
-  </Box>
-);
-
-// ---------------------------------------------------------------------------
-// EtapeVous
-// ---------------------------------------------------------------------------
+import { ChampListe, ChampNombre, ChampTexte, ChoixOuiNon, TitreSection, type EtapeProps } from './ChampsQuestionnaire';
 
 const NIVEAUX_OPTIONS: ReferentialItem[] = NIVEAUX_EDUCATION.map(({ valeur, libelle }) => ({
   id: valeur,
