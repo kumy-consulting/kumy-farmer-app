@@ -24,4 +24,10 @@ describe('ModaleInvitationProfil', () => {
     await userEvent.click(screen.getByRole('button', { name: /Plus tard/ }));
     expect(onFermer).toHaveBeenCalledTimes(1);
   });
+
+  it('annonce la taille finie de la tâche : trois étapes, nommées', () => {
+    render(<ModaleInvitationProfil ouverte onFermer={vi.fn()} onCompleter={vi.fn()} />);
+    expect(screen.getByText('3 étapes')).toBeDefined();
+    expect(screen.getByText('Vous, Parcours, Exploitation')).toBeDefined();
+  });
 });
