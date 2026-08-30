@@ -19,25 +19,39 @@ import type { ReponsesQuestionnaire } from '../profil.types';
  * jamais le texte du `label` lui-même.
  */
 
-const CAPSULE_BACKGROUND = 'linear-gradient(135deg, rgba(255,255,255,0.96) 0%, rgba(250,251,247,0.96) 100%)';
-const CAPSULE_SHADOW = '0 6px 20px rgba(1,134,117,0.08), 0 1px 0 rgba(255,255,255,0.85) inset';
-const CAPSULE_FOCUS_SHADOW =
-  '0 10px 28px rgba(1,134,117,0.18), 0 0 0 4px rgba(1,134,117,0.10), 0 1px 0 rgba(255,255,255,0.9) inset';
+// Métriques reprises telles quelles du wizard de tracé d'`agripilot-pwa`
+// (`ParcelName.styles.ts`, `SelectSoilType.styles.ts`) : capsule de 60 px de
+// haut, rayon 16, ombre teal discrète, halo de focus à 4 px. Les deux apps
+// visent le même geste — répondre debout, dans un champ, d'une seule main — et
+// n'ont aucune raison d'avoir deux tailles de champ différentes.
+const CAPSULE_BACKGROUND = 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(250,251,247,0.95) 100%)';
+const CAPSULE_SHADOW = '0 2px 10px rgba(1,134,117,0.06), 0 1px 0 rgba(255,255,255,0.8) inset';
+const CAPSULE_FOCUS_SHADOW = '0 6px 20px rgba(1,134,117,0.16), 0 0 0 4px rgba(1,134,117,0.10)';
+export const CAPSULE_RAYON = '16px';
+/**
+ * Hauteur de capsule : les 60 px de la PWA sur un écran normal, ramenés à 52 px
+ * quand la fenêtre est courte. Un chiffre fixe obligerait à choisir entre une
+ * cible confortable et un panneau qui déborde sur les petits Android.
+ */
+export const CAPSULE_HAUTEUR = 'clamp(48px, 7.4vh, 60px)';
 
 const Libelle = styled(Typography)({
   fontFamily: "'Ubuntu', sans-serif",
-  fontSize: 13.5,
+  fontSize: 13,
   fontWeight: 600,
-  color: 'rgba(55,75,70,0.75)',
+  color: 'rgba(55,75,70,0.72)',
   marginBottom: 6,
 });
 
+// Serré : trois erreurs simultanées sur un écran de 568 px de haut — un
+// panneau entier laissé vide — sont le seul cas qui débordait encore.
 const TexteErreur = styled(Typography)({
   fontFamily: "'Ubuntu', sans-serif",
   fontSize: 12,
   fontWeight: 600,
+  lineHeight: 1.25,
   color: '#B3261E',
-  marginTop: 4,
+  marginTop: 3,
 });
 
 /** `TextField` habillé « capsule teal », partagé par `ChampTexte` et `ChampNombre`. */
@@ -45,59 +59,82 @@ const CapsuleTextField = styled(TextField)({
   width: '100%',
   maxWidth: 395,
   '& .MuiOutlinedInput-root': {
-    borderRadius: 18,
+    borderRadius: CAPSULE_RAYON,
     fontFamily: "'Ubuntu', sans-serif",
     fontSize: 15,
-    fontWeight: 600,
+    fontWeight: 500,
     color: 'rgba(20,40,35,0.92)',
     background: CAPSULE_BACKGROUND,
     boxShadow: CAPSULE_SHADOW,
-    transition: 'all 0.25s ease',
-    '& input, & textarea': { padding: '15px 18px' },
-    '& fieldset': {
-      borderColor: 'rgba(55,75,70,0.08)',
-      borderWidth: 1,
-      borderRadius: 18,
-    },
-    '&:hover fieldset': { borderColor: 'rgba(1,134,117,0.28)' },
-    '&.Mui-focused fieldset': { borderColor: 'rgba(1,134,117,0.38)', borderWidth: 1 },
+    transition: 'all 0.2s ease',
+    // 60 px pleins sur une ligne simple ; un multiligne garde le même rembourrage
+    // horizontal mais suit ses lignes.
+    '& input': { padding: '0 16px', height: CAPSULE_HAUTEUR, boxSizing: 'border-box' },
+    '& textarea': { padding: '2px 0' },
+    '&.MuiInputBase-multiline': { padding: '14px 16px' },
+    '& fieldset': { borderColor: 'rgba(55,75,70,0.10)', borderWidth: 1, borderRadius: CAPSULE_RAYON },
+    '&:hover fieldset': { borderColor: 'rgba(1,134,117,0.30)' },
+    '&.Mui-focused fieldset': { borderColor: '#018675', borderWidth: 1 },
     '&.Mui-focused': { boxShadow: CAPSULE_FOCUS_SHADOW },
   },
+  '& .MuiInputBase-input::placeholder': { color: 'rgba(55,75,70,0.5)', opacity: 1, fontStyle: 'italic' },
 });
 
 /** Ligne des deux boutons radio de `ChoixOuiNon`. */
 const RangeeChoix = styled(Stack)({
   flexDirection: 'row',
-  gap: 8,
+  gap: 10,
   width: '100%',
   maxWidth: 395,
-  padding: 6,
-  borderRadius: 18,
-  background: CAPSULE_BACKGROUND,
-  boxShadow: CAPSULE_SHADOW,
-  border: '1px solid rgba(55,75,70,0.08)',
 });
 
+/**
+ * Une option de `ChoixOuiNon`, habillée comme la `soilCard` du wizard de tracé
+ * de la PWA : même rayon 18, même liseré `1.5px #018675` une fois choisie, même
+ * lueur radiale en coin. Choisir se voit alors à la carte entière, pas à un
+ * simple fond plein — et la cible fait 56 px de haut au lieu de 44.
+ */
 const BoutonChoix = styled(Box, { shouldForwardProp: (prop) => prop !== 'selectionne' })<{ selectionne?: boolean }>(
   ({ selectionne }) => ({
+    position: 'relative',
     flex: 1,
-    textAlign: 'center',
-    padding: '13px 16px',
-    borderRadius: 14,
+    minHeight: 'clamp(50px, 7vh, 56px)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '12px 14px',
+    borderRadius: 18,
+    overflow: 'hidden',
     fontFamily: "'Ubuntu', sans-serif",
-    fontSize: 14.5,
-    fontWeight: 600,
+    fontSize: 15,
+    fontWeight: selectionne ? 700 : 500,
     cursor: 'pointer',
     userSelect: 'none',
     outline: 'none',
-    transition: 'all 0.2s ease',
-    color: selectionne ? '#FFFFFF' : 'rgba(20,40,35,0.72)',
-    background: selectionne ? 'linear-gradient(135deg, #018675 0%, #016557 100%)' : 'rgba(255,255,255,0.6)',
-    boxShadow: selectionne ? '0 6px 16px rgba(1,101,87,0.28)' : 'none',
-    border: selectionne ? '1px solid transparent' : '1px solid rgba(55,75,70,0.12)',
-    '&:focus-visible': {
-      boxShadow: `${selectionne ? '0 6px 16px rgba(1,101,87,0.28), ' : ''}0 0 0 3px rgba(1,134,117,0.22)`,
+    transition: 'transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease',
+    color: selectionne ? '#016557' : 'rgba(20,40,35,0.78)',
+    border: selectionne ? '1.5px solid #018675' : '1px solid rgba(55,75,70,0.08)',
+    background: selectionne
+      ? 'linear-gradient(135deg, rgba(1,134,117,0.08) 0%, rgba(1,134,117,0.02) 100%)'
+      : CAPSULE_BACKGROUND,
+    boxShadow: selectionne
+      ? '0 10px 24px rgba(1,134,117,0.16), 0 1px 0 rgba(255,255,255,0.6) inset'
+      : CAPSULE_SHADOW,
+    '&::before': {
+      content: '""',
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      width: 120,
+      height: 120,
+      pointerEvents: 'none',
+      background: selectionne
+        ? 'radial-gradient(circle at top right, rgba(1,134,117,0.14), transparent 60%)'
+        : 'radial-gradient(circle at top right, rgba(1,134,117,0.04), transparent 60%)',
     },
+    '&:active': { transform: 'scale(0.985)' },
+    '@media (prefers-reduced-motion: reduce)': { transition: 'none', '&:active': { transform: 'none' } },
+    '&:focus-visible': { boxShadow: '0 0 0 3px rgba(1,134,117,0.22)' },
   }),
 );
 
@@ -106,44 +143,23 @@ const PuceChoix = styled(Chip, { shouldForwardProp: (prop) => prop !== 'selectio
   ({ selectionnee }) => ({
     fontFamily: "'Ubuntu', sans-serif",
     fontWeight: 600,
-    fontSize: 13.5,
+    fontSize: 13,
     borderRadius: 999,
-    height: 34,
+    height: 36,
     color: selectionnee ? '#FFFFFF' : 'rgba(20,40,35,0.75)',
-    background: selectionnee ? 'linear-gradient(135deg, #018675 0%, #016557 100%)' : 'rgba(255,255,255,0.7)',
-    border: selectionnee ? '1px solid transparent' : '1px solid rgba(55,75,70,0.14)',
-    boxShadow: selectionnee ? '0 4px 12px rgba(1,101,87,0.22)' : 'none',
+    background: selectionnee ? 'linear-gradient(135deg, #018675 0%, #016557 100%)' : 'rgba(255,255,255,0.85)',
+    border: selectionnee ? '1px solid transparent' : '1px solid rgba(55,75,70,0.12)',
+    boxShadow: selectionnee ? '0 4px 12px rgba(1,101,87,0.22)' : '0 1px 4px rgba(55,75,70,0.05)',
     '&:hover': {
       background: selectionnee ? 'linear-gradient(135deg, #018675 0%, #016557 100%)' : 'rgba(1,134,117,0.08)',
     },
   }),
 );
 
-const TitreStyled = styled(Typography)({
-  fontFamily: "'Ubuntu', sans-serif",
-  fontSize: 15,
-  fontWeight: 700,
-  color: '#016557',
-  letterSpacing: '0.005em',
-});
-
 /** Fabrique le libellé « Label » ou « Label * », un seul nœud de texte. */
 function texteLibelle(label: string, obligatoire?: boolean): string {
   return obligatoire ? `${label} *` : label;
 }
-
-// ---------------------------------------------------------------------------
-// TitreSection
-// ---------------------------------------------------------------------------
-
-interface TitreSectionProps {
-  children: ReactNode;
-}
-
-/** Titre d'un groupe de champs à l'intérieur d'une étape (ex. « Situation familiale »). */
-export const TitreSection: FunctionComponent<TitreSectionProps> = ({ children }) => (
-  <TitreStyled>{children}</TitreStyled>
-);
 
 // ---------------------------------------------------------------------------
 // ChampTexte
@@ -182,7 +198,7 @@ export const ChampTexte: FunctionComponent<ChampTexteProps> = ({
       placeholder={placeholder}
       type={type}
       multiline={multiline}
-      minRows={multiline ? 3 : undefined}
+      minRows={multiline ? 2 : undefined}
       error={Boolean(erreur)}
       fullWidth
       slotProps={{
@@ -472,7 +488,25 @@ export const ChampListe: FunctionComponent<ChampListeProps> = ({
   placeholder,
   icon,
 }) => (
-  <Box sx={{ width: '100%', maxWidth: 395 }}>
+  <Box
+    sx={{
+      width: '100%',
+      maxWidth: 395,
+      // `ProfileSelect` n'expose pas de `sx` : la capsule est alignée ici sur
+      // celle des champs texte (60 px, rayon 16), et seulement ici —
+      // `RegisterAddressPage` et l'onboarding gardent la leur. Le doublement
+      // `&&` fait passer la règle devant celle du composant stylé.
+      '&& .MuiSelect-select': {
+        padding: '0 16px',
+        height: CAPSULE_HAUTEUR,
+        display: 'flex',
+        alignItems: 'center',
+        boxSizing: 'border-box',
+      },
+      '&& .MuiOutlinedInput-notchedOutline, && fieldset': { borderRadius: CAPSULE_RAYON },
+      '&& .MuiInputBase-root, && .MuiSelect-select': { borderRadius: CAPSULE_RAYON },
+    }}
+  >
     <Libelle>{texteLibelle(label, obligatoire)}</Libelle>
     <ProfileSelect
       label={label}

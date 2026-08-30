@@ -26,6 +26,13 @@ const rendre = () =>
     </MemoryRouter>,
   );
 
+/**
+ * Avance d'un écran. Une étape serveur tient désormais en plusieurs panneaux
+ * (voir `PANNEAUX`) : « Suivant » ne déclenche l'envoi qu'au dernier d'entre
+ * eux, d'où ces enchaînements explicites plutôt qu'un clic unique par étape.
+ */
+const suivant = async () => userEvent.click(screen.getByRole('button', { name: /Suivant/ }));
+
 describe('QuestionnaireProfilPage', () => {
   beforeEach(() => {
     mocked.lireProfil.mockResolvedValue(profil(0));
@@ -34,7 +41,7 @@ describe('QuestionnaireProfilPage', () => {
 
   afterEach(() => vi.clearAllMocks());
 
-  it('bloque le passage à l’étape 2 tant qu’un champ obligatoire manque', async () => {
+  it('bloque le passage au panneau suivant tant qu’un champ obligatoire manque', async () => {
     mocked.lireProfil.mockResolvedValue({
       ...profil(0),
       questionnaire: {}, // ni genre ni éducation
@@ -42,31 +49,46 @@ describe('QuestionnaireProfilPage', () => {
     rendre();
     await screen.findByText('Informations personnelles');
 
-    await userEvent.click(screen.getByRole('button', { name: /Suivant/ }));
+    await suivant();
 
     expect(screen.getByText('Informations personnelles')).toBeDefined();
     expect(mocked.envoyerEtape).not.toHaveBeenCalled();
   });
 
-  it('envoie l’étape avant de passer à la suivante', async () => {
+  it('n’envoie rien tant qu’on n’a pas atteint le dernier panneau de l’étape', async () => {
     rendre();
     await screen.findByText('Informations personnelles');
 
-    await userEvent.click(screen.getByRole('button', { name: /Suivant/ }));
+    await suivant();
+
+    // Deuxième panneau de l'étape 1 : on a changé d'écran, pas d'étape.
+    expect(await screen.findByText('Votre situation')).toBeDefined();
+    expect(mocked.envoyerEtape).not.toHaveBeenCalled();
+  });
+
+  it('envoie l’étape au dernier de ses panneaux, avant de passer à la suivante', async () => {
+    rendre();
+    await screen.findByText('Informations personnelles');
+
+    await suivant(); // → Situation familiale (dernier panneau de l'étape 1)
+    await screen.findByText('Votre situation');
+    await suivant();
 
     expect(mocked.envoyerEtape).toHaveBeenCalledWith(expect.objectContaining({ step: 1 }));
     expect(await screen.findByText('Expériences et parcours')).toBeDefined();
   });
 
-  it('reste sur l’étape quand l’envoi échoue, et le dit', async () => {
+  it('reste sur le panneau quand l’envoi échoue, et le dit', async () => {
     mocked.envoyerEtape.mockRejectedValue(new Error('réseau'));
     rendre();
     await screen.findByText('Informations personnelles');
 
-    await userEvent.click(screen.getByRole('button', { name: /Suivant/ }));
+    await suivant();
+    await screen.findByText('Votre situation');
+    await suivant();
 
     expect(await screen.findByText(/Envoi impossible/)).toBeDefined();
-    expect(screen.getByText('Informations personnelles')).toBeDefined();
+    expect(screen.getByText('Votre situation')).toBeDefined();
   });
 
   it('reprend à l’étape 3 quand deux étapes sont déjà validées', async () => {
@@ -95,23 +117,39 @@ describe('QuestionnaireProfilPage', () => {
     rendre();
     await screen.findByText('Informations personnelles');
 
-    await userEvent.click(screen.getByRole('button', { name: /Suivant/ }));
+    await suivant();
+    await screen.findByText('Votre situation');
+    await suivant();
     await screen.findByText('Expériences et parcours');
 
-    await userEvent.click(screen.getByRole('button', { name: /Suivant/ }));
+    await suivant();
+    await screen.findByText('Coopérative');
+    await suivant();
+    await screen.findByText('Accès au financement');
+    await suivant();
     await screen.findByText(/Envoi impossible/);
 
     await userEvent.click(screen.getByRole('button', { name: /Précédent/ }));
 
-    expect(await screen.findByText('Informations personnelles')).toBeDefined();
+    expect(await screen.findByText('Coopérative')).toBeDefined();
     expect(screen.queryByText(/Envoi impossible/)).toBeNull();
   });
 
-  it('ferme par « Enregistrer » à la troisième étape', async () => {
-    mocked.lireProfil.mockResolvedValue(profil(2));
-    mocked.envoyerEtape.mockResolvedValue({ step: 3, completedAt: '2026-08-28T09:12:00.000Z' });
+  it('ne propose « Enregistrer » qu’au tout dernier panneau', async () => {
+    mocked.lireProfil.mockResolvedValue({
+      ...profil(2),
+      questionnaire: { ...profil(2).questionnaire, cultivatedHectares: 2.5, declaredLandTenure: 'owned' },
+    });
     rendre();
     await screen.findByText('Zone d’exploitation');
+
+    // Deux panneaux restent après celui-ci : le bouton dit encore « Suivant ».
+    expect(screen.queryByRole('button', { name: /Enregistrer/ })).toBeNull();
+
+    await suivant();
+    await screen.findByText('Votre exploitation');
+    await suivant();
+    await screen.findByText('Vos cultures');
 
     expect(screen.getByRole('button', { name: /Enregistrer/ })).toBeDefined();
   });
@@ -147,6 +185,11 @@ describe('QuestionnaireProfilPage', () => {
     );
     await screen.findByText('Zone d’exploitation');
 
+    await suivant();
+    await screen.findByText('Votre exploitation');
+    await suivant();
+    await screen.findByText('Vos cultures');
+
     await userEvent.click(screen.getByRole('button', { name: /Enregistrer/ }));
 
     // Sobre : ni rail, ni formulaire — une accusé de réception et un retour.
@@ -154,7 +197,7 @@ describe('QuestionnaireProfilPage', () => {
     // qu'on vient de cliquer, matcherait ce motif aussi.)
     expect(await screen.findByText('Merci, votre profil est enregistré')).toBeDefined();
     expect(screen.queryByText('tableau de bord')).toBeNull();
-    expect(screen.queryByText('Zone d’exploitation')).toBeNull();
+    expect(screen.queryByText('Vos cultures')).toBeNull();
 
     await userEvent.click(screen.getByRole('button', { name: /Retour à l’accueil/i }));
     expect(await screen.findByText('tableau de bord')).toBeDefined();

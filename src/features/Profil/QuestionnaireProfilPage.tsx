@@ -1,25 +1,34 @@
 import { useEffect, useState, type FunctionComponent } from 'react';
 
+import AgricultureRoundedIcon from '@mui/icons-material/AgricultureRounded';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
-import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
+import LockRoundedIcon from '@mui/icons-material/LockRounded';
+import PersonRounded from '@mui/icons-material/PersonRounded';
+import TerrainRoundedIcon from '@mui/icons-material/TerrainRounded';
 import { Box, Stack, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 
 import { BackButton } from '@/shared/components/BackButton';
 
-import { EtapeExploitation } from './components/EtapeExploitation';
-import { EtapeParcours } from './components/EtapeParcours';
-import { EtapeVous } from './components/EtapeVous';
+import {
+  NOMS_ETAPES,
+  PANNEAUX,
+  estDernierDeSonEtape,
+  premierPanneauDe,
+  progressionDansEtape,
+  type NumeroEtape,
+} from './components/parcoursPanneaux';
 import type { ReponsesQuestionnaire } from './profil.types';
 import { useQuestionnaireProfil } from './useQuestionnaireProfil';
 
-/** Étape à afficher — jamais 0, la première étape non répondue est la 1. */
-type Etape = 1 | 2 | 3;
+/** Étape serveur — jamais 0, la première étape non répondue est la 1. */
+type Etape = NumeroEtape;
 
 /**
- * Champs obligatoires par étape. Vérifiée conforme aux astérisques posées par
- * la tâche 7 (`EtapeVous`, `EtapeParcours`, `EtapeExploitation`) : ne pas
- * modifier sans revérifier ces trois composants.
+ * Champs obligatoires par étape, tels que le serveur les attend. Chaque panneau
+ * valide déjà les siens ; cette table est le filet posé juste avant l'envoi,
+ * qui rattrape le cas d'une reprise arrivée au milieu d'une étape avec un champ
+ * antérieur resté vide.
  */
 const OBLIGATOIRES: Record<Etape, (keyof ReponsesQuestionnaire)[]> = {
   1: ['nomComplet', 'dateNaissance', 'genre', 'niveauEducation'],
@@ -27,17 +36,10 @@ const OBLIGATOIRES: Record<Etape, (keyof ReponsesQuestionnaire)[]> = {
   3: ['regionId', 'prefectureId', 'sousPrefectureId', 'hectares', 'primaryCrops', 'foncier'],
 };
 
-/** Composant de l'étape à afficher, selon le numéro courant. */
-const COMPOSANTS_ETAPES = {
-  1: EtapeVous,
-  2: EtapeParcours,
-  3: EtapeExploitation,
-} as const;
-
-/** Valide localement une étape — sans elle, on écrirait une étape incomplète et le marqueur avancerait à tort. */
-function valider(etape: Etape, reponses: ReponsesQuestionnaire): Record<string, string> {
+/** Valide une liste de champs — sans elle, on écrirait une étape incomplète et le marqueur avancerait à tort. */
+function valider(champs: (keyof ReponsesQuestionnaire)[], reponses: ReponsesQuestionnaire): Record<string, string> {
   const manquants: Record<string, string> = {};
-  for (const champ of OBLIGATOIRES[etape]) {
+  for (const champ of champs) {
     const valeur = reponses[champ];
     const vide =
       valeur === undefined || valeur === null || valeur === '' || (Array.isArray(valeur) && valeur.length === 0);
@@ -46,40 +48,137 @@ function valider(etape: Etape, reponses: ReponsesQuestionnaire): Record<string, 
   return manquants;
 }
 
-/** Une pastille du rail : son numéro, ou une coche une fois l'étape franchie. */
-const Pastille: FunctionComponent<{ numero: Etape; franchie: boolean; courante: boolean }> = ({
-  numero,
-  franchie,
-  courante,
-}) => (
+/**
+ * Le rail d'avancement : trois segments nommés, celui de l'étape courante
+ * rempli au prorata des panneaux déjà passés.
+ *
+ * Remplace les pastilles « 1 — 2 — 3 ». Elles ne disaient qu'un rang ; ces
+ * segments disent aussi de quoi chaque étape parle, avec les mots exacts que
+ * l'invitation (`ModaleInvitationProfil`) a promis : Vous, Parcours,
+ * Exploitation. Et parce qu'une étape tient en plusieurs écrans, un numéro figé
+ * aurait donné l'impression de ne pas avancer d'un écran à l'autre — la barre
+ * qui se remplit, elle, bouge à chaque « Suivant ».
+ */
+const RailEtapes: FunctionComponent<{ etape: Etape; progression: number }> = ({ etape, progression }) => (
   <Stack
-    aria-hidden
-    alignItems="center"
-    justifyContent="center"
-    sx={{
-      width: 30,
-      height: 30,
-      borderRadius: '50%',
-      flexShrink: 0,
-      fontFamily: "'Ubuntu', sans-serif",
-      fontSize: 13.5,
-      fontWeight: 700,
-      color: franchie || courante ? '#016557' : 'rgba(234,247,241,0.55)',
-      background: franchie || courante ? '#EAF7F1' : 'rgba(255,255,255,0.14)',
-      border: courante ? '2px solid #EAF7F1' : '2px solid transparent',
-    }}
+    direction="row"
+    spacing={1}
+    role="group"
+    aria-label={`Étape ${etape} sur 3 : ${NOMS_ETAPES[etape]}`}
+    sx={{ width: '100%' }}
   >
-    {franchie ? <CheckRoundedIcon sx={{ fontSize: 17 }} /> : numero}
+    {([1, 2, 3] as const).map((numero) => {
+      const remplissage = numero < etape ? 1 : numero === etape ? progression : 0;
+      return (
+        <Box key={numero} aria-hidden sx={{ flex: '1 1 0', minWidth: 0 }}>
+          <Box sx={{ height: 4, borderRadius: 999, background: 'rgba(55,75,70,0.10)', overflow: 'hidden' }}>
+            <Box
+              sx={{
+                height: '100%',
+                width: `${remplissage * 100}%`,
+                borderRadius: 999,
+                background: 'linear-gradient(90deg, #018675 0%, #016557 100%)',
+                transition: 'width 0.35s ease',
+                '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+              }}
+            />
+          </Box>
+          <Typography
+            noWrap
+            sx={{
+              mt: 0.7,
+              fontFamily: "'Ubuntu', sans-serif",
+              fontSize: 'clamp(9.5px, 2.7vw, 10.5px)',
+              fontWeight: 700,
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              color: numero <= etape ? '#016557' : 'rgba(55,75,70,0.42)',
+            }}
+          >
+            {NOMS_ETAPES[numero]}
+          </Typography>
+        </Box>
+      );
+    })}
   </Stack>
 );
 
-/** Le trait qui relie deux pastilles — plein une fois l'étape d'avant franchie. */
-const Trait: FunctionComponent<{ franchi: boolean }> = ({ franchi }) => (
-  <Box
-    aria-hidden
-    sx={{ flex: '1 1 0', height: 2, background: franchi ? '#EAF7F1' : 'rgba(255,255,255,0.18)', mx: 0.5 }}
-  />
-);
+/** Un visage par étape — la personne, le parcours agricole, la terre. */
+const ICONES_ETAPES: Record<Etape, typeof PersonRounded> = {
+  1: PersonRounded,
+  2: AgricultureRoundedIcon,
+  3: TerrainRoundedIcon,
+};
+
+/**
+ * Le médaillon d'`agripilot-pwa` (`ParcelName.styles.ts`) : disque nacré,
+ * halo teal, anneau pointillé qui tourne très lentement.
+ *
+ * Il ne paraît qu'au-dessus de 760 px de haut, et disparaît dès qu'un message
+ * d'erreur s'affiche — exactement comme la PWA le retire quand le clavier
+ * s'ouvre : il occupe la place qui reste, et cette place appartient d'abord à
+ * ce qu'il y a à corriger. Une image ne doit jamais pousser hors de l'écran la
+ * phrase qui dit quoi réparer.
+ * Une icône par étape plutôt qu'une par panneau — huit images pour huit écrans
+ * seraient de la décoration ; trois donnent un visage à chaque étape.
+ */
+const MedaillonEtape: FunctionComponent<{ etape: Etape }> = ({ etape }) => {
+  const Icone = ICONES_ETAPES[etape];
+  return (
+    <Box
+      aria-hidden
+      sx={{
+        flex: 'none',
+        alignSelf: 'center',
+        display: 'none',
+        '@media (min-height: 760px)': { display: 'flex' },
+        position: 'relative',
+        alignItems: 'center',
+        justifyContent: 'center',
+        mt: 'clamp(10px, 2vh, 22px)',
+        width: 'min(176px, 20.5vh)',
+        aspectRatio: '1 / 1',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          inset: '-14%',
+          borderRadius: '50%',
+          background:
+            'radial-gradient(circle, rgba(1,134,117,0.22) 0%, rgba(1,134,117,0.06) 45%, transparent 72%)',
+          filter: 'blur(6px)',
+        },
+        '&::after': {
+          content: '""',
+          position: 'absolute',
+          inset: '-4%',
+          borderRadius: '50%',
+          border: '1px dashed rgba(1,134,117,0.28)',
+          animation: 'medaillonRotation 70s linear infinite',
+        },
+        '@keyframes medaillonRotation': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } },
+        '@media (prefers-reduced-motion: reduce)': { '&::after': { animation: 'none' } },
+      }}
+    >
+      <Box
+        sx={{
+          position: 'relative',
+          width: '100%',
+          height: '100%',
+          borderRadius: '50%',
+          display: 'grid',
+          placeItems: 'center',
+          background: 'radial-gradient(circle at 30% 25%, #FFFFFF 0%, #F7FBF6 55%, #EEF4EA 100%)',
+          border: '1px solid rgba(1,134,117,0.18)',
+          boxShadow:
+            '0 18px 40px rgba(1,134,117,0.22), 0 2px 0 rgba(255,255,255,0.9) inset, 0 -20px 40px rgba(1,134,117,0.05) inset',
+          '& svg': { fontSize: 'min(68px, 8vh)', color: '#018675', opacity: 0.9 },
+        }}
+      >
+        <Icone />
+      </Box>
+    </Box>
+  );
+};
 
 /**
  * Le bouton d'action principal — « Suivant » aux deux premières étapes,
@@ -98,16 +197,25 @@ const BoutonPrincipal: FunctionComponent<{ derniere: boolean; disabled: boolean;
     onClick={onClick}
     sx={{
       flex: '1 1 0',
-      minHeight: 48,
+      minHeight: 56,
       border: 'none',
-      borderRadius: '999px',
+      borderRadius: '16px',
       fontFamily: "'Ubuntu', sans-serif",
-      fontSize: 14.5,
-      fontWeight: 700,
+      fontSize: 15,
+      fontWeight: 600,
+      letterSpacing: '0.02em',
       color: '#FFFFFF',
       background: 'linear-gradient(135deg, #018675 0%, #016557 100%)',
+      boxShadow: '0 8px 20px rgba(1,134,117,0.32), 0 1px 0 rgba(255,255,255,0.2) inset',
       cursor: disabled ? 'default' : 'pointer',
-      opacity: disabled ? 0.6 : 1,
+      transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+      '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+      '&:active': { transform: 'scale(0.985)' },
+      '&:disabled': {
+        background: 'rgba(1,134,117,0.16)',
+        color: 'rgba(1,134,117,0.55)',
+        boxShadow: 'none',
+      },
       '&:focus-visible': { outline: '2px solid #016557', outlineOffset: 2 },
     }}
   >
@@ -188,15 +296,15 @@ export const QuestionnaireProfilPage: FunctionComponent = () => {
   const { reponses, setReponses, etapeCourante, isLoading, isSending, error, envoyerEtape } = useQuestionnaireProfil();
   const [erreurs, setErreurs] = useState<Record<string, string>>({});
   // `etapeCourante` du hook ne bouge qu'au chargement (reprise) ; entre les
-  // deux, l'écran garde son propre curseur pour avancer/reculer localement.
-  const [etapeAffichee, setEtapeAffichee] = useState<Etape>(1);
+  // deux, l'écran garde son propre curseur de panneau pour avancer/reculer.
+  const [indexPanneau, setIndexPanneau] = useState(0);
   const [etapeAlignee, setEtapeAlignee] = useState(false);
   // Masque le message d'échec du hook quand l'agriculteur revient en arrière :
-  // sans ça, la bannière « Envoi impossible » de l'étape 2 resterait affichée
-  // à l'étape 1, sans plus aucun rapport avec ce que montre l'écran. Le hook
-  // ne pose pas de setter public sur `error` (il le remet à zéro lui-même au
-  // prochain `envoyerEtape`) — cet effet resynchronise donc l'écran à chaque
-  // changement réel du message, pour ne pas rester désynchronisé après.
+  // sans ça, la bannière « Envoi impossible » resterait affichée sur un panneau
+  // sans plus aucun rapport avec ce qu'elle commente. Le hook ne pose pas de
+  // setter public sur `error` (il le remet à zéro lui-même au prochain
+  // `envoyerEtape`) — cet effet resynchronise donc l'écran à chaque changement
+  // réel du message, pour ne pas rester désynchronisé après.
   const [erreurMasquee, setErreurMasquee] = useState(false);
   // Passe à `true` une fois l'étape 3 envoyée avec succès — remplace tout
   // l'écran par `ConfirmationEnvoi` plutôt que de naviguer directement.
@@ -206,29 +314,55 @@ export const QuestionnaireProfilPage: FunctionComponent = () => {
     setErreurMasquee(false);
   }, [error]);
 
+  // Reprise : on rouvre au premier panneau de l'étape que le serveur attend.
   if (!isLoading && !etapeAlignee) {
-    setEtapeAffichee(etapeCourante);
+    setIndexPanneau(premierPanneauDe(etapeCourante));
     setEtapeAlignee(true);
   }
+
+  const panneau = PANNEAUX[indexPanneau];
+  const derniereEtape = panneau.etape === 3;
+  const envoiIci = estDernierDeSonEtape(indexPanneau);
 
   const precedent = () => {
     setErreurs({});
     setErreurMasquee(true);
-    setEtapeAffichee((e) => Math.max(1, e - 1) as Etape);
+    setIndexPanneau((i) => Math.max(0, i - 1));
   };
 
   const suivant = async () => {
-    const manquants = valider(etapeAffichee, reponses);
+    // Ce panneau d'abord : on ne reproche à l'agriculteur que ce qu'il a sous
+    // les yeux. Les champs des panneaux suivants ne sont pas encore posés.
+    const manquants = valider(panneau.obligatoires, reponses);
     setErreurs(manquants);
     if (Object.keys(manquants).length > 0) return;
 
-    const envoye = await envoyerEtape(etapeAffichee);
-    if (!envoye) return; // le hook a posé le message ; l'étape ne bouge pas
-    if (etapeAffichee === 3) setConfirme(true);
-    else setEtapeAffichee((e) => (e + 1) as Etape);
+    // Au milieu d'une étape, rien ne part sur le réseau : on avance d'un écran.
+    if (!envoiIci) {
+      setErreurMasquee(true);
+      setIndexPanneau((i) => i + 1);
+      return;
+    }
+
+    // Dernier panneau de l'étape : filet sur l'étape entière avant l'envoi.
+    const manquantsEtape = valider(OBLIGATOIRES[panneau.etape], reponses);
+    if (Object.keys(manquantsEtape).length > 0) {
+      setErreurs(manquantsEtape);
+      // Le champ vide est resté derrière : on y ramène plutôt que de bloquer
+      // sur un écran qui ne le montre pas.
+      setIndexPanneau(premierPanneauDe(panneau.etape));
+      return;
+    }
+
+    const envoye = await envoyerEtape(panneau.etape);
+    if (!envoye) return; // le hook a posé le message ; le panneau ne bouge pas
+    if (derniereEtape) setConfirme(true);
+    else setIndexPanneau((i) => i + 1);
   };
 
-  const EtapeAffichee = COMPOSANTS_ETAPES[etapeAffichee];
+  const Panneau = panneau.Composant;
+  // Quelque chose à réparer à l'écran : le médaillon cède sa place.
+  const aCorriger = Object.keys(erreurs).length > 0 || Boolean(error && !erreurMasquee);
 
   if (confirme) {
     return (
@@ -264,60 +398,95 @@ export const QuestionnaireProfilPage: FunctionComponent = () => {
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        background: 'linear-gradient(155deg, #0E7A67 0%, #0C6E5C 50%, #0A6152 100%)',
+        position: 'relative',
+        px: 3,
+        pt: 'max(calc(env(safe-area-inset-top, 0px) + 10px), 22px)',
+        pb: 'max(env(safe-area-inset-bottom, 0px), 18px)',
+        // La surface du wizard de tracé d'`agripilot-pwa` : une seule page
+        // claire, et deux lueurs radiales fixes — teal en haut à droite, sable
+        // en bas à gauche — qui donnent de la profondeur sans rien ajouter à
+        // lire. Elle remplace la tête vert foncé et sa feuille blanche : ce
+        // découpage laissait deux vides, l'un vert au-dessus de la feuille,
+        // l'autre blanc à l'intérieur, qu'aucun contenu ne venait remplir.
+        background: 'linear-gradient(180deg, #FAFBF8 0%, #F4F7F2 50%, #EEF3EA 100%)',
+        '&::after': {
+          content: '""',
+          position: 'fixed',
+          inset: 0,
+          pointerEvents: 'none',
+          zIndex: 0,
+          background:
+            'radial-gradient(1200px 600px at 100% 0%, rgba(1,134,117,0.06), transparent 60%), radial-gradient(900px 500px at 0% 100%, rgba(210,180,140,0.08), transparent 60%)',
+        },
+        '& > *': { position: 'relative', zIndex: 1 },
       }}
     >
-      {/* Même tête que `/bonnes-pratiques` : même dégradé, même `BackButton`,
-          même formule de safe-area. L'agriculteur doit sentir qu'il a ouvert
-          une porte de l'app, pas un formulaire administratif. */}
-      <Box
-        sx={{
-          flex: 'none',
-          padding: 'max(calc(env(safe-area-inset-top, 0px) + 8px), 26px) 24px clamp(8px, 1.8vh, 24px)',
-          color: '#EAF7F1',
-        }}
-      >
-        <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 'clamp(6px, 1.4vh, 18px)' }}>
-          <BackButton onClick={() => navigate('/')} label="Retour à l’accueil" />
+      <Stack direction="row" alignItems="center" spacing={1.5} sx={{ flex: 'none' }}>
+        <BackButton onClick={() => navigate('/')} label="Retour à l’accueil" />
+        {/* L'œilleton de la PWA : filet dégradé, 10,5 px, capitales espacées. */}
+        <Stack direction="row" alignItems="center" spacing={1.25} sx={{ minWidth: 0 }}>
+          <Box
+            aria-hidden
+            sx={{
+              width: 18,
+              height: 2,
+              borderRadius: 1,
+              background: 'linear-gradient(90deg, transparent, #018675)',
+            }}
+          />
           <Typography
             noWrap
             sx={{
               fontFamily: "'Ubuntu', sans-serif",
-              fontSize: 11.5,
+              fontSize: 10.5,
               fontWeight: 700,
               letterSpacing: '0.14em',
               textTransform: 'uppercase',
+              color: '#016557',
               minWidth: 0,
             }}
           >
             Mon profil
           </Typography>
         </Stack>
+      </Stack>
 
+      {!aCorriger && <MedaillonEtape etape={panneau.etape} />}
+
+      <Box sx={{ flex: 'none', mt: 'clamp(14px, 2.4vh, 26px)' }}>
         <Typography
+          component="h1"
           sx={{
             fontFamily: "'Ubuntu', sans-serif",
-            fontSize: 'clamp(19px, 5.2vw, 23px)',
+            fontSize: 'clamp(20px, 5.6vw, 24px)',
             fontWeight: 700,
-            letterSpacing: '-0.02em',
-            lineHeight: 1.22,
-            color: '#FFFFFF',
+            letterSpacing: '-0.01em',
+            lineHeight: 1.25,
+            color: 'rgba(20,40,35,0.95)',
           }}
         >
-          Complétez vos informations
+          {panneau.titre}
         </Typography>
-        <Typography sx={{ fontSize: 13, color: 'rgba(234,247,241,0.85)', lineHeight: 1.4, mt: 0.75 }}>
-          Ces informations nous permettent de mieux vous accompagner avec des conseils adaptés à votre exploitation.
-        </Typography>
+        {/* Même règle que le médaillon : la phrase qui explique cède la place
+            à celle qui dit quoi corriger. Sur un petit écran, les deux ne
+            tiennent pas ensemble — et à ce moment-là, seule la seconde compte. */}
+        {!aCorriger && (
+          <Typography
+            sx={{
+              mt: 0.75,
+              fontFamily: "'Ubuntu', sans-serif",
+              fontSize: 13,
+              lineHeight: 1.45,
+              color: 'rgba(55,75,70,0.68)',
+            }}
+          >
+            {panneau.sousTitre}
+          </Typography>
+        )}
+      </Box>
 
-        <Stack direction="row" alignItems="center" sx={{ mt: 'clamp(14px, 2.4vh, 26px)' }}>
-          {([1, 2, 3] as const).map((numero, index) => (
-            <Stack key={numero} direction="row" alignItems="center" sx={{ flex: numero === 3 ? 'none' : '1 1 0' }}>
-              <Pastille numero={numero} franchie={numero < etapeAffichee} courante={numero === etapeAffichee} />
-              {index < 2 && <Trait franchi={numero < etapeAffichee} />}
-            </Stack>
-          ))}
-        </Stack>
+      <Box sx={{ flex: 'none', mt: 'clamp(14px, 2.4vh, 24px)' }}>
+        <RailEtapes etape={panneau.etape} progression={progressionDansEtape(indexPanneau)} />
       </Box>
 
       <Box
@@ -326,67 +495,77 @@ export const QuestionnaireProfilPage: FunctionComponent = () => {
           minHeight: 0,
           display: 'flex',
           flexDirection: 'column',
+          justifyContent: 'flex-start',
           overflowY: 'auto',
           overscrollBehavior: 'contain',
-          background: '#FFFFFF',
-          borderRadius: '26px 26px 0 0',
-          px: 2.5,
-          pt: 'clamp(16px, 2.4vh, 28px)',
-          pb: 'max(env(safe-area-inset-bottom, 0px), clamp(10px, 1.6vh, 20px))',
+          mt: 'clamp(12px, 2.2vh, 28px)',
         }}
       >
         {isLoading ? (
-          <Typography sx={{ textAlign: 'center', color: 'rgba(55,75,70,0.6)', mt: 4 }}>Chargement…</Typography>
+          <Typography sx={{ textAlign: 'center', color: 'rgba(55,75,70,0.6)' }}>Chargement…</Typography>
         ) : (
-          <EtapeAffichee reponses={reponses} setReponses={setReponses} erreurs={erreurs} />
+          <Panneau reponses={reponses} setReponses={setReponses} erreurs={erreurs} />
         )}
-
-        <Stack direction="row" spacing={1.5} sx={{ mt: 'auto', pt: 3 }}>
-          {etapeAffichee > 1 && (
-            <Box
-              component="button"
-              type="button"
-              onClick={precedent}
-              disabled={isSending}
-              sx={{
-                flex: '1 1 0',
-                minHeight: 48,
-                borderRadius: '999px',
-                border: '1px solid rgba(55,75,70,0.16)',
-                background: 'transparent',
-                fontFamily: "'Ubuntu', sans-serif",
-                fontSize: 14.5,
-                fontWeight: 700,
-                color: 'rgba(20,40,35,0.78)',
-                cursor: isSending ? 'default' : 'pointer',
-                '&:focus-visible': { outline: '2px solid #016557', outlineOffset: 2 },
-              }}
-            >
-              Précédent
-            </Box>
-          )}
-          <BoutonPrincipal
-            derniere={etapeAffichee === 3}
-            disabled={isSending || isLoading}
-            onClick={() => void suivant()}
-          />
-        </Stack>
-
-        {/* Sous le bouton, pas au-dessus (spec, cas limites) : l'échec suit le
-            geste qui l'a déclenché plutôt que de précéder le contenu qu'il commente. */}
-        {error && !erreurMasquee && (
-          <Typography
-            role="alert"
-            sx={{ mt: 1.5, fontSize: 13, fontWeight: 600, color: '#B3261E', textAlign: 'center' }}
-          >
-            {error}
-          </Typography>
-        )}
-
-        <Typography sx={{ mt: 1.5, fontSize: 11.5, color: 'rgba(55,75,70,0.55)', textAlign: 'center' }}>
-          Vos informations sont sécurisées et confidentielles
-        </Typography>
       </Box>
+
+      <Stack direction="row" spacing={1.5} sx={{ flex: 'none', pt: 2 }}>
+        {indexPanneau > 0 && (
+          <Box
+            component="button"
+            type="button"
+            onClick={precedent}
+            disabled={isSending}
+            sx={{
+              flex: '0 0 auto',
+              minWidth: 108,
+              minHeight: 56,
+              borderRadius: '16px',
+              border: '1px solid rgba(55,75,70,0.14)',
+              background: 'rgba(255,255,255,0.7)',
+              fontFamily: "'Ubuntu', sans-serif",
+              fontSize: 15,
+              fontWeight: 600,
+              color: 'rgba(20,40,35,0.72)',
+              cursor: isSending ? 'default' : 'pointer',
+              '&:focus-visible': { outline: '2px solid #016557', outlineOffset: 2 },
+            }}
+          >
+            Précédent
+          </Box>
+        )}
+        <BoutonPrincipal
+          derniere={derniereEtape && envoiIci}
+          disabled={isSending || isLoading}
+          onClick={() => void suivant()}
+        />
+      </Stack>
+
+      {/* Sous le bouton, pas au-dessus (spec, cas limites) : l'échec suit le
+          geste qui l'a déclenché plutôt que de précéder le contenu qu'il commente. */}
+      {error && !erreurMasquee && (
+        <Typography
+          role="alert"
+          sx={{ flex: 'none', mt: 1.25, fontSize: 13, fontWeight: 600, color: '#B3261E', textAlign: 'center' }}
+        >
+          {error}
+        </Typography>
+      )}
+
+      {/* Pourquoi on demande tout ça, une seule fois, au premier écran : on peut
+          arriver ici par « Mes informations » sans jamais avoir vu l'invitation
+          qui le disait. */}
+      {indexPanneau === 0 && (
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="center"
+          spacing={0.6}
+          sx={{ flex: 'none', mt: 1.25, color: 'rgba(55,75,70,0.5)' }}
+        >
+          <LockRoundedIcon aria-hidden sx={{ fontSize: 12.5 }} />
+          <Typography sx={{ fontSize: 11.5, color: 'inherit' }}>Vos réponses restent confidentielles</Typography>
+        </Stack>
+      )}
     </Box>
   );
 };
