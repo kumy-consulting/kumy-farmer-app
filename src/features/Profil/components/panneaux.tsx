@@ -17,7 +17,15 @@ import {
   SITUATIONS_MATRIMONIALES,
   TRANCHES_EXPERIENCE,
 } from '../questionnaire.content';
-import { ChampListe, ChampNombre, ChampTexte, ChoixMultiple, ChoixOuiNon, type EtapeProps } from './ChampsQuestionnaire';
+import {
+  ChampDate,
+  ChampListe,
+  ChampNombre,
+  ChampTexte,
+  ChoixMultiple,
+  ChoixOuiNon,
+  type EtapeProps,
+} from './ChampsQuestionnaire';
 
 /**
  * Le questionnaire, découpé en panneaux d'écran plutôt qu'en trois longs
@@ -87,11 +95,10 @@ export const PanneauIdentite: FunctionComponent<EtapeProps> = ({ reponses, setRe
       erreur={erreurs.nomComplet}
     />
 
-    <ChampTexte
+    <ChampDate
       label="Date de naissance"
       value={reponses.dateNaissance ?? ''}
       onChange={(value) => setReponses({ dateNaissance: value })}
-      type="date"
       obligatoire
       erreur={erreurs.dateNaissance}
     />

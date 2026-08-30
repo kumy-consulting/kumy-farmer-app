@@ -3,6 +3,8 @@ import { useState, type ChangeEvent, type FunctionComponent, type KeyboardEvent,
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import { Box, Chip, IconButton, InputAdornment, Stack, TextField, Typography } from '@mui/material';
 import { styled } from '@mui/material/styles';
+import { MobileDatePicker } from '@mui/x-date-pickers/MobileDatePicker';
+import dayjs from 'dayjs';
 
 import { ProfileSelect } from '@/features/Onboarding/components/ProfileSelect';
 import type { ReferentialItem } from '@/features/Onboarding/onboarding.api';
@@ -172,8 +174,6 @@ export interface ChampTexteProps {
   obligatoire?: boolean;
   erreur?: string;
   placeholder?: string;
-  /** `date` réutilise le même habillage capsule qu'un champ texte classique. */
-  type?: 'text' | 'date';
   multiline?: boolean;
   /** Reflète le `@MaxLength` du DTO serveur — un 400 évité vaut mieux qu'un 400 traduit. */
   maxLength?: number;
@@ -186,7 +186,6 @@ export const ChampTexte: FunctionComponent<ChampTexteProps> = ({
   obligatoire = false,
   erreur,
   placeholder,
-  type = 'text',
   multiline = false,
   maxLength,
 }) => (
@@ -196,15 +195,11 @@ export const ChampTexte: FunctionComponent<ChampTexteProps> = ({
       value={value}
       onChange={(event: ChangeEvent<HTMLInputElement>) => onChange(event.target.value)}
       placeholder={placeholder}
-      type={type}
       multiline={multiline}
       minRows={multiline ? 2 : undefined}
       error={Boolean(erreur)}
       fullWidth
-      slotProps={{
-        htmlInput: { 'aria-label': label, maxLength },
-        inputLabel: type === 'date' ? { shrink: true } : undefined,
-      }}
+      slotProps={{ htmlInput: { 'aria-label': label, maxLength } }}
     />
     {erreur && <TexteErreur role="alert">{erreur}</TexteErreur>}
   </Box>
@@ -520,3 +515,144 @@ export const ChampListe: FunctionComponent<ChampListeProps> = ({
     {erreur && <TexteErreur role="alert">{erreur}</TexteErreur>}
   </Box>
 );
+
+// ---------------------------------------------------------------------------
+// ChampDate
+// ---------------------------------------------------------------------------
+
+/** Bornes d'âge — les mêmes que `RegisterProfilePage` et `OnboardingProfilePage`. */
+const AGE_MIN = 15;
+const AGE_MAX = 100;
+
+/**
+ * Habillage de la boîte du sélecteur — réduit à ce qui change vraiment.
+ *
+ * Le thème donne déjà Ubuntu à tout le dialogue et un teal de sélection : les
+ * règles de police qui traînaient ici ne faisaient rien. Restent trois écarts
+ * réels avec les valeurs par défaut de MUI, plus l'accord du vert.
+ *
+ * Attention aux noms de classes de MUI X v9, vérifiés dans le DOM : le jour est
+ * `MuiPickerDay` au SINGULIER, et l'année `MuiYearCalendar-button`. Les
+ * variantes au pluriel (`MuiPickersDay-root`, `MuiPickersYear-yearButton`) ne
+ * correspondent à rien et passent inaperçues — une règle morte ne casse pas la
+ * compilation, elle ne s'applique simplement jamais.
+ */
+const boiteCalendrierSx = {
+  // MUI n'arrondit la boîte qu'à 4 px.
+  '& .MuiPaper-root': { borderRadius: '24px' },
+  '& .MuiDatePickerToolbar-title': { fontWeight: 700, color: '#1A1C1B' },
+  '& .MuiDialogActions-root .MuiButton-root': { fontWeight: 700, color: '#016557' },
+  // Le jour et l'année retenus prennent le vert du bouton principal, plutôt que
+  // le `primary.dark` du thème : un seul vert de sélection sur tout l'écran.
+  '& .MuiPickerDay-root.Mui-selected, & .MuiYearCalendar-button.Mui-selected': {
+    backgroundColor: '#016557',
+    fontWeight: 700,
+  },
+} as const;
+
+export interface ChampDateProps {
+  label: string;
+  /** Date ISO `yyyy-mm-dd` — la forme que rend et qu'attend l'API. */
+  value: string;
+  onChange: (value: string) => void;
+  obligatoire?: boolean;
+  erreur?: string;
+}
+
+/**
+ * La date de naissance.
+ *
+ * **Pourquoi pas `<input type="date">`.** Le champ natif ouvrait le calendrier
+ * de Chrome : une grille de mois, en Roboto et bleu système, posée au milieu
+ * d'un écran en Ubuntu et teal. Surtout, il ouvrait sur le mois courant — pour
+ * une naissance en 1985, cela fait près de cinq cents mois à remonter. Et il
+ * n'avait aucune borne : 1850 ou l'an prochain passaient.
+ *
+ * **Ce que fait celui-ci.** `MobileDatePicker`, comme `RegisterProfilePage` et
+ * `OnboardingProfilePage` — qui posent déjà cette même question. Le
+ * questionnaire était le seul des trois à ne pas le faire.
+ *
+ * **Et ce qu'il fait de plus qu'eux : il ouvre sur les années.** Les deux autres
+ * ouvrent sur les jours. Pour une date de naissance, l'année est la seule chose
+ * qu'on cherche d'abord — et souvent la seule dont on soit sûr. On choisit donc
+ * 1985, puis mars, puis 4 : trois gestes, sans jamais faire défiler.
+ */
+export const ChampDate: FunctionComponent<ChampDateProps> = ({
+  label,
+  value,
+  onChange,
+  obligatoire = false,
+  erreur,
+}) => {
+  const aujourdhui = dayjs();
+  const valeur = value ? dayjs(value) : null;
+  // Ouverture pilotée par l'écran : le bouton que MUI pose en fin de champ est
+  // masqué (aucune capsule du questionnaire ne porte d'icône), donc c'est la
+  // capsule entière qui doit ouvrir le sélecteur. Sans ce pilotage, le champ
+  // n'a plus aucun geste qui l'ouvre — et une cible de la largeur du champ vaut
+  // de toute façon mieux qu'une icône de 24 px pour un pouce.
+  const [ouvert, setOuvert] = useState(false);
+
+  return (
+    <Box sx={{ width: '100%', maxWidth: 395 }}>
+      <Libelle>{texteLibelle(label, obligatoire)}</Libelle>
+      <MobileDatePicker
+        value={valeur && valeur.isValid() ? valeur : null}
+        onChange={(date) => onChange(date && date.isValid() ? date.format('YYYY-MM-DD') : '')}
+        format="DD/MM/YYYY"
+        open={ouvert}
+        onOpen={() => setOuvert(true)}
+        onClose={() => setOuvert(false)}
+        openTo="year"
+        views={['year', 'month', 'day']}
+        minDate={aujourdhui.subtract(AGE_MAX, 'year')}
+        maxDate={aujourdhui.subtract(AGE_MIN, 'year')}
+        slotProps={{
+          dialog: { sx: boiteCalendrierSx },
+          // Le bandeau affiche « 4 mars 1985 » et non « 4 mars » : sur une date
+          // de naissance, l'année est justement ce qu'on vient de choisir et
+          // ce qu'on veut relire avant de valider.
+          toolbar: { toolbarFormat: 'D MMMM YYYY' },
+          textField: {
+            fullWidth: true,
+            error: Boolean(erreur),
+            onClick: () => setOuvert(true),
+            // Pas d'icône de calendrier en tête : « Date de naissance » est
+            // déjà écrit au-dessus, et les autres capsules du panneau n'en
+            // portent pas. Seules les listes d'adresse en ont une, parce que
+            // là elle distingue région, préfecture et sous-préfecture.
+            sx: {
+              width: '100%',
+              maxWidth: 395,
+              '& .MuiPickersInputBase-root': {
+                borderRadius: CAPSULE_RAYON,
+                minHeight: CAPSULE_HAUTEUR,
+                paddingLeft: '16px',
+                fontFamily: "'Ubuntu', sans-serif",
+                fontSize: 15,
+                fontWeight: 500,
+                color: 'rgba(20,40,35,0.92)',
+                background: CAPSULE_BACKGROUND,
+                boxShadow: CAPSULE_SHADOW,
+                transition: 'all 0.2s ease',
+              },
+              '& .MuiPickersOutlinedInput-notchedOutline': {
+                borderColor: 'rgba(55,75,70,0.10)',
+                borderWidth: 1,
+                borderRadius: CAPSULE_RAYON,
+              },
+              '&:hover .MuiPickersOutlinedInput-notchedOutline': { borderColor: 'rgba(1,134,117,0.30)' },
+              '& .MuiPickersInputBase-root.Mui-focused': {
+                boxShadow: CAPSULE_FOCUS_SHADOW,
+                '& .MuiPickersOutlinedInput-notchedOutline': { borderColor: '#018675', borderWidth: 1 },
+              },
+              // L'icône de tête suffit ; la capsule entière reste tappable.
+              '& .MuiInputAdornment-positionEnd': { display: 'none' },
+            },
+          },
+        }}
+      />
+      {erreur && <TexteErreur role="alert">{erreur}</TexteErreur>}
+    </Box>
+  );
+};

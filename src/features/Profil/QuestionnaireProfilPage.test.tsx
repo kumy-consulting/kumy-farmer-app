@@ -1,6 +1,9 @@
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import 'dayjs/locale/fr';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { profilApi } from './profil.api';
@@ -19,11 +22,16 @@ const profil = (step: number) => ({
   questionnaire: { dateOfBirth: '1986-04-12', gender: 'male', educationLevel: 'secondary' },
 });
 
+// `ChampDate` monte un `MobileDatePicker`, qui exige un `LocalizationProvider` :
+// en production il vient d'`App.tsx` à la racine, absent des tests unitaires.
+// Même câblage que `RegisterProfilePage.test.tsx`.
 const rendre = () =>
   render(
-    <MemoryRouter>
-      <QuestionnaireProfilPage />
-    </MemoryRouter>,
+    <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="fr">
+      <MemoryRouter>
+        <QuestionnaireProfilPage />
+      </MemoryRouter>
+    </LocalizationProvider>,
   );
 
 /**
@@ -154,14 +162,18 @@ describe('QuestionnaireProfilPage', () => {
     expect(screen.getByRole('button', { name: /Enregistrer/ })).toBeDefined();
   });
 
-  it('préremplit la date de naissance dans la forme que rend l’API (yyyy-mm-dd)', async () => {
-    // `GET /farmers/me` rend désormais `dateOfBirth` tronqué à dix caractères
-    // (fixé côté API) — un `input[type=date]` vide silencieusement toute
-    // valeur qui ne suit pas ce format, d'où l'assertion sur la valeur rendue.
+  it('affiche la date rendue par l’API (yyyy-mm-dd) en JJ/MM/AAAA', async () => {
+    // `GET /farmers/me` rend `dateOfBirth` tronqué à dix caractères. L'écran ne
+    // le montre plus tel quel : `ChampDate` le lit en ISO et l'affiche dans la
+    // forme qu'on écrit à la main en français.
     rendre();
     await screen.findByText('Informations personnelles');
 
-    expect(screen.getByLabelText('Date de naissance')).toHaveValue('1986-04-12');
+    // MUI X rend la date en trois sections éditables plutôt qu'en un seul
+    // nœud de texte : on interroge donc chacune.
+    expect(screen.getByRole('spinbutton', { name: /day|jour/i })).toHaveTextContent('12');
+    expect(screen.getByRole('spinbutton', { name: /month|mois/i })).toHaveTextContent('04');
+    expect(screen.getByRole('spinbutton', { name: /year|ann/i })).toHaveTextContent('1986');
   });
 
   it('affiche un écran de confirmation sobre à la fin, puis revient à l’accueil', async () => {
@@ -176,12 +188,14 @@ describe('QuestionnaireProfilPage', () => {
     });
     mocked.envoyerEtape.mockResolvedValue({ step: 3, completedAt: '2026-08-28T09:12:00.000Z' });
     render(
-      <MemoryRouter initialEntries={['/mon-profil/completer']}>
-        <Routes>
-          <Route path="/mon-profil/completer" element={<QuestionnaireProfilPage />} />
-          <Route path="/" element={<div>tableau de bord</div>} />
-        </Routes>
-      </MemoryRouter>,
+      <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="fr">
+        <MemoryRouter initialEntries={['/mon-profil/completer']}>
+          <Routes>
+            <Route path="/mon-profil/completer" element={<QuestionnaireProfilPage />} />
+            <Route path="/" element={<div>tableau de bord</div>} />
+          </Routes>
+        </MemoryRouter>
+      </LocalizationProvider>,
     );
     await screen.findByText('Zone d’exploitation');
 

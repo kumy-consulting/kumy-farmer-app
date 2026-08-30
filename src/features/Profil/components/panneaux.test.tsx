@@ -1,7 +1,10 @@
 import { useState, type FunctionComponent } from 'react';
 
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import 'dayjs/locale/fr';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { onboardingApi } from '@/features/Onboarding/onboarding.api';
@@ -17,7 +20,11 @@ import {
 } from './panneaux';
 import { PANNEAUX, estDernierDeSonEtape, progressionDansEtape } from './parcoursPanneaux';
 
-const reponses = { nomComplet: 'Mamadou Aliou Barry' } as never;
+const reponses = { nomComplet: 'Mamadou Aliou Barry', dateNaissance: '1986-04-12' } as never;
+
+/** Bornes d'âge de `ChampDate`, alignées sur celles de l'inscription. */
+const AGE_MIN = 15;
+const AGE_MAX = 100;
 
 /**
  * Le découpage lui-même. Un panneau qui changerait d'étape enverrait ses
@@ -61,9 +68,51 @@ describe('Le découpage en panneaux', () => {
 });
 
 describe('PanneauIdentite', () => {
+  // `ChampDate` monte un `MobileDatePicker` — cf. `RegisterProfilePage.test.tsx`.
+  const rendreIdentite = (erreurs: Record<string, string>) =>
+    render(
+      <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="fr">
+        <PanneauIdentite reponses={reponses} setReponses={vi.fn()} erreurs={erreurs} />
+      </LocalizationProvider>,
+    );
+
   it('affiche l’erreur d’un champ obligatoire vide', () => {
-    render(<PanneauIdentite reponses={reponses} setReponses={vi.fn()} erreurs={{ genre: 'Choisissez une réponse.' }} />);
+    rendreIdentite({ genre: 'Choisissez une réponse.' });
     expect(screen.getByText('Choisissez une réponse.')).toBeDefined();
+  });
+
+  it('ouvre le calendrier quand on touche la capsule', async () => {
+    // Le seul geste dont dispose l'agriculteur. Le bouton d'ouverture que MUI
+    // pose en fin de champ est masqué par l'habillage (aucune des capsules du
+    // questionnaire ne porte d'icône) : si la capsule elle-même n'ouvre pas le
+    // sélecteur, la date de naissance devient impossible à saisir.
+    //
+    // Ce test passe par le champ, jamais par le bouton : en jsdom le bouton
+    // masqué reste trouvable par son rôle, si bien qu'un test qui le cliquerait
+    // passerait alors même que le calendrier est inatteignable dans un vrai
+    // navigateur.
+    rendreIdentite({});
+    await userEvent.click(screen.getByRole('spinbutton', { name: /day|jour/i }));
+
+    expect(await screen.findByRole('dialog')).toBeDefined();
+  });
+
+  it('borne la naissance à un âge plausible plutôt que de tout accepter', async () => {
+    // Le champ natif `type="date"` acceptait 1850 comme l'an prochain. Les
+    // bornes sont celles de l'inscription : entre 15 et 100 ans.
+    rendreIdentite({});
+    await userEvent.click(screen.getByRole('spinbutton', { name: /day|jour/i }));
+
+    // Le sélecteur s'ouvre sur les années — c'est ce qu'on cherche en premier
+    // pour une naissance, et ce que les deux autres écrans de l'app n'offrent
+    // pas encore.
+    const annee = new Date().getFullYear();
+    const annees = await screen.findAllByRole('radio');
+    const libelles = annees.map((a) => a.textContent);
+    expect(libelles).toContain(String(annee - AGE_MIN));
+    expect(libelles).toContain(String(annee - AGE_MAX));
+    expect(libelles).not.toContain(String(annee - AGE_MIN + 1));
+    expect(libelles).not.toContain(String(annee - AGE_MAX - 1));
   });
 });
 
