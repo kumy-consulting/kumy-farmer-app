@@ -1,6 +1,5 @@
 import type { FunctionComponent, ReactNode } from 'react';
 
-import EditOffRounded from '@mui/icons-material/EditOffRounded';
 import { Box, Skeleton, Stack, Typography } from '@mui/material';
 
 import type { ProfilAgriculteur } from '../monEspace.types';
@@ -35,9 +34,12 @@ const Grille: FunctionComponent<{ children: ReactNode }> = ({ children }) => (
  *    s'éteignent le disent ; cinq lignes côte à côte le perdent. L'adresse tient
  *    la tête du rail parce qu'elle en est le degré le plus fin — on n'arrive pas
  *    chez quelqu'un avec le nom d'une préfecture.
- * 3. **L'écran est en lecture seule, et le dit franchement.** Aucun endpoint
- *    d'écriture n'est ouvert au rôle FARMER : la note finale nomme la
- *    contrainte et la personne qui peut, elle, corriger.
+ * 3. **L'écran est en lecture seule, sans le dire.** Aucun endpoint d'écriture
+ *    n'est ouvert au rôle FARMER. Une note le rappelait en pied de fiche ; elle
+ *    a été retirée. Rien ici ne ressemble à un champ ni à un bouton — annoncer
+ *    qu'on ne peut pas modifier attirait l'attention sur une action que
+ *    personne ne cherchait, et terminait l'écran sur ce qu'il refuse plutôt que
+ *    sur ce qu'il montre.
  * 4. **Un champ vide ne s'affiche pas.** L'API rend les échelons qu'elle
  *    connaît ; ceux qui manquent au dossier sortent vides. Une ligne
  *    « Sous-préfecture » sans valeur, ou un « Non renseigné », donnerait à une
@@ -149,28 +151,6 @@ export const BlocInformations: FunctionComponent<BlocInformationsProps> = ({ pro
         </Card>
       </Box>
       )}
-
-      {/* — Ce que l'écran ne permet pas, dit avant qu'on le cherche — */}
-      <Stack
-        direction="row"
-        spacing={1.4}
-        sx={{
-          borderRadius: '16px',
-          background: 'rgba(55,75,70,0.05)',
-          border: '1px solid rgba(55,75,70,0.08)',
-          p: 1.75,
-        }}
-      >
-        <EditOffRounded sx={{ fontSize: 19, color: '#5C5F5E', flexShrink: 0, mt: '1px' }} />
-        <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{ fontSize: 13.5, fontWeight: 700, color: '#374B46', lineHeight: 1.35 }}>
-            Cette fiche est en lecture seule
-          </Typography>
-          <Typography sx={{ fontSize: 12.5, color: '#5C5F5E', mt: 0.35, lineHeight: 1.45 }}>
-            Votre technicien est le seul à pouvoir la modifier. Signalez-lui l’information à corriger.
-          </Typography>
-        </Box>
-      </Stack>
     </Stack>
   );
 };
