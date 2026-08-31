@@ -30,16 +30,23 @@ export interface ReponsesQuestionnaire {
 /** Le dossier tel que rendu par `GET /farmers/me`, réduit à ce que lit le questionnaire. */
 export interface ProfilLu {
   displayName: string;
-  address: {
+  /**
+   * Ces trois blocs sont OPTIONNELS parce que le serveur les omet — il ne les
+   * renvoie pas vides — tant que l'agriculteur n'a rien rempli. Les avoir
+   * déclarés obligatoires faisait passer un compte neuf pour un dossier
+   * illisible : `versReponses` jetait un TypeError depuis le `.then()`, et
+   * l'écran affichait un échec de chargement sur une requête pourtant réussie.
+   */
+  address?: {
     regionId?: string;
     prefectureId?: string;
     sousPrefectureId?: string;
   };
-  profileSurvey: {
+  profileSurvey?: {
     step: number;
     completedAt: string | null;
   };
-  questionnaire: {
+  questionnaire?: {
     educationLevel?: string;
     maritalStatus?: string;
     childrenCount?: number;

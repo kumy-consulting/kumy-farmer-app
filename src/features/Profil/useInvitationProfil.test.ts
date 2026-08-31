@@ -45,6 +45,26 @@ describe('useInvitationProfil', () => {
     expect(result.current.ouverte).toBe(true);
   });
 
+  it('s’ouvre pour un compte neuf, dont le dossier n’a ni questionnaire ni profileSurvey', async () => {
+    // Charge utile réelle de `GET /farmers/me` pour un compte qui n'a rien
+    // rempli — le serveur omet ces blocs. C'est EXACTEMENT le compte que
+    // l'invitation vise ; or déréférencer `profileSurvey.completedAt` jetait un
+    // TypeError, capté par le `.catch()` qui posait `termine = true`. La modale
+    // ne s'ouvrait donc jamais pour eux, et pour eux seuls.
+    mocked.lireProfil.mockResolvedValue({
+      farmerCode: 'AGR-073',
+      displayName: 'Mamadou Test-Actif',
+      phone: '+224600000003',
+      address: {},
+      notificationSettings: { sms: true },
+    } as never);
+
+    const { result } = renderHook(() => useInvitationProfil({ aDesDomaines: false, isLoading: false, surAccueil: true }));
+
+    await vi.advanceTimersByTimeAsync(5_500);
+    expect(result.current.ouverte).toBe(true);
+  });
+
   it('ne s’ouvre pas quand un domaine est déjà tracé', async () => {
     const { result } = renderHook(() => useInvitationProfil({ aDesDomaines: true, isLoading: false, surAccueil: true }));
     await vi.advanceTimersByTimeAsync(6_000);

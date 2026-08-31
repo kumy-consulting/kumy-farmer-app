@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 
+import { isDemoMode } from '@/features/Home/home.demo';
 import { ApiRequestError } from '@/shared/api/client';
+import { useAuthStore } from '@/shared/stores/authStore';
 
 import { profilApi } from './profil.api';
+import { profilDemo } from './profil.demo';
 import type { ProfilLu, ReponsesQuestionnaire } from './profil.types';
 
 /** Étape à afficher — jamais 0, la première étape non répondue est la 1. */
@@ -15,13 +18,24 @@ export interface QuestionnaireProfilState {
   isLoading: boolean;
   isSending: boolean;
   error: string | null;
+  /**
+   * `true` quand c'est la LECTURE du dossier qui a échoué, pas un envoi. Les
+   * deux ne se réparent pas pareil : un envoi raté se rejoue en retouchant
+   * « Suivant », une lecture ratée demande de recharger le dossier.
+   */
+  echecChargement: boolean;
+  rechargerProfil: () => void;
   envoyerEtape: (step: Etape) => Promise<boolean>;
   termine: boolean;
 }
 
 /** Traduit le dossier lu depuis l'API vers les réponses à plat du formulaire. */
 function versReponses(profil: ProfilLu): ReponsesQuestionnaire {
-  const { questionnaire, address } = profil;
+  // Un compte neuf arrive sans ces blocs : le formulaire s'ouvre alors vide,
+  // avec le peu qu'on sait déjà de lui (son nom).
+  const questionnaire = profil.questionnaire ?? {};
+  const address = profil.address ?? {};
+  const etapeValidee = profil.profileSurvey?.step ?? 0;
   const anneeAdhesion = questionnaire.cooperative?.joinDate
     ? Number(questionnaire.cooperative.joinDate.slice(0, 4))
     : undefined;
@@ -41,7 +55,7 @@ function versReponses(profil: ProfilLu): ReponsesQuestionnaire {
     // pas une question restée sans réponse. Avant l'étape 2, elle reste ouverte.
     estMembreCooperative: questionnaire.cooperative
       ? true
-      : profil.profileSurvey.step >= 2
+      : etapeValidee >= 2
         ? false
         : undefined,
     nomCooperative: questionnaire.cooperative?.name,
@@ -120,24 +134,54 @@ export function useQuestionnaireProfil(): QuestionnaireProfilState {
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [echecChargement, setEchecChargement] = useState(false);
   const [termine, setTermine] = useState(false);
+  // Incrémenté par `rechargerProfil` : relance l'effet de lecture.
+  const [tentative, setTentative] = useState(0);
+
+  const rechargerProfil = useCallback(() => setTentative((n) => n + 1), []);
 
   useEffect(() => {
+    // Aperçu de démonstration : `ProtectedRoute` laisse passer sans session,
+    // donc l'API répondrait 401. Même court-circuit que `useCompteNouveau`.
+    if (isDemoMode()) {
+      setReponsesState(versReponses(profilDemo));
+      setEtapeCourante(Math.min((profilDemo.profileSurvey?.step ?? 0) + 1, 3) as Etape);
+      setIsLoading(false);
+      return;
+    }
+
     let actif = true;
+    setIsLoading(true);
 
     profilApi
       .lireProfil()
       .then((profil) => {
         if (!actif) return;
         setReponsesState(versReponses(profil));
-        setEtapeCourante(Math.min(profil.profileSurvey.step + 1, 3) as Etape);
-        setTermine(profil.profileSurvey.completedAt !== null);
+        setEtapeCourante(Math.min((profil.profileSurvey?.step ?? 0) + 1, 3) as Etape);
+        setTermine(profil.profileSurvey?.completedAt != null);
+        setEchecChargement(false);
+        setError(null);
       })
-      .catch(() => {
-        // Un dossier illisible au montage ne doit pas laisser l'agriculteur
-        // face à un formulaire muet sans recours : même message que pour un
-        // envoi raté, pour rester cohérent à l'écran.
-        if (actif) setError("Envoi impossible pour l'instant. Réessayez dans un moment.");
+      .catch((erreur: unknown) => {
+        if (!actif) return;
+        // Une session morte ne se répare pas en réessayant : proposer
+        // « Réessayer » enfermerait l'agriculteur dans une boucle qui
+        // rejouerait le même 401 indéfiniment. On aligne donc l'app sur ce
+        // qu'on vient d'apprendre — la session n'est plus valable — et
+        // `ProtectedRoute` le ramène de lui-même à son code PIN. Même geste que
+        // `loadUser` dans `authStore` : on ne touche pas au numéro mémorisé,
+        // pour qu'il retombe sur le PIN et non sur l'écran d'accueil.
+        if (erreur instanceof ApiRequestError && erreur.status === 401) {
+          useAuthStore.setState({ user: null, isAuthenticated: false });
+          return;
+        }
+        // Ne dit PAS « envoi impossible » : rien n'a été envoyé. L'agriculteur
+        // a devant lui un formulaire vide, et la seule chose à savoir est que
+        // ce vide vient d'une lecture ratée — pas de ses réponses perdues.
+        setError("Vos réponses n'ont pas pu être chargées.");
+        setEchecChargement(true);
       })
       .finally(() => {
         if (actif) setIsLoading(false);
@@ -146,7 +190,7 @@ export function useQuestionnaireProfil(): QuestionnaireProfilState {
     return () => {
       actif = false;
     };
-  }, []);
+  }, [tentative]);
 
   const setReponses = useCallback((partiel: Partial<ReponsesQuestionnaire>) => {
     setReponsesState((precedent) => ({ ...precedent, ...partiel }));
@@ -156,6 +200,7 @@ export function useQuestionnaireProfil(): QuestionnaireProfilState {
     async (step: Etape): Promise<boolean> => {
       setIsSending(true);
       setError(null);
+      setEchecChargement(false);
       try {
         const corps = versCorpsEtape(step, reponses);
         const marqueur = await profilApi.envoyerEtape(corps);
@@ -166,10 +211,16 @@ export function useQuestionnaireProfil(): QuestionnaireProfilState {
         // (tâche C1) sont censées l'éviter, mais si l'une d'elles a un trou, dire
         // « réessayez » à l'infini enfermerait l'agriculteur à cette étape sans
         // qu'aucun nouvel essai ne puisse jamais réussir.
+        // Un 401 à l'envoi ne redirige PAS : des réponses viennent d'être
+        // saisies, et les emporter vers l'écran de connexion les perdrait. On
+        // dit ce qui bloque, sans promettre qu'un nouvel essai suffira.
+        const status = erreur instanceof ApiRequestError ? erreur.status : undefined;
         setError(
-          erreur instanceof ApiRequestError && erreur.status === 400
+          status === 400
             ? "Cette réponse n'a pas été acceptée. Vérifiez ce que vous avez saisi."
-            : "Envoi impossible pour l'instant. Réessayez dans un moment.",
+            : status === 401
+              ? 'Votre session a expiré. Reconnectez-vous pour enregistrer vos réponses.'
+              : "Envoi impossible pour l'instant. Réessayez dans un moment.",
         );
         return false;
       } finally {
@@ -179,5 +230,16 @@ export function useQuestionnaireProfil(): QuestionnaireProfilState {
     [reponses],
   );
 
-  return { reponses, setReponses, etapeCourante, isLoading, isSending, error, envoyerEtape, termine };
+  return {
+    reponses,
+    setReponses,
+    etapeCourante,
+    isLoading,
+    isSending,
+    error,
+    echecChargement,
+    rechargerProfil,
+    envoyerEtape,
+    termine,
+  };
 }

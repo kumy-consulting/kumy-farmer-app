@@ -83,7 +83,11 @@ export function useInvitationProfil(compte: CompteInvitationProfil): { ouverte: 
       .lireProfil()
       .then((profil) => {
         if (!actif) return;
-        termine = profil.profileSurvey.completedAt !== null;
+        // `profileSurvey` est absent tant que rien n'a été rempli : c'est
+        // précisément le compte à qui l'invitation s'adresse. Le déréférencer
+        // jetait un TypeError, capté par le `.catch()` ci-dessous, qui posait
+        // `termine = true` — l'invitation ne s'ouvrait donc JAMAIS pour eux.
+        termine = profil.profileSurvey?.completedAt != null;
         verifier();
       })
       // Une lecture qui rate ne doit pas déclencher une invitation à l'aveugle.

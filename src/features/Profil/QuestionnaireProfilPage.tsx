@@ -136,7 +136,7 @@ const MedaillonEtape: FunctionComponent<{ etape: Etape }> = ({ etape }) => {
         alignItems: 'center',
         justifyContent: 'center',
         mt: 'clamp(10px, 2vh, 22px)',
-        width: 'min(176px, 20.5vh)',
+width: 'min(176px, 20.5vh)',
         aspectRatio: '1 / 1',
         '&::before': {
           content: '""',
@@ -293,7 +293,17 @@ const ConfirmationEnvoi: FunctionComponent<{ onRetour: () => void }> = ({ onReto
  */
 export const QuestionnaireProfilPage: FunctionComponent = () => {
   const navigate = useNavigate();
-  const { reponses, setReponses, etapeCourante, isLoading, isSending, error, envoyerEtape } = useQuestionnaireProfil();
+  const {
+    reponses,
+    setReponses,
+    etapeCourante,
+    isLoading,
+    isSending,
+    error,
+    echecChargement,
+    rechargerProfil,
+    envoyerEtape,
+  } = useQuestionnaireProfil();
   const [erreurs, setErreurs] = useState<Record<string, string>>({});
   // `etapeCourante` du hook ne bouge qu'au chargement (reprise) ; entre les
   // deux, l'écran garde son propre curseur de panneau pour avancer/reculer.
@@ -361,8 +371,15 @@ export const QuestionnaireProfilPage: FunctionComponent = () => {
   };
 
   const Panneau = panneau.Composant;
-  // Quelque chose à réparer à l'écran : le médaillon cède sa place.
-  const aCorriger = Object.keys(erreurs).length > 0 || Boolean(error && !erreurMasquee);
+  // Le médaillon et la phrase d'intention cèdent la place à ce qu'il faut lire
+  // ou réparer : les erreurs de champ, qui ajoutent une ligne rouge sous chaque
+  // question, et le bandeau de chargement raté, qui occupe le haut de l'écran.
+  // Dans les deux cas la place libérée sert à quelque chose — c'est la
+  // difference avec la version precedente, ou un simple echec d'envoi les
+  // effaçait tous les deux pour ne laisser qu’un trou.
+  const aCorriger = Object.keys(erreurs).length > 0 || echecChargement;
+  // Tout état où l'écran annonce une panne, bandeau d'envoi raté compris.
+  const enEchec = aCorriger || Boolean(error && !erreurMasquee);
 
   if (confirme) {
     return (
@@ -451,7 +468,7 @@ export const QuestionnaireProfilPage: FunctionComponent = () => {
         </Stack>
       </Stack>
 
-      {!aCorriger && <MedaillonEtape etape={panneau.etape} />}
+      {Object.keys(erreurs).length === 0 && <MedaillonEtape etape={panneau.etape} />}
 
       <Box sx={{ flex: 'none', mt: 'clamp(14px, 2.4vh, 26px)' }}>
         <Typography
@@ -467,10 +484,13 @@ export const QuestionnaireProfilPage: FunctionComponent = () => {
         >
           {panneau.titre}
         </Typography>
-        {/* Même règle que le médaillon : la phrase qui explique cède la place
-            à celle qui dit quoi corriger. Sur un petit écran, les deux ne
-            tiennent pas ensemble — et à ce moment-là, seule la seconde compte. */}
-        {!aCorriger && (
+        {/* La phrase qui explique cède la place à celle qui dit quoi corriger,
+            pour TOUT échec — le médaillon, lui, ne cède qu'aux erreurs de champ
+            et au chargement raté. C'est le bon partage : sur un petit écran les
+            deux phrases ne tiennent pas ensemble, et à ce moment-là seule la
+            seconde compte ; tandis que retirer aussi le médaillon pour une
+            seule ligne rouge ne ferait que creuser l'écran. */}
+        {!enEchec && (
           <Typography
             sx={{
               mt: 0.75,
@@ -488,6 +508,54 @@ export const QuestionnaireProfilPage: FunctionComponent = () => {
       <Box sx={{ flex: 'none', mt: 'clamp(14px, 2.4vh, 24px)' }}>
         <RailEtapes etape={panneau.etape} progression={progressionDansEtape(indexPanneau)} />
       </Box>
+
+      {/* L'échec de LECTURE se pose au-dessus des champs, pas sous le bouton :
+          il n'explique pas un geste, il explique pourquoi le formulaire est
+          vide. Le lire après avoir parcouru des champs vides arriverait trop
+          tard. Et il porte sa propre réparation — retoucher « Suivant »
+          enverrait, ce qui ne recharge rien. */}
+      {echecChargement && !isLoading && (
+        <Stack
+          role="alert"
+          direction="row"
+          alignItems="center"
+          spacing={1.25}
+          sx={{
+            flex: 'none',
+            mt: 'clamp(12px, 2vh, 20px)',
+            px: 1.75,
+            py: 1.25,
+            borderRadius: '16px',
+            background: 'rgba(179,38,30,0.06)',
+            border: '1px solid rgba(179,38,30,0.18)',
+          }}
+        >
+          <Typography sx={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 600, color: '#8C1912', lineHeight: 1.4 }}>
+            {error}
+          </Typography>
+          <Box
+            component="button"
+            type="button"
+            onClick={rechargerProfil}
+            sx={{
+              flexShrink: 0,
+              minHeight: 40,
+              px: 2,
+              border: '1px solid rgba(179,38,30,0.28)',
+              borderRadius: '999px',
+              background: 'rgba(255,255,255,0.75)',
+              fontFamily: "'Ubuntu', sans-serif",
+              fontSize: 13.5,
+              fontWeight: 700,
+              color: '#8C1912',
+              cursor: 'pointer',
+              '&:focus-visible': { outline: '2px solid #8C1912', outlineOffset: 2 },
+            }}
+          >
+            Réessayer
+          </Box>
+        </Stack>
+      )}
 
       <Box
         sx={{
@@ -542,7 +610,7 @@ export const QuestionnaireProfilPage: FunctionComponent = () => {
 
       {/* Sous le bouton, pas au-dessus (spec, cas limites) : l'échec suit le
           geste qui l'a déclenché plutôt que de précéder le contenu qu'il commente. */}
-      {error && !erreurMasquee && (
+      {error && !echecChargement && !erreurMasquee && (
         <Typography
           role="alert"
           sx={{ flex: 'none', mt: 1.25, fontSize: 13, fontWeight: 600, color: '#B3261E', textAlign: 'center' }}
@@ -553,8 +621,10 @@ export const QuestionnaireProfilPage: FunctionComponent = () => {
 
       {/* Pourquoi on demande tout ça, une seule fois, au premier écran : on peut
           arriver ici par « Mes informations » sans jamais avoir vu l'invitation
-          qui le disait. */}
-      {indexPanneau === 0 && (
+          qui le disait. Elle cède dès que l'écran annonce une panne — d'envoi
+          comme de lecture : une réassurance sur la confidentialité n'est pas ce
+          qui mérite les dernières lignes quand quelque chose vient d'échouer. */}
+      {indexPanneau === 0 && !enEchec && (
         <Stack
           direction="row"
           alignItems="center"
