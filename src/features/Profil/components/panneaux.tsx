@@ -4,6 +4,7 @@ import HolidayVillageRoundedIcon from '@mui/icons-material/HolidayVillageRounded
 import LocationCityRoundedIcon from '@mui/icons-material/LocationCityRounded';
 import PublicRoundedIcon from '@mui/icons-material/PublicRounded';
 import { Stack } from '@mui/material';
+import dayjs from 'dayjs';
 
 import { ErrorBanner } from '@/features/Onboarding/components/ErrorBanner';
 import { onboardingApi, type ReferentialItem } from '@/features/Onboarding/onboarding.api';
@@ -18,10 +19,12 @@ import {
   TRANCHES_EXPERIENCE,
 } from '../questionnaire.content';
 import {
+  ChampAnnee,
   ChampDate,
   ChampListe,
   ChampNombre,
   ChampTexte,
+  ChoixCourt,
   ChoixMultiple,
   ChoixOuiNon,
   type EtapeProps,
@@ -50,11 +53,6 @@ import {
  */
 
 const NIVEAUX_OPTIONS: ReferentialItem[] = NIVEAUX_EDUCATION.map(({ valeur, libelle }) => ({
-  id: valeur,
-  name: libelle,
-}));
-
-const SITUATIONS_OPTIONS: ReferentialItem[] = SITUATIONS_MATRIMONIALES.map(({ valeur, libelle }) => ({
   id: valeur,
   name: libelle,
 }));
@@ -136,13 +134,12 @@ export const PanneauFamille: FunctionComponent<EtapeProps> = ({ reponses, setRep
       placeholder="Sélectionnez un niveau"
     />
 
-    <ChampListe
+    <ChoixCourt
       label="Situation matrimoniale"
-      value={reponses.situationMatrimoniale ?? ''}
-      options={SITUATIONS_OPTIONS}
-      onChange={(id) => setReponses({ situationMatrimoniale: id })}
+      value={reponses.situationMatrimoniale}
+      options={SITUATIONS_MATRIMONIALES}
+      onChange={(valeur) => setReponses({ situationMatrimoniale: valeur })}
       erreur={erreurs.situationMatrimoniale}
-      placeholder="Sélectionnez une situation"
     />
 
     <ChampNombre
@@ -185,6 +182,20 @@ export const PanneauExperience: FunctionComponent<EtapeProps> = ({ reponses, set
 );
 
 /**
+ * La plus ancienne année d'adhésion proposée : celle de la naissance, puisqu'on
+ * n'adhère pas à une coopérative avant d'être né.
+ *
+ * La date de naissance a été demandée à l'étape 1, donc elle est connue ici :
+ * la liste tombe d'environ quatre-vingts entrées à une quarantaine, toutes
+ * plausibles. Sans elle — dossier chargé sans questionnaire, ou reprise directe
+ * à l'étape 2 — on retombe sur quatre-vingts ans, ce qui reste borné.
+ */
+function anneeMinAdhesion(dateNaissance?: string): number {
+  const naissance = dateNaissance ? dayjs(dateNaissance) : null;
+  return naissance?.isValid() ? naissance.year() : dayjs().year() - 80;
+}
+
+/**
  * Le nom de la coopérative et l'année d'adhésion ne se posent qu'à un membre
  * déclaré — la question resterait sans objet sinon. C'est aussi ce qui autorise
  * ce panneau à n'afficher qu'une seule question la plupart du temps : il en
@@ -210,14 +221,12 @@ export const PanneauCooperative: FunctionComponent<EtapeProps> = ({ reponses, se
           maxLength={120}
         />
 
-        <ChampNombre
+        <ChampAnnee
           label="Année d’adhésion"
           value={reponses.anneeAdhesion}
           onChange={(value) => setReponses({ anneeAdhesion: value })}
           erreur={erreurs.anneeAdhesion}
-          min={1900}
-          max={new Date().getFullYear()}
-          entier
+          anneeMin={anneeMinAdhesion(reponses.dateNaissance)}
         />
       </>
     )}

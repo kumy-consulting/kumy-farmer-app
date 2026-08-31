@@ -2,7 +2,7 @@ import { useState, type FunctionComponent } from 'react';
 
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import 'dayjs/locale/fr';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -122,6 +122,20 @@ describe('PanneauFamille', () => {
     expect(screen.getByText(/Niveau d’éducation/)).toBeDefined();
   });
 
+  it('montre les quatre situations sans rien ouvrir', () => {
+    // Quatre libellés courts et exclusifs : les cacher dans une liste
+    // déroulante coûtait deux gestes (ouvrir, choisir) et empêchait de lire ses
+    // options. Le select reste justifié pour l'éducation, six entrées dont
+    // « Formation professionnelle » — il est d'ailleurs toujours là, au-dessus.
+    render(<PanneauFamille reponses={reponses} setReponses={vi.fn()} erreurs={{}} />);
+
+    const groupe = screen.getByRole('radiogroup', { name: 'Situation matrimoniale' });
+    expect(within(groupe).getAllByRole('radio')).toHaveLength(4);
+    for (const libelle of ['Célibataire', 'Marié(e)', 'Veuf(ve)', 'Divorcé(e)']) {
+      expect(within(groupe).getByRole('radio', { name: libelle })).toBeDefined();
+    }
+  });
+
   it('marque d’une astérisque ce qui bloque, pas le reste', () => {
     render(<PanneauFamille reponses={reponses} setReponses={vi.fn()} erreurs={{}} />);
     expect(screen.getByText('Situation matrimoniale')).toBeDefined();
@@ -130,16 +144,47 @@ describe('PanneauFamille', () => {
 });
 
 describe('PanneauCooperative', () => {
-  it('ne demande le nom de la coopérative qu’aux membres', () => {
-    const setReponses = vi.fn();
-    const { rerender } = render(
-      <PanneauCooperative reponses={{ estMembreCooperative: false } as never} setReponses={setReponses} erreurs={{}} />,
+  /** `ChampAnnee` monte un `MobileDatePicker` — cf. `RegisterProfilePage.test.tsx`. */
+  const rendreCoop = (reponsesCoop: object) =>
+    render(
+      <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="fr">
+        <PanneauCooperative reponses={reponsesCoop as never} setReponses={vi.fn()} erreurs={{}} />
+      </LocalizationProvider>,
     );
+
+  it('fait choisir l’année d’adhésion dans une grille, sans descendre avant la naissance', async () => {
+    // On n'adhère pas à une coopérative avant d'être né : la borne basse vient
+    // de la date de naissance déjà demandée à l'étape 1.
+    rendreCoop({ estMembreCooperative: true, dateNaissance: '1986-04-12', anneeAdhesion: 2010 });
+    await userEvent.click(screen.getByRole('button', { name: /choose date|choisir/i }));
+
+    const annees = (await screen.findAllByRole('radio')).map((a) => a.textContent);
+    const annee = new Date().getFullYear();
+    expect(annees).toContain('1986');
+    expect(annees).toContain(String(annee));
+    expect(annees).not.toContain('1985');
+    expect(annees).not.toContain(String(annee + 1));
+    // Une seule vue : ni mois ni jour ne sont demandés pour cette réponse.
+    expect(screen.queryByRole('radio', { name: /janvier/i })).toBeNull();
+  });
+
+  it('ne demande le nom de la coopérative qu’aux membres', () => {
+    // Enveloppé : la branche « membre » monte `ChampAnnee`, donc un
+    // `MobileDatePicker`, qui exige un `LocalizationProvider`.
+    const enveloppe = (estMembre: boolean) => (
+      <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="fr">
+        <PanneauCooperative
+          reponses={{ estMembreCooperative: estMembre } as never}
+          setReponses={vi.fn()}
+          erreurs={{}}
+        />
+      </LocalizationProvider>
+    );
+
+    const { rerender } = render(enveloppe(false));
     expect(screen.queryByText(/Nom de la coopérative/)).toBeNull();
 
-    rerender(
-      <PanneauCooperative reponses={{ estMembreCooperative: true } as never} setReponses={setReponses} erreurs={{}} />,
-    );
+    rerender(enveloppe(true));
     expect(screen.getByText(/Nom de la coopérative/)).toBeDefined();
   });
 });

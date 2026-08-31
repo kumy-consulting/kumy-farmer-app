@@ -550,6 +550,47 @@ const boiteCalendrierSx = {
   },
 } as const;
 
+/**
+ * L'habillage de capsule des deux sélecteurs (date de naissance, année
+ * d'adhésion) : mêmes 60 px, même rayon, même halo de focus que les champs
+ * texte du questionnaire.
+ *
+ * `.MuiInputAdornment-positionEnd` masqué : aucune capsule du questionnaire ne
+ * porte d'icône. C'est ce qui oblige chaque sélecteur à piloter lui-même son
+ * ouverture — voir le `onClick` posé à côté.
+ */
+const capsuleSelecteurSx = {
+  width: '100%',
+  maxWidth: 395,
+  '& .MuiPickersInputBase-root': {
+    borderRadius: CAPSULE_RAYON,
+    minHeight: CAPSULE_HAUTEUR,
+    paddingLeft: '16px',
+    fontFamily: "'Ubuntu', sans-serif",
+    fontSize: 15,
+    fontWeight: 500,
+    color: 'rgba(20,40,35,0.92)',
+    background: CAPSULE_BACKGROUND,
+    boxShadow: CAPSULE_SHADOW,
+    transition: 'all 0.2s ease',
+  },
+  '& .MuiPickersOutlinedInput-notchedOutline': {
+    borderColor: 'rgba(55,75,70,0.10)',
+    borderWidth: 1,
+    borderRadius: CAPSULE_RAYON,
+  },
+  '&:hover .MuiPickersOutlinedInput-notchedOutline': { borderColor: 'rgba(1,134,117,0.30)' },
+  '& .MuiPickersInputBase-root.Mui-focused': {
+    boxShadow: CAPSULE_FOCUS_SHADOW,
+    '& .MuiPickersOutlinedInput-notchedOutline': { borderColor: '#018675', borderWidth: 1 },
+  },
+  '& .MuiInputAdornment-positionEnd': { display: 'none' },
+  // Après validation, MUI laisse la section sélectionnée : le bleu système du
+  // surlignage jurait sur un écran vert. Teinté, il passe pour un état de
+  // l'app plutôt que pour un artefact du navigateur.
+  '& .MuiPickersSectionList-sectionContent::selection': { background: 'rgba(1,134,117,0.20)' },
+} as const;
+
 export interface ChampDateProps {
   label: string;
   /** Date ISO `yyyy-mm-dd` — la forme que rend et qu'attend l'API. */
@@ -621,37 +662,161 @@ export const ChampDate: FunctionComponent<ChampDateProps> = ({
             // déjà écrit au-dessus, et les autres capsules du panneau n'en
             // portent pas. Seules les listes d'adresse en ont une, parce que
             // là elle distingue région, préfecture et sous-préfecture.
-            sx: {
-              width: '100%',
-              maxWidth: 395,
-              '& .MuiPickersInputBase-root': {
-                borderRadius: CAPSULE_RAYON,
-                minHeight: CAPSULE_HAUTEUR,
-                paddingLeft: '16px',
-                fontFamily: "'Ubuntu', sans-serif",
-                fontSize: 15,
-                fontWeight: 500,
-                color: 'rgba(20,40,35,0.92)',
-                background: CAPSULE_BACKGROUND,
-                boxShadow: CAPSULE_SHADOW,
-                transition: 'all 0.2s ease',
-              },
-              '& .MuiPickersOutlinedInput-notchedOutline': {
-                borderColor: 'rgba(55,75,70,0.10)',
-                borderWidth: 1,
-                borderRadius: CAPSULE_RAYON,
-              },
-              '&:hover .MuiPickersOutlinedInput-notchedOutline': { borderColor: 'rgba(1,134,117,0.30)' },
-              '& .MuiPickersInputBase-root.Mui-focused': {
-                boxShadow: CAPSULE_FOCUS_SHADOW,
-                '& .MuiPickersOutlinedInput-notchedOutline': { borderColor: '#018675', borderWidth: 1 },
-              },
-              // L'icône de tête suffit ; la capsule entière reste tappable.
-              '& .MuiInputAdornment-positionEnd': { display: 'none' },
-            },
+            sx: capsuleSelecteurSx,
           },
         }}
       />
+      {erreur && <TexteErreur role="alert">{erreur}</TexteErreur>}
+    </Box>
+  );
+};
+
+// ---------------------------------------------------------------------------
+// ChampAnnee
+// ---------------------------------------------------------------------------
+
+export interface ChampAnneeProps {
+  label: string;
+  value: number | undefined;
+  onChange: (value: number | undefined) => void;
+  obligatoire?: boolean;
+  erreur?: string;
+  /** Année la plus ancienne proposée — bornée par l'appelant, qui sait pourquoi. */
+  anneeMin: number;
+}
+
+/**
+ * Une année, choisie dans une grille plutôt que tapée.
+ *
+ * **Pourquoi pas un champ nombre.** Le `type="number"` posait le compteur natif
+ * du navigateur : deux flèches de quelques pixels, impossibles à viser au
+ * pouce, et un clavier numérique pour saisir quatre chiffres — dont rien
+ * n'empêchait qu'ils forment 1907 ou 2308. C'était aussi le dernier contrôle
+ * du questionnaire à ne pas parler la langue de l'app.
+ *
+ * **Une seule vue.** `views={['year']}` : le mois et le jour ne sont jamais
+ * demandés ici, et le serveur ne garde que l'année de toute façon — elle repart
+ * en `${année}-01-01`. Ouvrir sur un calendrier de jours pour n'en retenir que
+ * l'année ferait faire deux gestes inutiles.
+ *
+ * `closeOnSelect` : avec une seule vue, toucher l'année EST la réponse. Un
+ * « OK » à confirmer derrière n'ajouterait qu'un geste.
+ */
+export const ChampAnnee: FunctionComponent<ChampAnneeProps> = ({
+  label,
+  value,
+  onChange,
+  obligatoire = false,
+  erreur,
+  anneeMin,
+}) => {
+  const aujourdhui = dayjs();
+  const valeur = value ? dayjs(`${value}-01-01`) : null;
+  // Même raison que `ChampDate` : le bouton d'ouverture de MUI est masqué par
+  // l'habillage, donc c'est la capsule entière qui ouvre le sélecteur.
+  const [ouvert, setOuvert] = useState(false);
+
+  return (
+    <Box sx={{ width: '100%', maxWidth: 395 }}>
+      <Libelle>{texteLibelle(label, obligatoire)}</Libelle>
+      <MobileDatePicker
+        value={valeur && valeur.isValid() ? valeur : null}
+        onChange={(date) => onChange(date && date.isValid() ? date.year() : undefined)}
+        format="YYYY"
+        open={ouvert}
+        onOpen={() => setOuvert(true)}
+        onClose={() => setOuvert(false)}
+        openTo="year"
+        views={['year']}
+        closeOnSelect
+        minDate={dayjs(`${anneeMin}-01-01`)}
+        maxDate={aujourdhui}
+        slotProps={{
+          dialog: { sx: boiteCalendrierSx },
+          toolbar: { toolbarFormat: 'YYYY' },
+          textField: {
+            fullWidth: true,
+            error: Boolean(erreur),
+            onClick: () => setOuvert(true),
+            sx: capsuleSelecteurSx,
+          },
+        }}
+      />
+      {erreur && <TexteErreur role="alert">{erreur}</TexteErreur>}
+    </Box>
+  );
+};
+
+// ---------------------------------------------------------------------------
+// ChoixCourt
+// ---------------------------------------------------------------------------
+
+export interface ChoixCourtProps {
+  label: string;
+  value: string | undefined;
+  onChange: (valeur: string) => void;
+  options: readonly { valeur: string; libelle: string }[];
+  obligatoire?: boolean;
+  erreur?: string;
+}
+
+/**
+ * Quelques options exclusives, toutes visibles — la version à N choix de
+ * `ChoixOuiNon`, dont elle reprend la carte.
+ *
+ * **Quand la préférer à `ChampListe`.** Une liste déroulante cache ses options
+ * derrière un appui et en coûte deux : ouvrir, puis choisir. Cela se justifie
+ * quand les options sont nombreuses ou longues — « Formation professionnelle »
+ * ne tient pas dans une demi-largeur, et six niveaux d'éducation mangeraient
+ * tout le panneau. Cela ne se justifie pas pour quatre libellés courts, qui
+ * tiennent d'un seul tenant : l'agriculteur lit sa réponse sans rien ouvrir, et
+ * répond d'un geste.
+ *
+ * Deux colonnes plutôt qu'une : quatre cartes empilées feraient une liste
+ * verticale de 240 px pour des mots de dix lettres. En grille, la même réponse
+ * tient en deux rangées.
+ */
+export const ChoixCourt: FunctionComponent<ChoixCourtProps> = ({
+  label,
+  value,
+  onChange,
+  options,
+  obligatoire = false,
+  erreur,
+}) => {
+  const activer = (valeur: string) => (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    onChange(valeur);
+  };
+
+  return (
+    <Box sx={{ width: '100%', maxWidth: 395 }}>
+      <Libelle>{texteLibelle(label, obligatoire)}</Libelle>
+      <Box
+        role="radiogroup"
+        aria-label={label}
+        sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}
+      >
+        {options.map((option) => (
+          <BoutonChoix
+            key={option.valeur}
+            role="radio"
+            tabIndex={0}
+            aria-checked={value === option.valeur}
+            selectionne={value === option.valeur}
+            onClick={() => onChange(option.valeur)}
+            onKeyDown={activer(option.valeur)}
+            // Plus basse que la carte d'un `ChoixOuiNon` : là-bas deux cartes
+            // se partagent la largeur en une rangée, ici quatre s'empilent sur
+            // deux. La cible reste large de la demi-largeur du champ — c'est
+            // la surface qui compte au pouce, pas la seule hauteur.
+            sx={{ minHeight: 'clamp(44px, 6.2vh, 52px)' }}
+          >
+            {option.libelle}
+          </BoutonChoix>
+        ))}
+      </Box>
       {erreur && <TexteErreur role="alert">{erreur}</TexteErreur>}
     </Box>
   );

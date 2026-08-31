@@ -136,7 +136,12 @@ const MedaillonEtape: FunctionComponent<{ etape: Etape }> = ({ etape }) => {
         alignItems: 'center',
         justifyContent: 'center',
         mt: 'clamp(10px, 2vh, 22px)',
-width: 'min(176px, 20.5vh)',
+// 17vh, pas 20,5 : c'est le coefficient qui compte, pas le plafond. À
+        // 20,5 le médaillon faisait encore 160 px sur un écran de 780 — il ne
+        // maigrissait pas assez vite quand la hauteur tombait, et poussait la
+        // dernière question sous les boutons. Le plafond, lui, ne mord que sur
+        // les très grands écrans.
+        width: 'min(168px, 17vh)',
         aspectRatio: '1 / 1',
         '&::before': {
           content: '""',
@@ -171,7 +176,7 @@ width: 'min(176px, 20.5vh)',
           border: '1px solid rgba(1,134,117,0.18)',
           boxShadow:
             '0 18px 40px rgba(1,134,117,0.22), 0 2px 0 rgba(255,255,255,0.9) inset, 0 -20px 40px rgba(1,134,117,0.05) inset',
-          '& svg': { fontSize: 'min(68px, 8vh)', color: '#018675', opacity: 0.9 },
+          '& svg': { fontSize: 'min(64px, 6.6vh)', color: '#018675', opacity: 0.9 },
         }}
       >
         <Icone />
@@ -505,6 +510,11 @@ export const QuestionnaireProfilPage: FunctionComponent = () => {
               fontSize: 13,
               lineHeight: 1.45,
               color: 'rgba(55,75,70,0.68)',
+              // Sous 600 px de haut, la phrase s'efface — même gradation que le
+              // médaillon, qui ne paraît qu'au-dessus de 760 px. Sur un écran
+              // de cette taille, deux lignes d'explication valent moins que la
+              // question qu'elles auraient chassée hors du champ de vision.
+              '@media (max-height: 600px)': { display: 'none' },
             }}
           >
             {panneau.sousTitre}
