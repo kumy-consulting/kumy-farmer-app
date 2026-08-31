@@ -10,7 +10,7 @@ import { useAuthStore } from '@/shared/stores/authStore';
 import { neutral, primary, error as errorPalette } from '@/theme/colors';
 
 export const OnboardingSuccessPage: FunctionComponent = () => {
-  const { token, userData, password, reset } = useOnboardingStore();
+  const { token, userData, password, profile, reset } = useOnboardingStore();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(true);
   const [activationError, setActivationError] = useState<string | null>(null);
@@ -24,7 +24,16 @@ export const OnboardingSuccessPage: FunctionComponent = () => {
     setIsSubmitting(true);
     setActivationError(null);
     try {
-      await onboardingApi.activate({ token, password });
+      await onboardingApi.activate({
+        token,
+        password,
+        profileData: {
+          birthDate: profile.birthDate ?? undefined,
+          regionId: profile.regionId ?? undefined,
+          prefectureId: profile.prefectureId ?? undefined,
+          addressDetail: profile.addressDetail ?? undefined,
+        },
+      });
       // L'activation ne crée aucune session (ni cookie, ni jetons) : elle se
       // contente de définir le PIN comme mot de passe Firebase. On établit
       // donc la session en se connectant avec ces mêmes identifiants.
@@ -34,7 +43,7 @@ export const OnboardingSuccessPage: FunctionComponent = () => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [token, password, userData]);
+  }, [token, password, userData, profile]);
 
   useEffect(() => {
     void runActivation();

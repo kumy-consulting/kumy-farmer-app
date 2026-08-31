@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Kumy</string>
+    <string name="title_activity_main">Kumy</string>
+    <string name="package_name">com.kumy.farmer</string>
+    <string name="custom_url_scheme">com.kumy.farmer</string>
+</resources>
