@@ -303,6 +303,7 @@ export const QuestionnaireProfilPage: FunctionComponent = () => {
     echecChargement,
     rechargerProfil,
     envoyerEtape,
+    termine,
   } = useQuestionnaireProfil();
   const [erreurs, setErreurs] = useState<Record<string, string>>({});
   // `etapeCourante` du hook ne bouge qu'au chargement (reprise) ; entre les
@@ -324,9 +325,15 @@ export const QuestionnaireProfilPage: FunctionComponent = () => {
     setErreurMasquee(false);
   }, [error]);
 
-  // Reprise : on rouvre au premier panneau de l'étape que le serveur attend.
+  // Reprise : on rouvre au premier panneau de l'étape que le serveur attend —
+  // SAUF si le questionnaire est déjà terminé. « Reprendre » n'a alors plus
+  // d'objet : on n'y revient pas pour continuer mais pour relire ou corriger, et
+  // la réponse à changer est aussi souvent la première que la dernière. Reprendre
+  // à l'étape 3 (`min(step + 1, 3)` vaut 3 pour un dossier complet) déposait
+  // l'agriculteur sur « Zone d'exploitation », le sixième des huit écrans, à cinq
+  // « Précédent » de son nom.
   if (!isLoading && !etapeAlignee) {
-    setIndexPanneau(premierPanneauDe(etapeCourante));
+    setIndexPanneau(termine ? 0 : premierPanneauDe(etapeCourante));
     setEtapeAlignee(true);
   }
 

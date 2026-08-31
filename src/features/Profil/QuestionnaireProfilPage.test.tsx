@@ -1,6 +1,6 @@
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import 'dayjs/locale/fr';
@@ -104,6 +104,26 @@ describe('QuestionnaireProfilPage', () => {
     rendre();
 
     expect(await screen.findByText('Zone d’exploitation')).toBeDefined();
+  });
+
+  it('rouvre un profil déjà complété au début, pas au milieu', async () => {
+    // « Reprendre » n'a plus de sens une fois le questionnaire terminé : on y
+    // revient pour relire ou corriger une réponse, et celle qu'on veut changer
+    // est aussi souvent la première que la dernière. Reprendre à l'étape 3
+    // obligeait à remonter cinq écrans avec « Précédent ».
+    mocked.lireProfil.mockResolvedValue({
+      ...profil(3),
+      profileSurvey: { step: 3, completedAt: '2026-08-28T09:12:00.000Z' },
+    });
+    rendre();
+    // Surtout pas `findByText` : le titre affiche « Informations personnelles »
+    // dès le premier rendu, AVANT que la reprise ne recale le panneau. Un
+    // `findByText` se satisferait de cet état transitoire et passerait au vert
+    // même si l'écran atterrissait ensuite à l'étape 3. On attend donc la fin
+    // du chargement, puis on lit le titre.
+    await waitFor(() => expect(screen.queryByText('Chargement…')).toBeNull());
+
+    expect(screen.getByRole('heading')).toHaveTextContent('Informations personnelles');
   });
 
   it('efface le message d’échec quand on revient à l’étape précédente', async () => {
