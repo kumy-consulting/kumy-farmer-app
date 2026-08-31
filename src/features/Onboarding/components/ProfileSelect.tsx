@@ -1,5 +1,6 @@
 import type { FunctionComponent, ReactNode } from 'react';
 
+import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import { Box, MenuItem, Select, type SelectChangeEvent } from '@mui/material';
 import { styled } from '@mui/material/styles';
 
@@ -63,6 +64,66 @@ const CapsuleSelect = styled(Select)({
   },
 });
 
+/**
+ * La liste déroulante, habillée comme la capsule qui l'ouvre.
+ *
+ * Elle arrivait avec le panneau blanc par défaut de MUI, posé sur un écran qui
+ * parle partout le même vocabulaire — dégradé nacré, rayon 16, ombre teal. Elle
+ * se lisait comme un artefact du navigateur tombé sur la page.
+ *
+ * Surtout, **on ne voyait pas sa propre réponse** : `Mui-selected` ne pose
+ * qu'un lavis gris à 8 %, invisible sur un téléphone en plein soleil. Or on
+ * rouvre une liste au moins autant pour vérifier ce qu'on a répondu que pour en
+ * changer. D'où la coche et le teal : la réponse déjà donnée se retrouve d'un
+ * coup d'œil, sans avoir à relire les six lignes.
+ */
+const menuSx = {
+  mt: 0.75,
+  borderRadius: '18px',
+  // Opaque, sans alpha : la capsule peut se permettre un fond translucide,
+  // elle est posée sur la page. Une liste flotte AU-DESSUS du formulaire — le
+  // moindre pourcent de transparence y laissait lire les champs du dessous à
+  // travers les intitulés.
+  backgroundColor: '#FFFFFF',
+  backgroundImage: 'linear-gradient(135deg, #FFFFFF 0%, #FAFBF7 100%)',
+  border: '1px solid rgba(1,134,117,0.14)',
+  boxShadow: '0 18px 40px rgba(1,50,40,0.16), 0 2px 10px rgba(1,134,117,0.06)',
+  // Les listes d'adresse comptent parfois des dizaines de sous-préfectures :
+  // la liste se plafonne et défile, avec la barre fine de la PWA.
+  maxHeight: 'min(44vh, 360px)',
+  scrollbarWidth: 'thin',
+  '&::-webkit-scrollbar': { width: 4 },
+  '&::-webkit-scrollbar-thumb': { backgroundColor: 'rgba(1,134,117,0.22)', borderRadius: 2 },
+  '& .MuiList-root': { padding: '6px' },
+  '& .MuiMenuItem-root': {
+    minHeight: 52,
+    borderRadius: '12px',
+    padding: '10px 12px',
+    fontFamily: "'Ubuntu', sans-serif",
+    fontSize: 15,
+    color: 'rgba(20,40,35,0.86)',
+    gap: '10px',
+    '&:hover': { background: 'rgba(1,134,117,0.06)' },
+    // Le focus se dit par un liseré, jamais par un fond. À l'ouverture, MUI
+    // pose `Mui-focusVisible` sur la première ligne : lui donner le même fond
+    // teal que `Mui-selected` la faisait passer pour une réponse déjà donnée,
+    // sur un champ pourtant obligatoire et encore vide. Le fond plein reste
+    // réservé à la seule ligne réellement choisie.
+    '&.Mui-focusVisible': {
+      background: 'transparent',
+      boxShadow: 'inset 0 0 0 2px rgba(1,134,117,0.38)',
+    },
+    '&.Mui-selected': {
+      background: 'rgba(1,134,117,0.10)',
+      color: '#016557',
+      fontWeight: 700,
+      '&:hover': { background: 'rgba(1,134,117,0.14)' },
+      // Choisie ET focalisée : le fond reste, le liseré se superpose.
+      '&.Mui-focusVisible': { background: 'rgba(1,134,117,0.10)' },
+    },
+  },
+} as const;
+
 const LeadingIcon = styled(Box, { shouldForwardProp: (prop) => prop !== 'muted' })<{ muted?: boolean }>(
   ({ muted }) => ({
     display: 'flex',
@@ -95,6 +156,13 @@ export const ProfileSelect: FunctionComponent<ProfileSelectProps> = ({
       disabled={disabled}
       displayEmpty
       SelectDisplayProps={{ 'aria-label': label }}
+      MenuProps={{
+        slotProps: { paper: { sx: menuSx } },
+        // Sous la capsule plutôt que par-dessus : on garde sous les yeux le
+        // libellé de la question pendant qu'on choisit.
+        anchorOrigin: { vertical: 'bottom', horizontal: 'left' },
+        transformOrigin: { vertical: 'top', horizontal: 'left' },
+      }}
       renderValue={(selected) => {
         const id = selected as string;
         const isPlaceholder = !id;
@@ -119,8 +187,14 @@ export const ProfileSelect: FunctionComponent<ProfileSelectProps> = ({
       }}
     >
       {options.map((option) => (
-        <MenuItem key={option.id} value={option.id} sx={{ fontFamily: "'Ubuntu', sans-serif" }}>
-          {option.name}
+        <MenuItem key={option.id} value={option.id}>
+          <Box component="span" sx={{ flex: 1, minWidth: 0 }}>
+            {option.name}
+          </Box>
+          {/* `aria-hidden` : l'état sélectionné est déjà porté par
+              `aria-selected` de l'option. Sans ça, la coche s'ajouterait au nom
+              accessible et « Boké » deviendrait introuvable par son intitulé. */}
+          {option.id === value && <CheckRoundedIcon aria-hidden sx={{ fontSize: 19, color: '#016557' }} />}
         </MenuItem>
       ))}
     </CapsuleSelect>
