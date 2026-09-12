@@ -5,6 +5,8 @@ export interface ValidateTokenResponse {
   firstName: string;
   lastName: string;
   role: string;
+  dateOfBirth?: string | null;
+  gender?: string | null;
 }
 
 export interface OnboardingUserData {
@@ -13,4 +15,15 @@ export interface OnboardingUserData {
   firstName: string;
   lastName: string;
   role: string;
+  dateOfBirth?: string | null;
+  gender?: string | null;
+}
+
+export interface OnboardingProfile {
+  birthDate: string | null; // ISO 'YYYY-MM-DD'
+  regionId: string | null;
+  regionName: string | null;
+  prefectureId: string | null;
+  prefectureName: string | null;
+  addressDetail: string | null;
 }

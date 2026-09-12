@@ -49,7 +49,7 @@ export const InvitedWelcomePage: FunctionComponent = () => {
         flexDirection: 'column',
       }}
     >
-      <OnboardingStepper current={0} />
+      <OnboardingStepper current={0} total={3} />
 
       <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
         <UserCheckIcon />
@@ -96,7 +96,7 @@ export const InvitedWelcomePage: FunctionComponent = () => {
       <Button
         size="large"
         variant="contained"
-        onClick={() => navigate('/onboarding/pin')}
+        onClick={() => navigate('/onboarding/profile')}
         sx={{ maxWidth: 395, alignSelf: 'center', width: '100%' }}
       >
         Continuer

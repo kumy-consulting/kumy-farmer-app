@@ -2,8 +2,10 @@
 <html lang="fr" style="color-scheme: light; background: #f7f4e9">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/logo-kumy.svg" />
-    <link rel="apple-touch-icon" href="/logo-kumy.svg" />
+    <!-- Contextes CARRÉS : la marque seule. Le verrou « pousse + kumy » est
+         large (340×250) et deviendrait illisible réduit à 16 ou 180 px. -->
+    <link rel="icon" type="image/svg+xml" href="/logo-mark.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
@@ -15,85 +17,295 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Kumy" />
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap" rel="stylesheet" />
+    <!-- Police Ubuntu embarquée via @fontsource, importée dans main.tsx. -->
 
     <title>Kumy — Mon exploitation</title>
   </head>
   <body style="margin: 0; background: #f7f4e9">
     <style>
-      #kumy-preboot {
+      /*
+        Écran d'attente Kumy. Volontairement HORS de #root : React efface le
+        contenu de #root à son premier rendu, et `App` ne rend rien tant que la
+        session n'est pas initialisée — un loader placé dedans laisserait donc un
+        écran vide pendant toute l'authentification.
+        Il est retiré explicitement par `dismissBootSplash()`.
+      */
+      #kumy-splash {
         position: fixed;
         inset: 0;
+        z-index: 9999;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
+        padding: 48px 28px;
         font-family: 'Ubuntu', -apple-system, BlinkMacSystemFont, sans-serif;
-        background: linear-gradient(180deg, #f7f4e9 0%, #edf3ea 35%, #d9e7db 68%, #bed4c0 100%);
-        z-index: 9999;
+        text-align: center;
+        background: linear-gradient(180deg, #f7f4e9 0%, #edf3ea 34%, #d9e7db 68%, #bed4c0 100%);
+        opacity: 1;
+        transition: opacity 420ms ease;
       }
-      #kumy-preboot img {
-        width: 132px;
-        height: auto;
-        filter: drop-shadow(0 12px 28px rgba(1, 76, 65, 0.22));
-        animation: kumyFloat 5s ease-in-out infinite;
+      #kumy-splash.is-gone {
+        opacity: 0;
+        pointer-events: none;
       }
-      #kumy-preboot .tag {
-        margin-top: 22px;
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: 0.38em;
-        text-transform: uppercase;
-        color: #014c41;
+
+      .ks-stage {
+        position: relative;
+        display: grid;
+        place-items: center;
+        width: 340px;
+        height: 340px;
+        max-width: 78vw;
+        max-height: 78vw;
       }
-      #kumy-preboot .dots {
-        display: flex;
-        gap: 7px;
-        margin-top: 18px;
+
+      /*
+        La signature de l'écran : le RAYON DE COUVERTURE d'une station, et deux
+        marqueurs qui l'orbitent.
+
+        Leurs couleurs ne sont pas décoratives — ce sont les deux tokens que le
+        tableau de bord emploie déjà : `primary/50` pour un relevé, `warning/50`
+        pour une vigilance. Leurs périodes diffèrent (9 s et 13,5 s), donc ils
+        dérivent, se croisent et se séparent : jamais de formation figée.
+
+        Ce sont eux l'indicateur de chargement. Il n'y a pas d'autre mouvement.
+      */
+      .ks-plan {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        fill: none;
+        stroke: #018675;
+        animation: ksEclosion 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
       }
-      #kumy-preboot .dots i {
-        width: 9px;
-        height: 9px;
+
+      /*
+        80 points parfaitement répartis. `pathLength="4800"` renormalise la
+        longueur du tracé pour que 80 périodes de 60 tombent juste : sans lui la
+        trame ne se referme pas, les moteurs approchant le cercle par des courbes
+        de Bézier (`getTotalLength()` renvoie 589,665 pour un 2·π·94 de 590,619).
+
+        Un tiret quasi nul avec `stroke-linecap: round` donne un point rond dont
+        le diamètre vaut l'épaisseur du trait.
+      */
+      .ks-couronne {
+        stroke-opacity: 0.48;
+        stroke-width: 2.3;
+        stroke-linecap: round;
+        stroke-dasharray: 0.1 59.9;
+      }
+
+      .ks-orbite {
+        transform-origin: 50% 50%;
+        animation: ksRotation 9s linear infinite;
+      }
+      /* Décalages négatifs : les marqueurs entrent déjà en place sur leur
+         course, au lieu de démarrer tous deux à midi. */
+      .ks-orbite--releve {
+        animation-delay: -1.6s;
+      }
+      .ks-orbite--vigilance {
+        animation-duration: 13.5s;
+        animation-delay: -7.4s;
+      }
+      .ks-marqueur,
+      .ks-aura {
+        stroke: none;
+        animation: ksParaitre 700ms ease-out 320ms both;
+      }
+      .ks-orbite--releve .ks-marqueur {
+        fill: #018675;
+      }
+      /* Dégradé et non aplat : un disque à bord franc se lisait comme une
+         pastille grise posée là, au lieu d'un halo de signal. */
+      .ks-orbite--releve .ks-aura {
+        fill: url(#ksAuraReleve);
+      }
+      .ks-orbite--vigilance .ks-marqueur {
+        fill: #c68a1a;
+      }
+      .ks-orbite--vigilance .ks-aura {
+        fill: url(#ksAuraVigilance);
+      }
+
+      /* Assoit le mot-symbole bleu ardoise sur le dégradé vert. */
+      .ks-halo {
+        position: absolute;
+        width: 62%;
+        height: 62%;
         border-radius: 50%;
-        background: linear-gradient(180deg, #2fa995 0%, #018675 55%, #014c41 100%);
-        animation: kumyDot 1.4s ease-in-out infinite;
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0) 70%);
+        animation: ksParaitre 900ms ease-out 120ms both;
       }
-      #kumy-preboot .dots i:nth-child(2) {
-        animation-delay: 0.18s;
+      .ks-logo {
+        position: relative;
+        animation: ksMonte 800ms cubic-bezier(0.22, 1, 0.36, 1) 140ms both;
+        width: 158px;
+        /* 40vw : le logo doit rester DANS la parcelle avec de l'air autour.
+           Au-delà, il en touche les bords sur un écran de 360 px. */
+        max-width: 40vw;
+        height: auto;
       }
-      #kumy-preboot .dots i:nth-child(3) {
-        animation-delay: 0.36s;
+
+      .ks-eyebrow {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 32px 0 0;
+        font-size: 10.5px;
+        font-weight: 700;
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+        color: #018675;
+        animation: ksMonte 700ms cubic-bezier(0.22, 1, 0.36, 1) 300ms both;
       }
-      @keyframes kumyFloat {
-        0%,
-        100% {
-          transform: translateY(0);
+      .ks-eyebrow::before,
+      .ks-eyebrow::after {
+        content: '';
+        width: 18px;
+        height: 1px;
+        background: rgba(1, 134, 117, 0.42);
+      }
+
+      /* Seule italique de l'app : elle signe cette phrase et rien d'autre. */
+      .ks-tagline {
+        margin: 14px 0 0;
+        font-size: 13.5px;
+        font-weight: 300;
+        font-style: italic;
+        line-height: 1.6;
+        color: #4a6360;
+        animation: ksMonte 700ms cubic-bezier(0.22, 1, 0.36, 1) 420ms both;
+      }
+
+      /* Ancrée en bas pour ne pas décentrer le bloc principal. */
+      .ks-mark {
+        position: absolute;
+        bottom: calc(26px + env(safe-area-inset-bottom, 0px));
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0;
+        padding: 7px 16px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.5);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: #35495e;
+        animation: ksMonte 700ms cubic-bezier(0.22, 1, 0.36, 1) 560ms both;
+      }
+      .ks-mark::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #41b782;
+      }
+
+      @keyframes ksRotation {
+        to {
+          transform: rotate(360deg);
         }
-        50% {
-          transform: translateY(-4px);
+      }
+
+      /*
+        Séquence d'arrivée. Un écran d'attente EST un moment d'arrivée : la
+        couronne éclôt, les marqueurs paraissent, puis le logo et le texte
+        montent en cascade. Rien ne bouge ensuite, hormis les orbites.
+      */
+      @keyframes ksEclosion {
+        from {
+          opacity: 0;
+          transform: scale(0.94);
+        }
+        to {
+          opacity: 1;
+          transform: none;
         }
       }
-      @keyframes kumyDot {
-        0%,
-        100% {
-          transform: translateY(0) scale(1);
-          opacity: 0.35;
+      @keyframes ksParaitre {
+        from {
+          opacity: 0;
         }
-        50% {
-          transform: translateY(-6px) scale(1.15);
+        to {
           opacity: 1;
         }
       }
+      @keyframes ksMonte {
+        from {
+          opacity: 0;
+          transform: translateY(12px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        /* Plus d'orbites : on fige les marqueurs là où leur course les aurait
+           placés, pour qu'ils ne se superposent pas à midi. */
+        .ks-orbite--releve {
+          transform: rotate(64deg);
+        }
+        .ks-orbite--vigilance {
+          transform: rotate(197deg);
+        }
+        .ks-plan,
+        .ks-orbite,
+        .ks-marqueur,
+        .ks-aura,
+        .ks-halo,
+        .ks-logo,
+        .ks-eyebrow,
+        .ks-tagline,
+        .ks-mark {
+          animation: none;
+        }
+        #kumy-splash {
+          transition: none;
+        }
+      }
     </style>
-    <div id="root">
-      <div id="kumy-preboot">
-        <img src="/logo-kumy.svg" alt="Kumy" />
-        <span class="tag">Mon exploitation</span>
-        <div class="dots"><i></i><i></i><i></i></div>
+
+    <div id="kumy-splash" role="status" aria-label="Chargement de Kumy">
+      <div class="ks-stage">
+        <svg class="ks-plan" viewBox="0 0 200 200" aria-hidden="true">
+          <defs>
+            <radialGradient id="ksAuraReleve">
+              <stop offset="34%" stop-color="#018675" stop-opacity="0.3" />
+              <stop offset="100%" stop-color="#018675" stop-opacity="0" />
+            </radialGradient>
+            <radialGradient id="ksAuraVigilance">
+              <stop offset="34%" stop-color="#c68a1a" stop-opacity="0.3" />
+              <stop offset="100%" stop-color="#c68a1a" stop-opacity="0" />
+            </radialGradient>
+          </defs>
+
+          <circle class="ks-couronne" cx="100" cy="100" r="94" pathLength="4800" />
+          <g class="ks-orbite ks-orbite--releve">
+            <circle class="ks-aura" cx="100" cy="6" r="9.5" />
+            <circle class="ks-marqueur" cx="100" cy="6" r="3.4" />
+          </g>
+          <g class="ks-orbite ks-orbite--vigilance">
+            <circle class="ks-aura" cx="100" cy="6" r="8.5" />
+            <circle class="ks-marqueur" cx="100" cy="6" r="2.8" />
+          </g>
+        </svg>
+        <span class="ks-halo" aria-hidden="true"></span>
+        <img class="ks-logo" src="/logo-kumy.svg" alt="Kumy" />
       </div>
+
+      <p class="ks-eyebrow">Mon exploitation</p>
+      <p class="ks-tagline">L'agriculture de précision,<br />au rythme de vos terres.</p>
+
+      <p class="ks-mark">Suite Kumy · Guinée</p>
     </div>
+
+    <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

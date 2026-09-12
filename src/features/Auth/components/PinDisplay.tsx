@@ -13,6 +13,12 @@ interface PinDisplayProps {
    * toujours le clavier — le focus, si).
    */
   onFocusChange?: (focused: boolean) => void;
+  /**
+   * Libellé accessible de l'input caché. Par défaut « Code secret » — la valeur
+   * en place : le composant sert aussi à saisir le code SMS, qui n'est pas un
+   * code secret, et l'écran doit alors pouvoir le nommer autrement.
+   */
+  inputLabel?: string;
 }
 
 const blink = keyframes`
@@ -90,7 +96,13 @@ const Dot = styled(Box)({
   animation: `${pop} 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)`,
 });
 
-export const PinDisplay: FunctionComponent<PinDisplayProps> = ({ pin, maxLength = 6, onChange, onFocusChange }) => {
+export const PinDisplay: FunctionComponent<PinDisplayProps> = ({
+  pin,
+  maxLength = 6,
+  onChange,
+  onFocusChange,
+  inputLabel = 'Code secret',
+}) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [focused, setFocused] = useState(false);
 
@@ -125,7 +137,7 @@ export const PinDisplay: FunctionComponent<PinDisplayProps> = ({ pin, maxLength 
           setFocused(false);
           onFocusChange?.(false);
         }}
-        aria-label="Code secret"
+        aria-label={inputLabel}
       />
       <Stack direction="row" spacing={1.25} justifyContent="center" sx={{ mt: 1, mb: 2 }}>
         {Array.from({ length: maxLength }).map((_, index) => {
