@@ -13,6 +13,9 @@ const mesure = (value: number, unit: string): { value: number; unit: string; at:
   at: MAINTENANT.toISOString(),
 });
 
+/** Tendance servie par l'API — la carte la restitue, elle ne la recalcule pas. */
+const TENDANCE = { deltaHpa: -2.3, direction: 'falling' as const, windowHours: 3 };
+
 const station: FarmLiveStation = {
   station: {
     id: 's1',
@@ -26,7 +29,7 @@ const station: FarmLiveStation = {
     live: {
       temperature: mesure(26, '°C'),
       humidity: mesure(92, '%'),
-      pressure: mesure(1014, 'hPa'),
+      pressure: { ...mesure(1014, 'hPa'), trend3h: TENDANCE },
       windSpeed: mesure(2, 'km/h'),
       windDir: { value: 135, label: 'SE', at: MAINTENANT.toISOString() },
       rainRate: mesure(0.2, 'mm/h'),
@@ -102,11 +105,14 @@ describe('DomaineWeather', () => {
 
     expect(screen.getByText('KMY-WE-2606-00001-K')).toBeDefined();
     expect(screen.getByText('En direct')).toBeDefined();
-    expect(screen.getByText('26.0 °C')).toBeDefined();
+    expect(screen.getByText('26.0')).toBeDefined();
+    expect(screen.getByText('°C')).toBeDefined();
     expect(screen.getByText('92 %')).toBeDefined();
     expect(screen.getByText('2 km/h')).toBeDefined();
     expect(screen.getByText('dir. SE')).toBeDefined();
     expect(screen.getByText('0.0 mm')).toBeDefined();
+    // `rainRate` a quitté la sous-ligne de la pluie pour qualifier la lecture.
+    expect(screen.getByText(/Il pleut · 0\.2 mm\/h/)).toBeDefined();
 
     expect(screen.getByText(/Prévision 5 jours/i)).toBeDefined();
     expect(screen.getByText("Aujourd'hui")).toBeDefined();
@@ -115,13 +121,50 @@ describe('DomaineWeather', () => {
     expect(screen.getByText('Maintenant')).toBeDefined();
   });
 
-  it('reste lisible pour l’agriculteur : ni pression, ni confiance, ni provenance', () => {
+  /**
+   * La pression était écartée parce qu'un `1014 hPa` isolé ne dit rien
+   * d'actionnable. C'est la VARIATION qui informe — en hivernage une chute
+   * marquée précède les lignes de grains — donc la carte l'affiche avec sa
+   * tendance. La confiance et la provenance, elles, restent hors de l'app
+   * agriculteur.
+   */
+  it('affiche la pression et sa tendance, sans confiance ni provenance', () => {
     render(<DomaineWeather liveStation={station} forecast={forecast} />);
 
-    expect(screen.queryByText(/Pression/i)).toBeNull();
-    expect(screen.queryByText(/1014/)).toBeNull();
+    expect(screen.getByText('Pression')).toBeDefined();
+    expect(screen.getByText('1014 hPa')).toBeDefined();
+    expect(screen.getByText(/en baisse/i)).toBeDefined();
+    expect(screen.getByText(/2\.3 hPa en 3 h/)).toBeDefined();
+
     expect(screen.queryByText(/confiance/i)).toBeNull();
     expect(screen.queryByText(/Station IoT/i)).toBeNull();
+  });
+
+  it('affiche la pression seule quand l’API ne calcule pas de tendance', () => {
+    const sansTendance: FarmLiveStation = {
+      station: {
+        ...station.station!,
+        live: { ...station.station!.live, pressure: mesure(1014, 'hPa') },
+      },
+    };
+    render(<DomaineWeather liveStation={sansTendance} forecast={forecast} />);
+
+    expect(screen.getByText('1014 hPa')).toBeDefined();
+    expect(screen.queryByText(/en baisse|en hausse|stable/i)).toBeNull();
+  });
+
+  /** Tous les kits n'ont pas de baromètre : l'API n'envoie alors pas `pressure`. */
+  it('masque la case pression quand le kit n’a pas de baromètre', () => {
+    const sansBarometre: FarmLiveStation = {
+      station: {
+        ...station.station!,
+        live: { ...station.station!.live, pressure: undefined },
+      },
+    };
+    render(<DomaineWeather liveStation={sansBarometre} forecast={forecast} />);
+
+    expect(screen.queryByText('Pression')).toBeNull();
+    expect(screen.getByText('92 %')).toBeDefined();
   });
 
   it('affiche les prévisions même sans kit posé', () => {
@@ -208,6 +251,6 @@ describe('DomaineWeather', () => {
 
     expect(screen.getByText('Hors ligne')).toBeDefined();
     expect(screen.getByText(/Dernière donnée il y a 20 j · 7 août à 18:15/)).toBeDefined();
-    expect(screen.getByText('26.0 °C')).toBeDefined();
+    expect(screen.getByText('26.0')).toBeDefined();
   });
 });

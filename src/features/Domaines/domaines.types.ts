@@ -215,6 +215,29 @@ export interface StationLiveMeasure {
 }
 
 /**
+ * Tendance barométrique servie par l'API avec la pression (`live.pressure`).
+ *
+ * Une pression isolée ne dit rien à un agriculteur : c'est sa variation qui
+ * porte l'information. Dérivée serveur de la moyenne horaire agrégée d'il y a
+ * `windowHours` heures. Optionnelle, et sans repli : créneau non agrégé,
+ * station neuve ou API antérieure à son ouverture rendent le champ absent — la
+ * carte n'affiche alors aucune tendance plutôt qu'une tendance inventée.
+ *
+ * `direction` est dérivée serveur du `deltaHpa` ARRONDI, seuil à 1 hPa : ne pas
+ * la recalculer côté client, les deux verdicts divergeraient sur les bords.
+ */
+export interface PressureTrend {
+  deltaHpa: number;
+  direction: 'falling' | 'steady' | 'rising';
+  windowHours: number;
+}
+
+/** La pression porte, en plus de sa valeur, sa tendance — quand l'API la calcule. */
+export interface StationLivePressure extends StationLiveMeasure {
+  trend3h?: PressureTrend;
+}
+
+/**
  * Réponse de `GET /farms/:id/live-station`.
  *
  * La forme suit le `FarmStationLiveResponseDto` du backoffice : les mesures sont
@@ -235,7 +258,7 @@ export interface FarmStationLive {
   live: {
     temperature?: StationLiveMeasure;
     humidity?: StationLiveMeasure;
-    pressure?: StationLiveMeasure;
+    pressure?: StationLivePressure;
     windSpeed?: StationLiveMeasure;
     windDir?: { value: number; label: string; at: string | null };
     rainfall?: StationLiveMeasure;
