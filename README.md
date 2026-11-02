@@ -27,13 +27,141 @@ npm run format:check # Prettier --check
 
 ## Application native (Capacitor)
 
-Les dossiers natifs ne sont PAS générés à l'init. Pour builder natif :
+`android/` **est versionné** : on y personnalise le manifeste, le thème et les
+icônes. Il n'y a donc rien à générer, seulement à synchroniser.
 
 ```bash
-npm run cap:add:android   # nécessite Android SDK
-npm run cap:add:ios       # nécessite macOS + Xcode + CocoaPods
-npm run cap:sync          # build web + sync vers les plateformes ajoutées
+npm run cap:sync                      # build web + copie vers android/
+cd android && ./gradlew assembleDebug # APK : app/build/outputs/apk/debug/
 ```
+
+`ios/` n'est pas généré : hors périmètre tant qu'aucune machine du projet n'a
+Xcode. Voir `docs/superpowers/specs/2026-08-22-capacitor-android-natif-design.md`.
+
+### ⚠️ L'URL de l'API est figée au build
+
+Vite inline les variables `VITE_*` **au moment du build**, et `.env` est
+gitignoré. Sans `.env` local, l'APK retombe silencieusement sur l'URL Cloud Run
+**dev** codée en dur dans `src/shared/api/client.ts`. Renseigne
+`VITE_API_URL_NATIVE` avant tout build destiné à la production.
+
+### Icônes et splash
+
+Deux visuels, pas un seul :
+
+| Contexte | Source | Pourquoi |
+|---|---|---|
+| Carré — favicon, icône PWA, icône Android, médaillon d'accueil | `public/logo-mark.svg` (la pousse seule) | Le verrou complet est large (340×250) : réduit au carré puis rogné par le masque adaptatif, le mot « kumy » devient illisible |
+| Large — splash, loader d'`index.html` | `public/logo-kumy.svg` (verrou complet) | La place existe, et la marque s'identifie |
+
+`public/logo-mark.svg` est **extrait** de `logo-kumy.svg` : même tracé, même vert.
+Après modification du logo, régénérer les deux familles :
+
+```bash
+npm run assets:native   # écrit assets/*, public/icon-*, puis génère android/
+```
+
+Les scripts `scripts/build-native-assets.mjs` (rasters) et
+`scripts/build-splash-icon.mjs` (vectoriel du splash) expliquent chaque taille
+et chaque marge.
+
+### Les trois temps du démarrage
+
+L'agriculteur voit trois écrans avant l'app, et ils partagent un même objet : la
+**couronne de couverture**, l'instrument de Kumy.
+
+| Temps | Quoi | Où c'est défini |
+|---|---|---|
+| 1 | Splash système : pousse au centre de la couronne, sur crème | `android/.../drawable/splash_kumy.xml`, via `windowSplashScreenAnimatedIcon` |
+| 2 | Splash Capacitor : la même couronne, plus le dégradé, les marqueurs et le verrou | `drawable-*/splash.png`, généré par `build-native-assets.mjs` |
+| 3 | Écran d'attente web : la même composition, vivante | `#kumy-splash` dans `index.html` |
+
+Le temps 1 est **vectoriel** et ne doit pas redevenir `@mipmap/ic_launcher` :
+ce mipmap plafonne à 192 px alors que l'API l'étire sur 288 dp (~790 px en
+440 dpi), et comme c'est une icône *adaptative*, le système lui applique son
+masque — d'où le carré arrondi et son liseré sur fond crème. `styles.xml`
+détaille les deux mesures.
+
+Il ne porte ni texte ni animation, à dessein : le seul emplacement de texte
+offert par l'API est bitmap (le flou reviendrait), et le splash se retire dès la
+première image de l'app — une séquence coupée à un instant arbitraire se lirait
+comme un raté. Les mots et le mouvement commencent au temps 2.
+
+```bash
+npm run assets:verif   # la pousse vectorielle est-elle toujours celle du SVG ?
+```
+
+Ce garde-fou existe parce que `build-splash-icon.mjs` réécrit les nombres du
+tracé pour y aplatir la rotation : une erreur de signe donnerait une pousse
+retournée, invisible à la relecture du XML.
+
+### L'écran d'attente
+
+`index.html` porte un écran d'attente complet (`#kumy-splash`). Ses formes
+reprennent le vocabulaire que l'agriculteur retrouve sur ses cartes, et chacune
+dit quelque chose :
+
+| Forme | Sens | Mouvement |
+|---|---|---|
+| Couronne de 80 points | le **rayon de couverture** de la station | aucun |
+| Marqueur teal (`primary/50`) | un **relevé** | orbite en 9 s |
+| Marqueur ambre (`warning/50`) | une **vigilance** | orbite en 13,5 s |
+
+Il n'y a donc pas de « trois points » de chargement : les marqueurs tiennent ce
+rôle. Leurs couleurs sont les tokens que le tableau de bord emploie déjà, et
+leurs périodes diffèrent à dessein — ils dérivent, se croisent et se séparent,
+jamais en formation figée.
+
+À l'ouverture, une cascade : la couronne éclôt, les marqueurs paraissent, puis
+le logo et le texte montent. Sous `prefers-reduced-motion`, tout est figé et les
+marqueurs sont posés à 64° et 197° pour ne pas se superposer.
+
+**Pourquoi `pathLength="4800"` sur les cercles.** Sans lui la trame ne se referme
+pas : les moteurs approchent le cercle par des courbes de Bézier, et
+`getTotalLength()` renvoie 589,665 là où 2·π·94 vaut 590,619 — assez pour tronquer
+le dernier tiret, toujours au même endroit. L'attribut renormalise la longueur du
+tracé : 48 tirets de période 100 tombent alors juste, quel que soit le moteur.
+
+Le cercle ne tourne pas, et ce n'est pas un oubli : avec 48 tirets identiques la
+figure se superpose à elle-même tous les 7,5°, une rotation y serait invisible.
+
+`scripts/build-native-assets.mjs` calcule ses tirets au lieu d'utiliser
+`pathLength` — vérifié, librsvg ignore cet attribut et rendait le cercle plein.
+
+Il est déclaré **hors de `#root`**, et ce n'est pas un détail : React efface le
+contenu de `#root` à son premier rendu et `App` ne rend rien tant que la session
+n'est pas initialisée. Un loader placé dedans laisserait un écran vide pendant
+toute l'authentification — exactement ce qu'il doit couvrir.
+
+Enchaînement : splash système (icône sur crème) → `hideNativeSplash()` dès la
+première image peinte → `#kumy-splash` jusqu'à session prête → app.
+`dismissBootSplash()` le retire du DOM après le fondu, sinon il intercepterait
+les gestes.
+
+### L'écran de démarrage Android 12+ n'utilise pas `splash.png`
+
+L'API SplashScreen dessine l'**icône de l'app** sur `windowSplashScreenBackground` ;
+le `android:background` que génère Capacitor y est inerte, ce qui laissait un fond
+gris. Les valeurs de marque sont donc dans `values/styles.xml`
+(`AppTheme.NoActionBarLaunch`). Les `drawable-*/splash.png` restent produits pour
+les versions antérieures à Android 12.
+
+### Ce qui vit où
+
+- **`src/shared/services/nativeShell.ts`** — seul module autorisé à parler aux
+  plugins de coquille (clavier, splash, bouton retour). No-op sur web.
+- **La barre de statut ne s'y pilote PAS.** Sa couleur est déclarée dans
+  `android/app/src/main/res/values/styles.xml` : `BridgeActivity` réapplique le
+  thème en fin d'animation de démarrage et écraserait tout appel venu du JS.
+- **Le thème désactive l'edge-to-edge** imposé par Android 15
+  (`windowOptOutEdgeToEdgeEnforcement`). À reprendre au passage SDK 36, où
+  l'attribut est déprécié : il faudra alors gérer `env(safe-area-inset-*)`.
+
+### Régression connue : cartes hors-ligne
+
+En natif il n'y a pas de service worker, donc le cache Workbox des tuiles
+satellite (30 jours) ne s'applique plus. Les écrans carto se dégradent hors
+connexion. Chantier à part, explicitement hors périmètre de la conversion.
 
 ## Qualité de code
 

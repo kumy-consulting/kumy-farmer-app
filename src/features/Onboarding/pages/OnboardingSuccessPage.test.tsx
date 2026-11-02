@@ -26,6 +26,14 @@ describe('OnboardingSuccessPage', () => {
       role: 'farmer',
     });
     useOnboardingStore.getState().setPassword('123456');
+    useOnboardingStore.getState().setProfile({
+      birthDate: '1990-05-12',
+      regionId: 'r1',
+      regionName: 'Kindia',
+      prefectureId: 'p1',
+      prefectureName: 'Dubréka',
+      addressDetail: 'Marché central',
+    });
   });
 
   afterEach(() => {
@@ -43,7 +51,16 @@ describe('OnboardingSuccessPage', () => {
     );
 
     await waitFor(() => {
-      expect(onboardingApi.activate).toHaveBeenCalledWith({ token: 'token-abc', password: '123456' });
+      expect(onboardingApi.activate).toHaveBeenCalledWith({
+        token: 'token-abc',
+        password: '123456',
+        profileData: {
+          birthDate: '1990-05-12',
+          regionId: 'r1',
+          prefectureId: 'p1',
+          addressDetail: 'Marché central',
+        },
+      });
     });
 
     await waitFor(() => {

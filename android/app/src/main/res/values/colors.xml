@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Vert Kumy. Doit rester aligne sur `capacitor.config.ts`, le theme MUI
+        (`src/theme/theme.ts`) et la meta `theme-color` d'index.html.
+    -->
+    <color name="kumyStatusBar">#018675</color>
+
+    <!-- Crème Kumy — fond de l'écran de démarrage. Aligné sur le
+         `backgroundColor` du SplashScreen dans capacitor.config.ts. -->
+    <color name="kumySplash">#F7F4E9</color>
+</resources>
