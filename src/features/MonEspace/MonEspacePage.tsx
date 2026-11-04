@@ -3,6 +3,7 @@ import type { FunctionComponent } from 'react';
 import { Box, Stack, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 
+import { CarteRattachement } from '@/features/Rattachement/CarteRattachement';
 import { useAuthStore } from '@/shared/stores/authStore';
 import { error } from '@/theme/colors';
 
@@ -46,6 +47,8 @@ export const MonEspacePage: FunctionComponent = () => {
       />
 
       <Stack spacing={3.5} sx={{ px: 2.5, pt: 2.5, pb: 3 }}>
+        <CarteRattachement />
+
         <BlocOutils eligibilite={demoEligibilite} score={demoScore} />
 
         <BlocReglages alertesSms={alertesSms} onAlertesSmsChangees={poserAlertesSms} />

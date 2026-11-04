@@ -11,6 +11,7 @@ import { CarteBonnesPratiques } from '@/features/Home/components/CarteBonnesPrat
 import { CarteEtudeDeSol } from '@/features/Home/components/CarteEtudeDeSol';
 import { initiales } from '@/features/Home/initiales';
 import { useEtudeDeSol } from '@/features/Home/useEtudeDeSol';
+import { CarteRattachement } from '@/features/Rattachement/CarteRattachement';
 import { useAuthStore } from '@/shared/stores/authStore';
 import { SUPPORT_TEL_HREF, SUPPORT_TELEPHONE_LOCAL } from '@/shared/support';
 import { error } from '@/theme/colors';
@@ -362,6 +363,8 @@ export const BienvenuePage: FunctionComponent = () => {
               background: 'linear-gradient(90deg, rgba(1,134,117,0.22), rgba(1,134,117,0.03))',
             }}
           />
+
+          <CarteRattachement mb="clamp(12px, 2vh, 20px)" />
 
           <CarteEtudeDeSol
             requestedAt={etudeDeSol.requestedAt}
