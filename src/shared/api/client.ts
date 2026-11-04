@@ -23,14 +23,21 @@ const API_URL = isNative
   ? import.meta.env.VITE_API_URL_NATIVE || NATIVE_API_FALLBACK
   : import.meta.env.VITE_API_URL || '/api/v1';
 
-/** Erreur applicative normalisée levée par le client (message + status HTTP). */
+/**
+ * Erreur applicative normalisée levée par le client : message, status HTTP, et
+ * — quand l'API en pose un — le `code` métier et le corps de la réponse.
+ */
 export class ApiRequestError extends Error {
   status: number;
+  code?: string;
+  data?: Record<string, unknown>;
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, code?: string, data?: Record<string, unknown>) {
     super(message);
     this.name = 'ApiRequestError';
     this.status = status;
+    this.code = code;
+    this.data = data;
   }
 }
 
@@ -95,8 +102,10 @@ apiClient.interceptors.response.use(
       }
     }
 
-    const body = error.response?.data as { error?: string; message?: string } | undefined;
+    const body = error.response?.data as { error?: string; message?: string; code?: unknown } | undefined;
     const message = body?.error || body?.message || error.message || 'Erreur réseau';
-    throw new ApiRequestError(message, status);
+    const code = typeof body?.code === 'string' ? body.code : undefined;
+    const data = body && typeof body === 'object' ? (body as Record<string, unknown>) : undefined;
+    throw new ApiRequestError(message, status, code, data);
   },
 );
