@@ -164,4 +164,80 @@ describe('useRattachement', () => {
 
     expect(hook.result.current.error).toMatch(/Impossible/);
   });
+
+  const avecCode = async () => {
+    const etat = vi.spyOn(rattachementApi, 'etat').mockResolvedValue(enAttente);
+    const demander = vi.spyOn(rattachementApi, 'demanderCode').mockResolvedValue({
+      code: '123456',
+      expireA: new Date(Date.now() + 600_000).toISOString(),
+    });
+    const hook = await monter();
+    await tirer(hook);
+    return { etat, demander, hook };
+  };
+
+  it('une réponse lente ne défait pas un état plus récent', async () => {
+    const { etat, demander, hook } = await avecCode();
+    let finir!: (e: EtatRattachement) => void;
+    etat.mockImplementationOnce(() => new Promise<EtatRattachement>((r) => (finir = r)));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+    demander.mockRejectedValue(new ApiRequestError('m', 409, 'ATTACH_REQUEST_BLOCKED'));
+    await tirer(hook);
+    expect(hook.result.current.etat?.statut).toBe('bloquee');
+
+    await act(async () => {
+      finir(enAttente);
+      await Promise.resolve();
+    });
+    expect(hook.result.current.etat?.statut).toBe('bloquee');
+  });
+
+  it('ne lance pas une relecture tant que la précédente court', async () => {
+    const { etat } = await avecCode();
+    etat.mockImplementation(() => new Promise<EtatRattachement>(() => {}));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_000);
+    });
+    // montage + un seul appel bloqué en vol
+    expect(etat).toHaveBeenCalledTimes(2);
+  });
+
+  it('efface le code dès que la demande n’est plus en attente', async () => {
+    const { etat, hook } = await avecCode();
+    etat.mockResolvedValue({ statut: 'refusee', codeExpireA: null });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+    expect(hook.result.current.code).toBeNull();
+    const appels = etat.mock.calls.length;
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_000);
+    });
+    expect(etat).toHaveBeenCalledTimes(appels);
+  });
+
+  it('retente la lecture initiale au retour au premier plan, une fois l’état connu elle s’arrête', async () => {
+    const etat = vi.spyOn(rattachementApi, 'etat').mockRejectedValueOnce(new Error('offline'));
+    etat.mockResolvedValue(enAttente);
+    const hook = await monter();
+    expect(hook.result.current.etat).toBeNull();
+
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'));
+      await Promise.resolve();
+    });
+    expect(hook.result.current.etat).toEqual(enAttente);
+
+    const appels = etat.mock.calls.length;
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'));
+      await Promise.resolve();
+    });
+    expect(etat).toHaveBeenCalledTimes(appels);
+  });
 });

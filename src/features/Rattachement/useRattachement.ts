@@ -34,6 +34,10 @@ export function useRattachement(): RattachementState {
   const [error, setError] = useState<string | null>(null);
   const { secondesRestantes, relancer } = useResendCountdown(0);
   const actif = useRef(true);
+  // Une seule relecture périodique à la fois, et seule la plus récente écrit :
+  // une réponse lente ne doit jamais défaire un état plus neuf.
+  const enVol = useRef(false);
+  const sequence = useRef(0);
 
   useEffect(() => {
     actif.current = true;
@@ -42,12 +46,17 @@ export function useRattachement(): RattachementState {
     };
   }, []);
 
-  const lireEtat = useCallback(async () => {
+  const lireEtat = useCallback(async (exclusive = false) => {
+    if (exclusive && enVol.current) return;
+    const mienne = ++sequence.current;
+    if (exclusive) enVol.current = true;
     try {
       const suivant = await rattachementApi.etat();
-      if (actif.current) setEtat(suivant);
+      if (actif.current && mienne === sequence.current) setEtat(suivant);
     } catch {
       // Une relecture manquée n'efface rien : la suivante rattrapera.
+    } finally {
+      if (exclusive) enVol.current = false;
     }
   }, []);
 
@@ -61,7 +70,7 @@ export function useRattachement(): RattachementState {
   const affiche = code !== null;
   useEffect(() => {
     if (!affiche) return;
-    const id = setInterval(() => void lireEtat(), RELECTURE_MS);
+    const id = setInterval(() => void lireEtat(true), RELECTURE_MS);
     return () => clearInterval(id);
   }, [affiche, lireEtat]);
 
@@ -73,17 +82,32 @@ export function useRattachement(): RattachementState {
     return () => clearTimeout(id);
   }, [expireA]);
 
-  // Confirmée : le palier d'accès a changé côté serveur, on relit le profil.
+  // Lecture initiale manquée : on retente une fois au retour au premier plan.
+  const sansEtat = etat === null;
+  useEffect(() => {
+    if (!sansEtat) return;
+    const auRetour = () => {
+      if (document.visibilityState === 'visible') void lireEtat();
+    };
+    document.addEventListener('visibilitychange', auRetour);
+    return () => document.removeEventListener('visibilitychange', auRetour);
+  }, [sansEtat, lireEtat]);
+
+  // Le code ne survit pas à la demande : tout état autre qu'« en attente »
+  // l'efface (et arrête la relecture). Confirmée : le palier d'accès a changé
+  // côté serveur, on relit le profil.
   const statut = etat?.statut;
   useEffect(() => {
-    if (statut !== 'confirmee') return;
+    if (statut === undefined || statut === 'en_attente') return;
     setCode(null);
-    void useAuthStore.getState().loadUser();
+    if (statut === 'confirmee') void useAuthStore.getState().loadUser();
   }, [statut]);
 
   const afficherCode = useCallback(async () => {
     setIsRequesting(true);
     setError(null);
+    // Toute lecture déjà partie est antérieure à cette demande.
+    sequence.current++;
     try {
       const reponse = await rattachementApi.demanderCode();
       if (!actif.current) return;
@@ -93,6 +117,7 @@ export function useRattachement(): RattachementState {
     } catch (e) {
       if (!actif.current) return;
       const codeErreur = e instanceof ApiRequestError ? e.code : undefined;
+      sequence.current++;
       if (codeErreur === 'ATTACH_REQUEST_BLOCKED') {
         setEtat({ statut: 'bloquee', codeExpireA: null });
       } else if (codeErreur === 'NO_ATTACH_REQUEST') {

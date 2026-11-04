@@ -61,7 +61,6 @@ export const CarteRattachement: FunctionComponent<CarteRattachementProps> = ({ m
   if (etat.statut !== 'en_attente' && etat.statut !== 'bloquee') return null;
 
   const bloquee = etat.statut === 'bloquee';
-  const expire = code !== null && secondesRestantes <= 0;
 
   return (
     <Box sx={{ mb }}>
@@ -120,7 +119,7 @@ export const CarteRattachement: FunctionComponent<CarteRattachementProps> = ({ m
         </Box>
       )}
 
-      {!bloquee && (code === null || expire) && (
+      {!bloquee && code === null && (
         <Box
           component="button"
           type="button"
