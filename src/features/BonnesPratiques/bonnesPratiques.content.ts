@@ -11,7 +11,7 @@
  * phrase-là doit venir des agronomes Kumy, pas d'ici.
  */
 
-/** Clé de l'illustration, résolue par `IllustrationSujet`. */
+/** Clé du sujet : choisit son icône dans la page. */
 export type SujetId = 'sol' | 'parcelle' | 'cultures' | 'eau' | 'engrais' | 'ravageurs';
 
 export interface Sujet {
@@ -73,4 +73,3 @@ export const SUJETS: readonly Sujet[] = [
 
 /** Numéro d'assistance Kumy, déjà affiché sur l'écran d'attente. */
 export const TELEPHONE_CONSEILLER = '+224628898919';
-export const TELEPHONE_CONSEILLER_AFFICHE = '628 89 89 19';

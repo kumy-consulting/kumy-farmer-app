@@ -11,7 +11,7 @@ describe('CarteBonnesPratiques', () => {
     const onOuvrir = vi.fn();
     render(<CarteBonnesPratiques onOuvrir={onOuvrir} />);
 
-    await userEvent.click(screen.getByText('Découvrir les bonnes pratiques'));
+    await userEvent.click(screen.getByText('Les bonnes pratiques'));
 
     expect(onOuvrir).toHaveBeenCalledTimes(1);
   });

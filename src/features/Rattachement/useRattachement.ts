@@ -8,7 +8,10 @@ import { useAuthStore } from '@/shared/stores/authStore';
 /** Relecture de l'état tant qu'un code est affiché : l'encadreur peut confirmer à tout moment. */
 const RELECTURE_MS = 10_000;
 
-interface RattachementState {
+/** Il reste un geste à l'agriculteur : montrer son code à son encadreur. */
+export const rattachementAFaire = (etat: EtatRattachement | null): boolean => etat?.statut === 'en_attente';
+
+export interface RattachementState {
   etat: EtatRattachement | null;
   /** Le code en clair, en mémoire seulement : jamais dans un stockage, jamais journalisé. */
   code: string | null;

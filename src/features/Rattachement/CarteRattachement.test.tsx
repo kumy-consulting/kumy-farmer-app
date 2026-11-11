@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CarteRattachement } from '@/features/Rattachement/CarteRattachement';
@@ -42,18 +42,32 @@ describe('CarteRattachement', () => {
     simuler();
     render(<CarteRattachement />);
 
-    expect(screen.getByText('Votre encadreur doit confirmer votre identité')).toBeDefined();
+    expect(screen.getByText('Confirmez votre identité avec votre encadreur')).toBeDefined();
+    expect(screen.getByText('À faire d’abord')).toBeDefined();
     fireEvent.click(screen.getByRole('button', { name: 'Afficher mon code' }));
     expect(afficherCode).toHaveBeenCalledTimes(1);
   });
 
-  it('montre le code en deux groupes et le temps restant', () => {
+  it('montre le code en plein écran, chiffre par chiffre, avec le temps restant', () => {
     simuler({ code: '123456', secondesRestantes: 599 });
     render(<CarteRattachement />);
 
-    expect(screen.getByText('123 456')).toBeDefined();
+    expect(screen.getByRole('dialog', { name: 'Montrez cet écran à votre encadreur' })).toBeDefined();
+    expect(screen.getByRole('img', { name: 'Code 1 2 3 4 5 6' })).toBeDefined();
     expect(screen.getByText('Valable encore 9:59')).toBeDefined();
     expect(screen.getByText(/Ne le donnez à personne d’autre/)).toBeDefined();
+  });
+
+  it('se ferme sans jeter le code, puis le rouvre sans en demander un autre', async () => {
+    simuler({ code: '123456', secondesRestantes: 599 });
+    render(<CarteRattachement />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retour' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Revoir mon code' }));
+    expect(screen.getByRole('dialog')).toBeDefined();
+    expect(afficherCode).not.toHaveBeenCalled();
   });
 
   it('propose un nouveau code une fois le premier expiré', () => {
