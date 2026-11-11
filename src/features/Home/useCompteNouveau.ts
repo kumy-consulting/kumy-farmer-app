@@ -25,6 +25,9 @@ export interface CompteNouveauState {
  */
 export function useCompteNouveau(): CompteNouveauState {
   const uid = useAuthStore((s) => s.user?.uid);
+  // Le palier d'accès change quand un rattachement est confirmé : l'état du
+  // compte se relit alors, sans attendre un rechargement de l'app.
+  const accessTier = useAuthStore((s) => s.user?.accessTier);
   const [state, setState] = useState<CompteNouveauState>({
     estNouveau: false,
     aDesDomaines: false,
@@ -60,7 +63,7 @@ export function useCompteNouveau(): CompteNouveauState {
     return () => {
       actif = false;
     };
-  }, [uid]);
+  }, [uid, accessTier]);
 
   return state;
 }

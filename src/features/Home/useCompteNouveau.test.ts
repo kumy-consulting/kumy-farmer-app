@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { compteApi } from '@/features/Home/compte.api';
@@ -72,5 +72,24 @@ describe('useCompteNouveau', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(spy).not.toHaveBeenCalled();
     expect(result.current.estNouveau).toBe(false);
+  });
+
+  it('relit l’état du compte quand le palier d’accès change', async () => {
+    useAuthStore.setState({
+      user: { uid: 'uid-1', displayName: 'Awa Diallo', phone: '+224622201362', role: 'farmer', accessTier: 'simulation' },
+    });
+    const spy = vi.spyOn(compteApi, 'etatDuCompte').mockResolvedValue({ hasFarms: false, hasEngineer: false });
+
+    const { result } = renderHook(() => useCompteNouveau());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(spy).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      useAuthStore.setState({
+        user: { uid: 'uid-1', displayName: 'Awa Diallo', phone: '+224622201362', role: 'farmer', accessTier: 'full' },
+      });
+    });
+
+    await waitFor(() => expect(spy).toHaveBeenCalledTimes(2));
   });
 });
