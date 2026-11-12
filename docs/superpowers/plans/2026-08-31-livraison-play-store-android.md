@@ -14,39 +14,39 @@
 
 ## ▶ REPRISE — lire ceci en premier
 
-*Dernière mise à jour : **2026-11-02**. **D-U-N-S obtenu** — le blocage de sept semaines est levé.*
+*Dernière mise à jour : **2026-11-12**. **Le compte développeur Play existe.** Onze semaines de blocage, terminées.*
 
-> **Le blocage est levé.** D&B a validé l'entité et attribué le numéro D-U-N-S, en
-> réponse au dossier `34960909` ouvert le 26/10. Sept semaines après la demande initiale
-> du 07/09 — six jours après la relance.
+> **Compte d'organisation créé le 12/11/2026**, propriétaire `apps@kumy.app`, nom public
+> **Kumy**. Identifiant de compte dans `docs/app-registration/duns-obtenu.md`, hors dépôt.
+> Les 25 $ sont payés, une fois pour toutes.
 >
-> **Numéro et raison sociale exacte : `docs/app-registration/duns-obtenu.md`**, hors
-> dépôt. Les deux chaînes se saisissent **au caractère près** chez Apple comme chez
-> Google : un écart de casse, de tiret ou d'espace fait échouer la vérification.
+> Google a lu la fiche D&B **directement** au moment de lier le profil de paiement :
+> numéro, raison sociale et adresse se sont affichés sans aucune saisie. Le risque
+> d'écart au caractère près, qu'on redoutait, n'a jamais existé.
 >
-> **24 à 48 h de propagation** avant que le numéro soit accepté par l'enrôlement Apple ;
-> D&B le dit explicitement. Rien à faire d'ici là.
+> **Quatre validations restent à faire avant de pouvoir publier :**
 >
-> **Ce qui tombe avec le blocage — ne rien envoyer :**
+> | Validation | État | Dépend de |
+> |---|---|---|
+> | Identité (pièce officielle) | ⏳ action requise | — |
+> | Statut de professionnel | ⏳ action requise | — |
+> | Site web de l'organisation | ⏳ action requise | propriété `kumy.app` en Search Console |
+> | Numéros de téléphone | ⏳ action requise | les trois précédentes |
 >
-> | Démarche | État |
-> |---|---|
-> | Recours exemption Google (`recours-google-duns.md`) | **sans objet** |
-> | Échéance D&B du 13/11 | **sans objet** |
-> | Point de contrôle Apple du 30/10 | **sans objet** |
-> | Filet D-U-N-S Netpulse SAS | **sans objet** |
+> **Deux points dur sur ce chemin**, identifiés et non résolus :
 >
-> **Reprise immédiate :** §2.2 — créer le compte développeur Play (25 $, paiement
-> unique) avec le nom légal exact, puis §5 (fiche Store) et §6 (déploiement progressif).
-> Compter **2 à 3 jours ouvrés** de vérification Google côté organisation. Tout le
-> technique est prêt, AAB signé compris.
+> - **`kumy.app` porte déjà un `google-site-verification`** posé par un autre compte
+>   Google, antérieur à `apps@kumy.app`. Il faudra ajouter ce compte comme propriétaire
+>   en Search Console, ou poser un second enregistrement.
+> - **Le numéro public déclaré est la ligne de Conakry**, que personne ici ne relève.
+>   Quelqu'un sur place devra transmettre le code, sinon il faudra changer de numéro.
 >
-> **Ce qui a débloqué, pour mémoire :** personne ne vérifiait. Apple annonce 5 jours
-> ouvrés et demande expressément d'écrire à D&B au-delà de deux semaines ; aucune date
-> de contrôle n'avait été posée, et la demande a dormi. Le questionnaire que D&B SAME a
-> renvoyé le 27/10 était le modèle vierge de septembre — la réponse de septembre n'avait
-> jamais été traitée. La leçon tient en une ligne : **toute attente d'un tiers porte une
-> date de vérification écrite dans ce plan.**
+> **Et le pied de page légal de `kumy.app`** — nom légal et RCCM — n'est toujours pas en
+> ligne. C'est la pièce que le vérificateur ira chercher pour relier le site à l'entité,
+> et la vérification est lancée.
+>
+> Ensuite : §5 (fiche Store) et §6 (déploiement progressif). Le livrable est prêt depuis
+> le 7 septembre.
 
 ### Où en est-on
 
@@ -54,7 +54,7 @@
 |---|---|---|
 | 0 — Bloquants techniques | ✅ **terminée** | — |
 | 1 — Versioning | ✅ **terminée** | — |
-| 2 — Compte développeur Play | ⏳ **débloquée** | D-U-N-S obtenu — propagation 24–48 h, puis création du compte |
+| 2 — Compte développeur Play | ✅ **compte créé** le 12/11 | 4 validations avant publication (identité, statut pro, site, téléphones) |
 | 3 — Keystore et signature | ✅ **terminée** | — |
 | 4 — Build AAB | ⏳ **AAB signé produit** | Test `bundletool` sur device |
 | 5 — Fiche Store | ⬜ | Phase 2 |
@@ -92,28 +92,28 @@ Branche **non fusionnée**, partie de `feature/farmer-invitation`.
 
 **[Thierno] — par ordre d'urgence**
 
-1. **Sécuriser `apps@kumy.app` — avant l'inscription développeur.** L'accès a été
-   reconquis le 12/11 par récupération : le compte existait depuis le 07/09, mais ni
-   mot de passe ni codes de secours n'étaient conservés. Au gestionnaire de secrets :
-   mot de passe, **nouveaux** codes de secours, date de naissance déclarée, accès OVH
-   de la boîte. Puis une adresse de secours qui soit **une adresse de rôle**, pas une
-   boîte personnelle. Ce compte détiendra l'app à vie et ne se transfère jamais.
-2. **Créer le compte développeur Play** — le numéro D-U-N-S est propagé depuis le
-   **04/11** — `play.google.com/console/signup`, connecté en `apps@kumy.app`, type
-   **Organisation**, 25 $ une fois. Saisir le nom légal et le D-U-N-S **au caractère
-   près** tels que D&B les a écrits : `docs/app-registration/duns-obtenu.md`. Puis
-   2 à 3 jours ouvrés de vérification d'organisation.
-3. **Sauvegarder la clé d'upload hors de cette machine**, chiffrée. Dix minutes, et
-   c'est la seule perte irréversible du projet : aujourd'hui, un disque perdu impose un
-   cycle de réinitialisation avec Google. Le mot de passe est déjà au gestionnaire de
-   secrets ; le `.jks` lui-même ne l'est pas encore.
-4. **Ajouter le nom légal et le RCCM en pied de page de `kumy.app`.** Google confronte
-   le site à l'entité pendant la vérification d'organisation — ce n'est plus une
-   précaution, c'est la pièce que le vérificateur va chercher.
-5. **Lancer l'enrôlement Apple en parallèle** — le même numéro vaut pour
-   `developer.apple.com/enroll` (99 $/an). Hors du chemin Android, mais l'enrôlement a
-   sa propre file de vérification : autant qu'elle tourne pendant celle de Google.
-6. **Valider l'edge-to-edge** sur un téléphone Android 16 à WebView ≥ 140.
+1. **Valider l'identité** (Play Console → « Terminer la configuration »). Pièce
+   officielle au nom du contact déclaré. **Ne retouche pas le fichier** — ni recadrage,
+   ni rotation, ni éclaircissement : Google rejette toute image modifiée, et un rejet
+   met les applis en péril selon son propre avertissement.
+2. **Déclarer le statut de professionnel.** Une société qui tire un revenu de son
+   activité déclare « professionnel » ; les coordonnées déjà saisies deviennent
+   visibles dans l'UE, ce qui est déjà le cas du profil public.
+3. **Poser le pied de page légal sur `kumy.app`** — nom légal et RCCM. La vérification
+   d'organisation est **lancée** : c'est la pièce que le vérificateur ira chercher pour
+   relier le site à l'entité, et elle n'est toujours pas en ligne.
+4. **Valider le site `kumy.app`.** Le domaine porte déjà un `google-site-verification`
+   posé par un compte antérieur à `apps@kumy.app`. Ajouter ce compte comme propriétaire
+   en Search Console, ou poser un second enregistrement DNS.
+5. **Organiser la validation du numéro de Conakry** — quelqu'un sur place relève le SMS
+   et transmet le code. Sans ça, il faudra changer le numéro public avant de publier.
+6. **Consigner les accès de `apps@kumy.app`** : mot de passe, nouveaux codes de secours,
+   date de naissance déclarée, accès OVH. Et une adresse de secours de rôle.
+7. **Ajouter `kumy.teb@gmail.com` comme administrateur**, pour rendre le compte
+   propriétaire dormant — c'est ce qui le garde sûr.
+8. **Sauvegarder la clé d'upload hors de cette machine**, chiffrée. Toujours la seule
+   perte irréversible du projet, et toujours pas faite.
+9. **Valider l'edge-to-edge** sur un téléphone Android 16 à WebView ≥ 140.
    APK : `android/app/build/outputs/apk/debug/app-debug.apk` (1.0.0, API **prod**).
    Attendu : l'en-tête vert de l'accueil remonte **sous** la barre de statut, heure et
    batterie en blanc dessus. Une bande claire intercalée = régression à traiter.
@@ -542,12 +542,19 @@ premières pistes échouent, et à trancher en connaissance de cause.
 - [ ] **Poser une adresse de secours qui soit elle aussi une adresse de rôle**, et non
       une boîte personnelle — sinon la récupération du compte qui détient l'app à vie
       dépend d'un individu, ce que le choix d'une adresse de rôle visait à supprimer.
-- [ ] Finir l'inscription sur `play.google.com/console/signup` — **seulement une fois le D-U-N-S obtenu ou le recours accepté**
-- [ ] Type d'entreprise : « Entreprise »
+- [x] Inscription finie le **12/11/2026** sur `play.google.com/console/u/1/signup`. Google a lu la fiche D&B directement : numéro, raison sociale et adresse pré-remplis, aucune saisie manuelle
+- [x] Type d'entreprise : « Entreprise »
 - [ ] Ajouter ensuite `kumy.teb@gmail.com` comme **administrateur**, pour que le travail courant ne passe pas par le compte propriétaire
-- [ ] Accepter le Google Play Developer Distribution Agreement
-- [ ] Payer les **25 $** (paiement unique, à vie). Carte MasterCard, Visa, American Express ou Discover — les cartes **prépayées sont refusées**
-- [ ] Choisir le type de compte décidé en 2.0
+- [x] Google Play Developer Distribution Agreement accepté. *À régulariser : l'acceptation engage la société, dont le représentant légal est le **Président**. Obtenir de lui un accord écrit de délégation et le classer dans `docs/app-registration/`.*
+- [x] **25 $ payés** le 12/11/2026 (paiement unique, à vie), par carte personnelle — à passer en note de frais. Le porteur de la carte n'entre pas dans la vérification d'organisation, qui porte sur le profil de paiement
+- [x] Type de compte : **Organisation**
+- [x] Nom public du développeur : **Kumy** (modifiable — marque, pas forme légale)
+- [x] Profil de paiement lié, pays **Guinée**. ⚠️ **Pays, type de compte et D-U-N-S ne se modifient jamais** sur un profil de paiement ; nom et adresse, si
+- [ ] **Valider l'identité** — pièce officielle au nom du contact déclaré. **Ne pas retoucher le document** (recadrage, rotation, éclaircissement) : Google rejette toute image modifiée
+- [ ] **Déclarer le statut de professionnel** — une société qui tire un revenu de son activité déclare « professionnel ». Les coordonnées publiques deviennent alors visibles dans l'UE
+- [ ] **Valider le site `kumy.app`** — ⚠️ le domaine porte déjà un `google-site-verification` posé par un autre compte Google. Ajouter `apps@kumy.app` comme propriétaire en Search Console, ou poser un second enregistrement
+- [ ] **Valider les numéros de téléphone** — dépend des trois précédentes. ⚠️ le numéro public déclaré est la ligne de Conakry, non relevée ici : prévoir qui transmet le code, ou changer de numéro
+- [ ] Créer `play@kumy.app` comme **liste de diffusion** et la substituer à l'adresse de contact Google : c'est par là qu'arrivent les avertissements de conformité, et ils ne doivent pas dépendre d'une seule personne
 
 ### 2.3 — Vérifications
 
@@ -734,6 +741,7 @@ Les deux vrais risques ne sont ni la signature ni la console : ce sont **0.1** (
 
 | Date | Phase | Décision / observation |
 |---|---|---|
+| 2026-11-12 | 2.2 | **Compte de développeur créé — onze semaines de blocage terminées.** Compte d'organisation, propriétaire `apps@kumy.app`, nom public **Kumy**, 25 $ payés. Au moment de lier le profil de paiement, **Google est allé lire la fiche D&B directement** : numéro, raison sociale et adresse se sont affichés sans saisie. Le risque d'écart au caractère près, qui a orienté toute la préparation, n'existait pas — en revanche **pays, type de compte et D-U-N-S sont définitifs** sur un profil de paiement, là où nom et adresse restent modifiables : les portes à sens unique n'étaient pas celles qu'on surveillait. Restent quatre validations avant publication, dont deux portent un point dur identifié : `kumy.app` est déjà validé en Search Console par un compte antérieur, et le numéro public déclaré est la ligne de Conakry, que personne ici ne relève. |
 | 2026-11-12 | 2.2 | **Le compte propriétaire existait, mais personne ne savait s'y connecter.** Le plan le donnait créé le 07/09 ; cette ligne était exacte, et Google l'a confirmé en refusant l'adresse comme « déjà utilisée ». Ce qui manquait n'était pas le compte : c'étaient ses accès. Mot de passe oublié, codes de secours à huit chiffres introuvables, rien au gestionnaire de secrets. Accès reconquis le jour même par récupération. **Le risque réel était là et n'était pas suivi :** ce compte détiendra l'application à vie, sa propriété ne se transfère jamais, et il est resté dix semaines sans que ses identifiants existent nulle part — même classe de risque que le `.jks` présent sur une seule machine. D'où deux étapes ajoutées en 2.2, avant l'inscription développeur. *À noter aussi, sur la conduite : la case a été décochée le matin même sur une simple déclaration de mémoire, sans vérification, puis rétablie. Une case se change sur un fait constaté — dans les deux sens.* |
 | 2026-11-02 | 2.1 | **D-U-N-S attribué — sept semaines de blocage levées.** D&B a validé l'entité et délivré le numéro en réponse au dossier `34960909` ouvert le 26/10 : **six jours** de la relance à l'attribution, contre sept semaines de silence avant elle. Numéro et raison sociale exacte dans `docs/app-registration/duns-obtenu.md`, hors dépôt — les deux chaînes se saisissent au caractère près chez Apple comme chez Google. **24 à 48 h de propagation** avant que l'enrôlement Apple les accepte. Tombent du même coup, sans rien envoyer : le recours exemption Google, l'échéance D&B du 13/11, le point de contrôle Apple du 30/10 et le filet Netpulse. Les deux réserves qui ont orienté deux mois de conduite étaient **fausses** : la Guinée est servie, et la voie Apple y est gratuite. Cause racine réelle, écrite pour ne pas la rejouer : **aucune date de vérification n'avait été posée** sur une attente de tiers, alors qu'Apple annonce 5 jours ouvrés et demande expressément d'écrire à D&B au-delà de deux semaines. Le questionnaire que D&B SAME a renvoyé le 27/10 était le modèle vierge de septembre — la réponse de septembre n'avait jamais été traitée. |
 | 2026-10-26 | 2.1 | **Blocage relancé sur trois canaux après sept semaines de silence.** La demande du 07/09 n'a jamais produit de numéro, alors qu'Apple annonce 5 jours ouvrés et demande expressément d'écrire à D&B au-delà de deux semaines — on attendait sans savoir qu'on y était autorisé. Dossier D&B **`34960909`** ouvert avec extrait RCCM joint (7–14 j. ouvrés, échéance **13/11**) ; rappel téléphonique Apple obtenu le jour même, l'agent **contacte D&B directement** ; fil SAME à rattacher. Deux faits acquis : **aucune fiche D&B préexistante** pour KUMY, et la **Guinée est bien servie** par le formulaire D&B — l'absence du pays dans `choose-your-country.html` ne visait que les bureaux régionaux. Conséquence : le recours Google ne peut plus plaider l'impossibilité, seulement le silence, et Google écrit qu'il n'accommode pas les comptes qui « échouent à fournir » un numéro. D'où la règle : **rien avant le 13/11**. Filet identifié : chercher un D-U-N-S déjà attribué à **Netpulse SAS** (France), couverture D&B native. |
