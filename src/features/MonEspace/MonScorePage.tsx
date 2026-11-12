@@ -9,7 +9,13 @@ import { BlocScore } from './components/BlocScore';
 import { demoScore } from './monEspace.demo';
 
 /**
- * ⚠️ MAQUETTE — les données viennent de `monEspace.demo`.
+ * ⚠️ MAQUETTE, ET PAGE DÉROUTÉE — les données viennent de `monEspace.demo`.
+ *
+ * `/mon-espace/score` a été retirée du routeur avant la première publication,
+ * pour la même raison que `MonCreditPage` : une note sur 100 et un grade
+ * identiques pour tout agriculteur se lisent comme un jugement personnel. La
+ * page se rebranche quand le scoring répond pour les agriculteurs de
+ * production.
  *
  * Le détail du score, ouvert depuis la tuile de « Mon espace ».
  *

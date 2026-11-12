@@ -5,13 +5,7 @@ import EmojiEventsRounded from '@mui/icons-material/EmojiEventsRounded';
 import StorefrontRounded from '@mui/icons-material/StorefrontRounded';
 import { Box, Stack, Typography } from '@mui/material';
 
-import type { EligibiliteCredit, ScoreAgriculteur } from '../monEspace.types';
 import { SectionTitle } from './espaceUi';
-
-interface BlocOutilsProps {
-  eligibilite: EligibiliteCredit;
-  score: ScoreAgriculteur;
-}
 
 /**
  * Surface en attente : le même cadre que les cartes actives, mais posé au
@@ -75,12 +69,7 @@ const Bientot: FunctionComponent = () => (
   </Typography>
 );
 
-const Ligne: FunctionComponent<{ icone: ReactNode; titre: string; detail: string; children?: ReactNode }> = ({
-  icone,
-  titre,
-  detail,
-  children,
-}) => (
+const Ligne: FunctionComponent<{ icone: ReactNode; titre: string; detail: string }> = ({ icone, titre, detail }) => (
   <Stack sx={surfaceEnAttente}>
     <Stack direction="row" alignItems="center" spacing={1.5} sx={{ width: '100%' }}>
       <Pastille>{icone}</Pastille>
@@ -92,7 +81,6 @@ const Ligne: FunctionComponent<{ icone: ReactNode; titre: string; detail: string
       </Box>
       <Bientot />
     </Stack>
-    {children}
   </Stack>
 );
 
@@ -110,11 +98,19 @@ const Ligne: FunctionComponent<{ icone: ReactNode; titre: string; detail: string
  * place du chevron, et plus rien à cliquer — un chevron qui ouvre un écran de
  * données fictives ment sur ce que le produit sait faire aujourd'hui.
  *
- * Les valeurs restent affichées, en gris : elles disent ce que la fonction
- * donnera, sans se faire passer pour un montant qu'on peut demander ce matin.
- * Rouvrir le bloc = rendre les lignes cliquables et retirer l'étiquette.
+ * **Et aucun chiffre.** Les valeurs de maquette étaient encore affichées ici :
+ * « 5 500 000 GNF » de potentiel de crédit et « 68/100 · grade B », identiques
+ * pour tout agriculteur, et même pas cohérentes avec le jeu de démonstration qui
+ * les portait. L'étiquette « Bientôt » qualifie la disponibilité de la fonction,
+ * pas la véracité du nombre : en face du nom de l'agriculteur, un montant en
+ * francs guinéens se lit comme le sien. Les lignes disent donc ce que chaque
+ * fonction donnera, et rien de chiffré tant que le scoring ne tourne pas.
+ *
+ * Rouvrir le bloc = brancher les endpoints, rendre les lignes cliquables,
+ * retirer l'étiquette. Dans cet ordre : la valeur vient de l'API, ou elle ne
+ * s'affiche pas.
  */
-export const BlocOutils: FunctionComponent<BlocOutilsProps> = ({ eligibilite, score }) => (
+export const BlocOutils: FunctionComponent = () => (
   <Box>
     <SectionTitle>Financement et marché</SectionTitle>
 
@@ -122,27 +118,13 @@ export const BlocOutils: FunctionComponent<BlocOutilsProps> = ({ eligibilite, sc
       <Ligne
         icone={<AccountBalanceWalletRounded />}
         titre="Mon potentiel de crédit"
-        detail={eligibilite.eligible ? 'Estimation à ce jour' : 'Montant atteignable'}
-      >
-        <Typography
-          sx={{
-            fontFamily: "'Ubuntu', sans-serif",
-            fontSize: 24,
-            fontWeight: 700,
-            lineHeight: 1.05,
-            letterSpacing: '-0.02em',
-            color: '#7A7D7C',
-            mt: 1.1,
-          }}
-        >
-          {eligibilite.montantMaxFormate}
-        </Typography>
-      </Ligne>
+        detail="Le montant que votre exploitation peut porter"
+      />
 
       <Ligne
         icone={<EmojiEventsRounded />}
         titre="Mon score"
-        detail={`${score.scoreGlobal}/100 · grade ${score.grade} · 6 piliers`}
+        detail="Votre note et les six piliers qui la composent"
       />
 
       <Ligne

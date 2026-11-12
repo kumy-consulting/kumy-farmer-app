@@ -10,21 +10,25 @@ import { BlocOutils } from './components/BlocOutils';
 import { BlocReglages } from './components/BlocReglages';
 import { CarteAgriculteur } from './components/CarteAgriculteur';
 import { SectionTitle } from './components/espaceUi';
-import { demoEligibilite, demoScore } from './monEspace.demo';
 import { useProfilAgriculteur } from './useProfilAgriculteur';
 
 /**
  * L'identité et les réglages viennent de l'API (`GET /farmers/me`) ; le crédit,
- * le score et la place de marché restent en maquette derrière leurs étiquettes
- * « Bientôt ».
+ * le score et la place de marché sont annoncés par `BlocOutils` derrière leurs
+ * étiquettes « Bientôt », sans aucune valeur.
  *
  * L'onglet répond à une question : « qui la plateforme pense que je suis, et
  * qu'est-ce que ça m'ouvre ». D'où l'ordre : la carte d'agriculteur, puis le
  * versant économique qui en découle, et seulement ensuite la plomberie.
  *
- * `BlocCredit` et `BlocScore` ne sont pas supprimés : ils portent le détail
- * (critères manqués, six piliers) et attendent que le scoring tourne réellement
- * pour les agriculteurs de production.
+ * **Plus aucune donnée de maquette n'arrive ici.** Cette page passait
+ * `demoEligibilite` et `demoScore` à `BlocOutils`, qui en affichait le montant
+ * et le score — les mêmes pour tout agriculteur. Ce qui n'est pas servi par
+ * l'API ne s'affiche pas.
+ *
+ * `MonCreditPage` et `MonScorePage` portent le détail (critères manqués, six
+ * piliers) et sont conservées, mais **déroutées** : elles attendent que le
+ * scoring tourne pour les agriculteurs de production.
  *
  * Les trois endpoints qui les alimenteront sont ouverts au rôle FARMER et ne
  * sont appelés nulle part aujourd'hui :
@@ -46,7 +50,7 @@ export const MonEspacePage: FunctionComponent = () => {
       />
 
       <Stack spacing={3.5} sx={{ px: 2.5, pt: 2.5, pb: 3 }}>
-        <BlocOutils eligibilite={demoEligibilite} score={demoScore} />
+        <BlocOutils />
 
         <BlocReglages alertesSms={alertesSms} onAlertesSmsChangees={poserAlertesSms} />
 
