@@ -92,9 +92,12 @@ Branche **non fusionnée**, partie de `feature/farmer-invitation`.
 
 **[Thierno] — par ordre d'urgence**
 
-1. **Ouvrir la boîte puis le compte Google `apps@kumy.app`** — préalable découvert le
-   12/11 : l'étape était cochée alors que seule l'adresse avait été choisie. La boîte
-   doit recevoir du courrier avant tout, Google y envoie un code de vérification.
+1. **Sécuriser `apps@kumy.app` — avant l'inscription développeur.** L'accès a été
+   reconquis le 12/11 par récupération : le compte existait depuis le 07/09, mais ni
+   mot de passe ni codes de secours n'étaient conservés. Au gestionnaire de secrets :
+   mot de passe, **nouveaux** codes de secours, date de naissance déclarée, accès OVH
+   de la boîte. Puis une adresse de secours qui soit **une adresse de rôle**, pas une
+   boîte personnelle. Ce compte détiendra l'app à vie et ne se transfère jamais.
 2. **Créer le compte développeur Play** — le numéro D-U-N-S est propagé depuis le
    **04/11** — `play.google.com/console/signup`, connecté en `apps@kumy.app`, type
    **Organisation**, 25 $ une fois. Saisir le nom légal et le D-U-N-S **au caractère
@@ -130,7 +133,7 @@ Branche **non fusionnée**, partie de `feature/farmer-invitation`.
 | Entité | **KUMY HOLDING - SAS** (sigle « KUMY - SAS ») |
 | RCCM | Tribunal de Commerce de Conakry, immatriculée le 21/08/2025 — *numéro dans `docs/app-registration/` (hors dépôt)* |
 | Adresse | siège à Conakry — *adresse légale exacte dans `docs/app-registration/`, à confirmer identique aux statuts* |
-| Compte propriétaire | **`apps@kumy.app`** — adresse **retenue**, compte Google **pas encore créé** (corrigé le 12/11/2026). Détiendra l'app à vie, **non modifiable** après création du compte développeur |
+| Compte propriétaire | **`apps@kumy.app`** — compte Google créé le 07/09/2026, accès **reconquis le 12/11/2026** après récupération. Détient l'app à vie, **non modifiable** après création du compte développeur |
 | Contact public | contact@kumy.app · téléphone du siège — *voir `docs/app-registration/`* |
 | Site déclaré | **kumy.app** (Firebase Hosting) — site de la société. `kumy.consulting` (Vercel) porte l'activité conseil et ne sert pas ici |
 | API **prod** | `https://agripilot-backoffice-api-ezmnjvheka-ew.a.run.app/api/v1` |
@@ -529,11 +532,16 @@ premières pistes échouent, et à trancher en connaissance de cause.
 
 ### 2.2 — Créer le compte
 
-- [ ] **Créer le compte Google `apps@kumy.app`** — ⚠️ *coché à tort le 07/09/2026, corrigé le
-      12/11/2026 : le compte n'a jamais été créé.* L'adresse était **choisie**, pas
-      **ouverte**. C'est aujourd'hui le dernier préalable à l'inscription développeur.
-      Prérequis : que la boîte `apps@kumy.app` existe et reçoive du courrier — Google
-      envoie un code de vérification à l'adresse déclarée.
+- [x] Compte Google **dédié** créé : `apps@kumy.app` (07/09/2026), nom affiché « Kumy »,
+      2FA activée avec codes de secours. **Accès reconquis le 12/11/2026** par récupération :
+      ni le mot de passe ni les codes n'avaient été conservés, et plus personne ne savait
+      s'y connecter.
+- [ ] **Consigner les accès au gestionnaire de secrets — avant toute autre étape.**
+      Mot de passe, **nouveaux** codes de secours (les anciens sont d'état inconnu),
+      date de naissance déclarée, identifiants de la boîte OVH `apps@kumy.app`.
+- [ ] **Poser une adresse de secours qui soit elle aussi une adresse de rôle**, et non
+      une boîte personnelle — sinon la récupération du compte qui détient l'app à vie
+      dépend d'un individu, ce que le choix d'une adresse de rôle visait à supprimer.
 - [ ] Finir l'inscription sur `play.google.com/console/signup` — **seulement une fois le D-U-N-S obtenu ou le recours accepté**
 - [ ] Type d'entreprise : « Entreprise »
 - [ ] Ajouter ensuite `kumy.teb@gmail.com` comme **administrateur**, pour que le travail courant ne passe pas par le compte propriétaire
@@ -726,11 +734,11 @@ Les deux vrais risques ne sont ni la signature ni la console : ce sont **0.1** (
 
 | Date | Phase | Décision / observation |
 |---|---|---|
-| 2026-11-12 | 2.2 | **Le compte Google propriétaire n'existe pas — l'étape était cochée à tort.** Le plan annonçait `apps@kumy.app` créé le 07/09 et « vérifié sur l'écran d'inscription » ; l'adresse avait seulement été **choisie**. Dix semaines plus tard, c'est le dernier préalable à l'inscription développeur, et il était invisible parce que marqué fait. Deuxième écriture inexacte de cette phase, après la prétendue non-couverture de la Guinée : les deux ont survécu des semaines faute d'être reconfrontées au réel. Règle qui en découle, symétrique de celle du 02/11 : **une case ne se coche que sur un fait constaté, jamais sur une décision prise.** Point ouvert : la boîte `apps@kumy.app` doit exister et recevoir du courrier avant toute création de compte Google, puisque la vérification passe par un code envoyé à cette adresse. |
+| 2026-11-12 | 2.2 | **Le compte propriétaire existait, mais personne ne savait s'y connecter.** Le plan le donnait créé le 07/09 ; cette ligne était exacte, et Google l'a confirmé en refusant l'adresse comme « déjà utilisée ». Ce qui manquait n'était pas le compte : c'étaient ses accès. Mot de passe oublié, codes de secours à huit chiffres introuvables, rien au gestionnaire de secrets. Accès reconquis le jour même par récupération. **Le risque réel était là et n'était pas suivi :** ce compte détiendra l'application à vie, sa propriété ne se transfère jamais, et il est resté dix semaines sans que ses identifiants existent nulle part — même classe de risque que le `.jks` présent sur une seule machine. D'où deux étapes ajoutées en 2.2, avant l'inscription développeur. *À noter aussi, sur la conduite : la case a été décochée le matin même sur une simple déclaration de mémoire, sans vérification, puis rétablie. Une case se change sur un fait constaté — dans les deux sens.* |
 | 2026-11-02 | 2.1 | **D-U-N-S attribué — sept semaines de blocage levées.** D&B a validé l'entité et délivré le numéro en réponse au dossier `34960909` ouvert le 26/10 : **six jours** de la relance à l'attribution, contre sept semaines de silence avant elle. Numéro et raison sociale exacte dans `docs/app-registration/duns-obtenu.md`, hors dépôt — les deux chaînes se saisissent au caractère près chez Apple comme chez Google. **24 à 48 h de propagation** avant que l'enrôlement Apple les accepte. Tombent du même coup, sans rien envoyer : le recours exemption Google, l'échéance D&B du 13/11, le point de contrôle Apple du 30/10 et le filet Netpulse. Les deux réserves qui ont orienté deux mois de conduite étaient **fausses** : la Guinée est servie, et la voie Apple y est gratuite. Cause racine réelle, écrite pour ne pas la rejouer : **aucune date de vérification n'avait été posée** sur une attente de tiers, alors qu'Apple annonce 5 jours ouvrés et demande expressément d'écrire à D&B au-delà de deux semaines. Le questionnaire que D&B SAME a renvoyé le 27/10 était le modèle vierge de septembre — la réponse de septembre n'avait jamais été traitée. |
 | 2026-10-26 | 2.1 | **Blocage relancé sur trois canaux après sept semaines de silence.** La demande du 07/09 n'a jamais produit de numéro, alors qu'Apple annonce 5 jours ouvrés et demande expressément d'écrire à D&B au-delà de deux semaines — on attendait sans savoir qu'on y était autorisé. Dossier D&B **`34960909`** ouvert avec extrait RCCM joint (7–14 j. ouvrés, échéance **13/11**) ; rappel téléphonique Apple obtenu le jour même, l'agent **contacte D&B directement** ; fil SAME à rattacher. Deux faits acquis : **aucune fiche D&B préexistante** pour KUMY, et la **Guinée est bien servie** par le formulaire D&B — l'absence du pays dans `choose-your-country.html` ne visait que les bureaux régionaux. Conséquence : le recours Google ne peut plus plaider l'impossibilité, seulement le silence, et Google écrit qu'il n'accommode pas les comptes qui « échouent à fournir » un numéro. D'où la règle : **rien avant le 13/11**. Filet identifié : chercher un D-U-N-S déjà attribué à **Netpulse SAS** (France), couverture D&B native. |
 | 2026-09-07 | 2 | **Procédure suspendue en attente du retour Apple.** Demande de D-U-N-S soumise via l'outil Apple, seule voie gratuite pour une entité guinéenne. Relance calée au 14/09. Rien d'autre ne peut avancer : le compte développeur exige ce numéro, et tout le reste dépend du compte. Côté technique, tout est prêt — AAB signé compris. |
-| 2026-09-07 | 2 | **Piste Apple ouverte, et compte propriétaire créé.** Apple exige aussi un D-U-N-S et fournit un outil de demande **gratuit** délivrant le même identifiant standard — voie plus courte que D&B SAME, qui est payant et ne liste pas la Guinée. En parallèle, `apps@kumy.app` **retenue** comme adresse propriétaire : la propriété d'un compte Play Console ne se change jamais, et une gmail nominative en aurait fait un point unique de défaillance. *(Rectifié le 12/11/2026 : cette entrée disait « compte créé » et l'étape 2.2 était cochée « vérifié sur l'écran d'inscription ». Le compte Google n'a jamais été ouvert — seule l'adresse avait été choisie.)* Domaine retenu : `kumy.app`, qui porte le site de la société, et non `kumy.consulting`. Le support Google s'atteint par `.../contact/general_contact` — les URL évidentes bouclent sur la création de compte. |
+| 2026-09-07 | 2 | **Piste Apple ouverte, et compte propriétaire créé.** Apple exige aussi un D-U-N-S et fournit un outil de demande **gratuit** délivrant le même identifiant standard — voie plus courte que D&B SAME, qui est payant et ne liste pas la Guinée. En parallèle, `apps@kumy.app` créé comme compte Google propriétaire : la propriété d'un compte Play Console ne se change jamais, et une gmail nominative en aurait fait un point unique de défaillance. Domaine retenu : `kumy.app`, qui porte le site de la société, et non `kumy.consulting`. Le support Google s'atteint par `.../contact/general_contact` — les URL évidentes bouclent sur la création de compte. |
 | 2026-09-01 | 3 | **Phase 3 terminée. AAB signé produit avec la vraie clé d'upload** — `CN=KUMY HOLDING - SAS`, SHA384withRSA 4096 bits, valide jusqu'en 2054, 3,4 Mo. Empreintes consignées. La première clé générée a dû être jetée, son mot de passe étant irrécupérable : sans coût à ce stade, mais la même erreur après publication aurait impliqué une réinitialisation avec Google. |
 | 2026-09-01 | 3 | **Outillage de signature en place.** `signingConfigs.release` lit `keystore.properties` ou les variables d'environnement, et `assembleRelease`/`bundleRelease` échouent explicitement sans elle — un AAB non signé serait sinon refusé par Play après coup, sans motif clair. R8 et `shrinkResources` activés : Capacitor déclarant `consumerProguardFiles`, ses plugins survivent, **vérifié à l'exécution** sur émulateur avec un keystore jetable détruit ensuite. Ne reste que la génération de la vraie clé. |
 | 2026-09-01 | 1 | **Phase 1 close.** Première publication en `1.0.0` plutôt que `0.1.0` : le numéro est public sur la fiche Play. `versionCode` dérivé du semver, avec échec de build au-delà de la borne des 100 et surcharge possible par `-PversionCode`. Réglages pre-major de release-please retirés, devenus faux dès la publication. |
