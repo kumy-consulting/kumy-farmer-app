@@ -9,7 +9,14 @@ import { BlocCredit } from './components/BlocCredit';
 import { demoEligibilite, demoProfil } from './monEspace.demo';
 
 /**
- * ⚠️ MAQUETTE — les données viennent de `monEspace.demo`.
+ * ⚠️ MAQUETTE, ET PAGE DÉROUTÉE — les données viennent de `monEspace.demo`.
+ *
+ * `/mon-espace/credit` a été retirée du routeur avant la première publication :
+ * un potentiel de crédit inventé, affiché en francs guinéens à un petit
+ * producteur, est une promesse d'argent fausse. La page reste ici pour ce
+ * qu'elle conçoit — les critères remplis, ceux qui manquent — et se rebranche
+ * le jour où `GET /scoring/farmers/:id/credit-eligibility` est appelé pour de
+ * vrai.
  *
  * Le détail du crédit, ouvert depuis la tuile de « Mon espace ».
  *

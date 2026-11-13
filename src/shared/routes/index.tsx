@@ -8,9 +8,7 @@ import { DomaineDetailPage } from '@/features/Domaines/DomaineDetailPage';
 import { DomainesPage } from '@/features/Domaines/DomainesPage';
 import { HomePage } from '@/features/Home/HomePage';
 import { MesInformationsPage } from '@/features/MonEspace/MesInformationsPage';
-import { MonCreditPage } from '@/features/MonEspace/MonCreditPage';
 import { MonEspacePage } from '@/features/MonEspace/MonEspacePage';
-import { MonScorePage } from '@/features/MonEspace/MonScorePage';
 import { InvitationCodePage } from '@/features/Onboarding/pages/InvitationCodePage';
 import { InvitedWelcomePage } from '@/features/Onboarding/pages/InvitedWelcomePage';
 import { OnboardingPinPage } from '@/features/Onboarding/pages/OnboardingPinPage';
@@ -106,8 +104,13 @@ export const router = createRouter([
       { path: '/domaines/:id/parcelles/:parcelId', element: <ParcelDetailPage /> },
       { path: '/mon-espace', element: <MonEspacePage /> },
       { path: '/mon-espace/informations', element: <MesInformationsPage /> },
-      { path: '/mon-espace/credit', element: <MonCreditPage /> },
-      { path: '/mon-espace/score', element: <MonScorePage /> },
+      /* `/mon-espace/credit` et `/mon-espace/score` sont retirées : les deux
+         pages n'affichaient que `monEspace.demo`. Aucune tuile n'y menait
+         depuis que `BlocOutils` a été éteint, mais la route restait ouverte —
+         un lien profond, un retour arrière ou un historique suffisaient à
+         montrer à un agriculteur un potentiel de crédit et un score inventés.
+         Les composants sont conservés ; on les rebranche ici le jour où les
+         endpoints de scoring répondent pour de vrai. */
     ],
   },
   { path: '*', element: <Navigate to="/welcome" replace /> },
