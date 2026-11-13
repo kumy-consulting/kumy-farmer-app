@@ -1,112 +1,122 @@
-import type { FunctionComponent } from 'react';
+import type { FunctionComponent, ReactNode } from 'react';
 
 import CallOutlinedIcon from '@mui/icons-material/CallOutlined';
+import CompostOutlined from '@mui/icons-material/CompostOutlined';
+import PestControlOutlined from '@mui/icons-material/PestControlOutlined';
+import PlaceOutlined from '@mui/icons-material/PlaceOutlined';
+import WaterDropOutlined from '@mui/icons-material/WaterDropOutlined';
 import { Box, Stack, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 
+import { Pousse, Tuile } from '@/features/Home/components/carteAttente';
+import { carteSx, ENCRE, ENCRE_DOUCE, FEUILLE, MENTHE, VERT, VERT_PROFOND } from '@/features/Home/components/carteAttente.styles';
 import { BackButton } from '@/shared/components/BackButton';
 
-import { SUJETS, TELEPHONE_CONSEILLER, TELEPHONE_CONSEILLER_AFFICHE, type Sujet } from './bonnesPratiques.content';
-import { IllustrationSujet } from './components/IllustrationSujet';
+import { SUJETS, TELEPHONE_CONSEILLER, type Sujet, type SujetId } from './bonnesPratiques.content';
+
+const ICONES: Record<Exclude<SujetId, 'sol'>, ReactNode> = {
+  parcelle: <PlaceOutlined />,
+  cultures: <Pousse />,
+  eau: <WaterDropOutlined />,
+  engrais: <CompostOutlined />,
+  ravageurs: <PestControlOutlined />,
+};
 
 /**
- * Un intervalle élastique : il prend la place disponible jusqu'à `max`, et se
- * referme à zéro quand elle manque. Même ressort que sur l'écran d'attente.
- */
-const Ressort: FunctionComponent<{ max: number }> = ({ max }) => (
-  <Box aria-hidden sx={{ flex: '1 1 0', minHeight: 0, maxHeight: `${max}px` }} />
-);
-
-/**
- * Une tuile de sujet : l'illustration, le titre, une accroche de trois mots.
+ * L'étude de sol, posée en tête : c'est le premier sujet dans le temps — on
+ * connaît sa terre avant de la préparer — et le seul que l'agriculteur peut
+ * déjà demander depuis l'accueil.
  *
- * L'accroche n'est pas le `resume` de la maquette : celui-ci reformulait le
- * titre en plus long — « Bien gérer l'eau » / « Optimiser l'utilisation de
- * l'eau pour des cultures saines » — et deux à trois lignes par tuile faisaient
- * déborder la page. L'accroche, elle, nomme l'angle du sujet en quelques mots :
- * ce qu'on regarde, ou quand on agit.
- *
- * L'illustration se mesure en `vh` : sur un petit téléphone elle rend 42 px, et
- * ces dix pixels rendus par tuile sont exactement ce qui permet à l'accroche de
- * tenir sans défilement.
+ * Le bandeau est la même parcelle en coupe que sur la carte « Étude de sol » de
+ * l'accueil : trois pousses sur trois horizons, aux mêmes ocres.
  */
-const TuileSujet: FunctionComponent<{ sujet: Sujet }> = ({ sujet }) => (
-  <Stack
-    component="li"
-    alignItems="center"
-    sx={{
-      flex: '1 1 0',
-      minWidth: 0,
-      px: 1,
-      py: 'clamp(6px, 1.2vh, 24px)',
-      borderRadius: '18px',
-      background: '#FFFFFF',
-      border: '1px solid rgba(55,75,70,0.08)',
-    }}
-  >
-    <Box
-      aria-hidden
-      sx={{
-        width: 'clamp(38px, 6vh, 54px)',
-        height: 'clamp(38px, 6vh, 54px)',
-        '& svg': { width: '100%', height: '100%' },
-      }}
-    >
-      <IllustrationSujet sujet={sujet.id} />
+const SujetEnTete: FunctionComponent<{ sujet: Sujet }> = ({ sujet }) => (
+  <Box component="article" sx={carteSx}>
+    <Box aria-hidden sx={{ background: MENTHE }}>
+      <Typography
+        sx={{
+          px: 2,
+          pt: 1.25,
+          fontSize: 11,
+          fontWeight: 700,
+          letterSpacing: '0.12em',
+          textTransform: 'uppercase',
+          color: VERT_PROFOND,
+        }}
+      >
+        Avant de semer
+      </Typography>
+      <Stack direction="row" justifyContent="center" alignItems="flex-end" spacing={4.5} sx={{ color: VERT_PROFOND }}>
+        <Box sx={{ mb: '-3px' }}>
+          <Pousse taille={22} />
+        </Box>
+        <Box sx={{ mb: '-3px' }}>
+          <Pousse taille={30} />
+        </Box>
+        <Box sx={{ mb: '-3px' }}>
+          <Pousse taille={22} />
+        </Box>
+      </Stack>
+      <Box sx={{ height: 9, background: '#FBE3BF' }} />
+      <Box sx={{ height: 9, background: '#F5C88A' }} />
+      <Box sx={{ height: 9, background: '#E0A43A' }} />
     </Box>
 
-    <Typography
-      sx={{
-        fontFamily: "'Ubuntu', sans-serif",
-        fontSize: 13,
-        fontWeight: 700,
-        color: '#1A1C1B',
-        lineHeight: 1.25,
-        textAlign: 'center',
-        mt: 0.6,
-      }}
-    >
-      {sujet.titre}
-    </Typography>
+    <Box sx={{ px: 2, pt: 1.5, pb: 1.75 }}>
+      <Typography
+        component="h2"
+        sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 17, fontWeight: 700, color: ENCRE, lineHeight: 1.3 }}
+      >
+        {sujet.titre}
+      </Typography>
+      <Typography sx={{ fontSize: 13, color: ENCRE_DOUCE, mt: 0.35, lineHeight: 1.45 }}>{sujet.accroche}</Typography>
+    </Box>
+  </Box>
+);
 
-    <Typography
-      sx={{
-        fontSize: 11.5,
-        fontWeight: 500,
-        color: '#5C5F5E',
-        lineHeight: 1.3,
-        textAlign: 'center',
-        mt: 0.35,
-      }}
-    >
-      {sujet.accroche}
-    </Typography>
+/** Une ligne de la saison : l'icône, le titre, l'angle du sujet en quelques mots. */
+const LigneSujet: FunctionComponent<{ sujet: Sujet; icone: ReactNode; dernier: boolean }> = ({
+  sujet,
+  icone,
+  dernier,
+}) => (
+  <Stack
+    component="li"
+    direction="row"
+    alignItems="center"
+    spacing={1.75}
+    sx={{ px: 2, py: 1.5, borderBottom: dernier ? 0 : '1px solid rgba(20,35,30,0.07)' }}
+  >
+    <Tuile>{icone}</Tuile>
+    <Box sx={{ minWidth: 0 }}>
+      <Typography
+        component="h3"
+        sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 15, fontWeight: 700, color: ENCRE, lineHeight: 1.3 }}
+      >
+        {sujet.titre}
+      </Typography>
+      <Typography sx={{ fontSize: 13, color: ENCRE_DOUCE, mt: 0.2, lineHeight: 1.4 }}>{sujet.accroche}</Typography>
+    </Box>
   </Stack>
 );
 
 /**
  * Les bonnes pratiques agricoles.
  *
- * Six sujets, et rien de plus : pas de bandeau photographique, pas d'appel à
- * « commencer avec Kumy ». La maquette portait les deux, mais elle décrivait une
- * page de découverte destinée à quelqu'un qui ne s'est pas encore inscrit.
- * L'agriculteur qui arrive ici a un compte : lui proposer de commencer serait
- * lui parler comme à un inconnu.
+ * Un sujet en tête, puis les cinq autres dans l'ordre où ils arrivent dans la
+ * saison : préparer, choisir, arroser, fertiliser, protéger. La liste se lit
+ * comme un calendrier, pas comme un sommaire.
  *
- * Les tuiles ne s'ouvrent pas. Une flèche promet une page, et cette page
- * demanderait des conseils agronomiques — à quelle dose fertiliser, quels
- * ravageurs surveiller — que seuls les agronomes Kumy peuvent écrire sans
- * risque. Le jour où ce texte existe, la flèche et la route se posent d'un coup.
- * D'ici là, le conseil se demande à un humain, en bas de page.
- *
- * **La page tient dans un écran, sans défilement.** D'où la grille de deux
- * colonnes plutôt qu'une liste : six lignes à résumé faisaient neuf cents
- * pixels de contenu pour sept cent quatre-vingt-dix d'écran. La grille montre
- * aussi les six illustrations à leur taille — ce sont six coupes de la MÊME
- * parcelle, et côte à côte elles se lisent enfin comme une seule terre.
+ * **Les sujets ne s'ouvrent pas, et rien ne le laisse croire.** Ni chevron ni
+ * flèche : une flèche promet une page, et cette page demanderait des conseils
+ * agronomiques — à quelle dose fertiliser, quels ravageurs surveiller — que
+ * seuls les agronomes Kumy peuvent écrire sans risque. Le jour où ce texte
+ * existe, les chevrons et la route se posent ensemble. D'ici là, le conseil se
+ * demande à un humain : c'est la barre du bas, toujours à portée de pouce.
  */
 export const BonnesPratiquesPage: FunctionComponent = () => {
   const navigate = useNavigate();
+  const [enTete, ...saison] = SUJETS;
 
   return (
     <Box
@@ -118,21 +128,17 @@ export const BonnesPratiquesPage: FunctionComponent = () => {
         background: 'linear-gradient(155deg, #0E7A67 0%, #0C6E5C 50%, #0A6152 100%)',
       }}
     >
-      {/* Même tête que l'écran d'attente d'où l'on vient : même dégradé, même
-          formule de safe-area. L'agriculteur doit sentir qu'il a ouvert une
-          porte de l'app, pas atterri sur une brochure.
-
-          Le sous-titre de la maquette — « Des conseils pratiques pour des
-          décisions éclairées » — est tombé avec les résumés, et pour la même
-          raison : le titre le dit déjà, en mieux. */}
+      {/* Même tête que l'écran d'attente d'où l'on vient : l'agriculteur doit
+          sentir qu'il a ouvert une porte de l'app, pas atterri sur une
+          brochure. */}
       <Box
         sx={{
           flex: 'none',
-          padding: 'max(calc(env(safe-area-inset-top, 0px) + 8px), 26px) 24px clamp(8px, 1.8vh, 24px)',
-          color: '#EAF7F1',
+          padding: 'max(calc(env(safe-area-inset-top, 0px) + 8px), 26px) 24px 22px',
+          color: '#FFFFFF',
         }}
       >
-        <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 'clamp(6px, 1.4vh, 18px)' }}>
+        <Stack direction="row" alignItems="center" spacing={1.5}>
           <BackButton onClick={() => navigate('/')} label="Retour à l’accueil" />
           <Typography
             noWrap
@@ -150,115 +156,109 @@ export const BonnesPratiquesPage: FunctionComponent = () => {
         </Stack>
 
         <Typography
+          component="h1"
           sx={{
+            mt: 2,
             fontFamily: "'Ubuntu', sans-serif",
-            fontSize: 'clamp(19px, 5.2vw, 23px)',
+            fontSize: 'clamp(20px, 5.6vw, 24px)',
             fontWeight: 700,
             letterSpacing: '-0.02em',
             lineHeight: 1.22,
-            color: '#FFFFFF',
           }}
         >
           Mieux connaître sa terre, mieux cultiver, mieux produire.
         </Typography>
       </Box>
 
+      {/* La feuille : la liste défile, la barre de conseil reste en bas. */}
       <Box
         sx={{
           flex: '1 1 auto',
           minHeight: 0,
           display: 'flex',
           flexDirection: 'column',
-          overflowY: 'auto',
-          overscrollBehavior: 'contain',
-          background: '#FFFFFF',
+          background: FEUILLE,
           borderRadius: '26px 26px 0 0',
-          px: 2,
-          pt: 'clamp(10px, 1.6vh, 26px)',
-          pb: 'max(env(safe-area-inset-bottom, 0px), clamp(10px, 1.6vh, 20px))',
+          overflow: 'hidden',
         }}
       >
-        <Ressort max={26} />
+        <Box sx={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', overscrollBehavior: 'contain', px: 2, pt: 2, pb: 2 }}>
+          <SujetEnTete sujet={enTete} />
 
-        <Box
-          component="ul"
-          sx={{
-            listStyle: 'none',
-            m: 0,
-            p: 0,
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: 'clamp(6px, 1.2vh, 20px)',
-          }}
-        >
-          {SUJETS.map((sujet) => (
-            <TuileSujet key={sujet.id} sujet={sujet} />
-          ))}
+          <Typography
+            component="h2"
+            sx={{ mt: 2.75, mb: 1.25, px: 0.5, fontFamily: "'Ubuntu', sans-serif", fontSize: 15.5, fontWeight: 700, color: ENCRE }}
+          >
+            Au fil de la saison
+          </Typography>
+
+          <Box component="ol" sx={{ ...carteSx, listStyle: 'none', m: 0, p: 0 }}>
+            {saison.map((sujet, i) => (
+              <LigneSujet
+                key={sujet.id}
+                sujet={sujet}
+                icone={ICONES[sujet.id as Exclude<SujetId, 'sol'>]}
+                dernier={i === saison.length - 1}
+              />
+            ))}
+          </Box>
         </Box>
-
-        <Ressort max={96} />
 
         {/* Le seul geste de la page. Il appelle le même numéro que l'écran
             d'attente : deux numéros pour un même besoin, ce serait deux choses
             à retenir pour l'agriculteur, et une de trop à tenir à jour. */}
-        <Stack
-          direction="row"
-          alignItems="center"
-          spacing={1.5}
+        <Box
           sx={{
             flex: 'none',
-            mt: 'clamp(7px, 1.2vh, 18px)',
-            p: 'clamp(8px, 1.2vh, 16px)',
-            borderRadius: '18px',
-            background: 'rgba(1,134,117,0.07)',
-            border: '1px solid rgba(1,134,117,0.16)',
+            px: 2,
+            pt: 1.5,
+            pb: 'max(env(safe-area-inset-bottom, 0px), 14px)',
+            borderTop: '1px solid rgba(20,35,30,0.08)',
+            background: FEUILLE,
           }}
         >
-          <Box sx={{ minWidth: 0, flexGrow: 1 }}>
-            <Typography
+          <Stack
+            direction="row"
+            alignItems="center"
+            spacing={1.5}
+            sx={{ pl: 2, pr: 1, py: 1, borderRadius: '18px', background: MENTHE }}
+          >
+            <Box sx={{ minWidth: 0, flexGrow: 1 }}>
+              <Typography sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 14.5, fontWeight: 700, color: '#00443A' }}>
+                Besoin d’un conseil ?
+              </Typography>
+              <Typography sx={{ fontSize: 12.5, color: '#4E635D', mt: 0.1 }}>Un conseiller Kumy répond</Typography>
+            </Box>
+
+            <Box
+              component="a"
+              href={`tel:${TELEPHONE_CONSEILLER}`}
+              aria-label="Appeler un conseiller Kumy"
               sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 0.75,
+                flexShrink: 0,
+                minHeight: 48,
+                px: 2.25,
+                borderRadius: '999px',
+                background: `linear-gradient(140deg, ${VERT} 0%, ${VERT_PROFOND} 100%)`,
+                color: '#FFFFFF',
                 fontFamily: "'Ubuntu', sans-serif",
-                fontSize: 14,
+                fontSize: 15,
                 fontWeight: 700,
-                color: '#00443A',
-                lineHeight: 1.3,
+                whiteSpace: 'nowrap',
+                textDecoration: 'none',
+                '& svg': { fontSize: 19 },
+                '&:active': { filter: 'brightness(0.95)' },
+                '&:focus-visible': { outline: `2px solid ${VERT_PROFOND}`, outlineOffset: 2 },
               }}
             >
-              Besoin d’un conseil ?
-            </Typography>
-            <Typography sx={{ fontSize: 12.5, color: '#4E635D', lineHeight: 1.4, mt: 0.15 }}>
-              Un conseiller Kumy répond au {TELEPHONE_CONSEILLER_AFFICHE}.
-            </Typography>
-          </Box>
-
-          <Box
-            component="a"
-            href={`tel:${TELEPHONE_CONSEILLER}`}
-            aria-label="Parler à un conseiller"
-            sx={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 0.75,
-              flexShrink: 0,
-              minHeight: 44,
-              px: 1.75,
-              borderRadius: '999px',
-              background: '#018675',
-              color: '#FFFFFF',
-              fontFamily: "'Ubuntu', sans-serif",
-              fontSize: 13.5,
-              fontWeight: 700,
-              whiteSpace: 'nowrap',
-              textDecoration: 'none',
-              '&:active': { background: '#006B5D' },
-              '&:focus-visible': { outline: '2px solid #016557', outlineOffset: 2 },
-            }}
-          >
-            <CallOutlinedIcon sx={{ fontSize: 18 }} />
-            Appeler
-          </Box>
-        </Stack>
+              <CallOutlinedIcon aria-hidden />
+              Appeler
+            </Box>
+          </Stack>
+        </Box>
       </Box>
     </Box>
   );

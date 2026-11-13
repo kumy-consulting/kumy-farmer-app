@@ -1,13 +1,16 @@
 import type { FunctionComponent } from 'react';
 
 import CheckCircleRounded from '@mui/icons-material/CheckCircleRounded';
-import ScienceRounded from '@mui/icons-material/ScienceRounded';
 import { Box, Stack, Typography } from '@mui/material';
 
 import type { EtudeDeSolState } from '../useEtudeDeSol';
+import { Pousse } from './carteAttente';
+import { bandeSx, carteSx, ENCRE, ENCRE_DOUCE, MENTHE, VERT_PROFOND } from './carteAttente.styles';
 
 type CarteEtudeDeSolProps = Omit<EtudeDeSolState, 'demander'> & {
   demander: () => void;
+  /** Un autre geste passe avant : la bande d'action s'éclaircit. */
+  secondaire?: boolean;
 };
 
 const MOIS = [
@@ -33,15 +36,39 @@ const jourEtMois = (iso: string): string => {
 };
 
 /**
+ * Une parcelle en coupe : la pousse au-dessus, trois horizons dessous.
+ *
+ * Les ocres viennent de la rampe `warning` du thème, et le bandeau des bonnes
+ * pratiques reprend les mêmes : c'est la même terre, vue d'un autre écran.
+ */
+const CoupeDeSol: FunctionComponent = () => (
+  <Box
+    aria-hidden
+    sx={{
+      width: 56,
+      height: 60,
+      flexShrink: 0,
+      borderRadius: '13px',
+      overflow: 'hidden',
+      display: 'grid',
+      gridTemplateRows: '1fr 9px 9px 11px',
+    }}
+  >
+    <Box sx={{ background: MENTHE, color: VERT_PROFOND, display: 'grid', placeItems: 'end center', pb: '2px' }}>
+      <Pousse taille={22} />
+    </Box>
+    <Box sx={{ background: '#FBE3BF' }} />
+    <Box sx={{ background: '#F5C88A' }} />
+    <Box sx={{ background: '#E0A43A' }} />
+  </Box>
+);
+
+/**
  * L'étude de sol proposée depuis l'écran d'attente.
  *
- * Elle vit hors du rail : le rail dit où en est le compte, c'est-à-dire ce qui
- * arrivera sans que l'agriculteur ait rien à faire. L'étude de sol, elle, ne
- * part que s'il la demande — l'inscrire entre deux étapes la ferait passer pour
- * une promesse de plus.
- *
- * Une fois la demande partie, le bouton disparaît au lieu de se griser : il n'y
- * a plus de geste à faire, et un bouton mort invite à le presser quand même.
+ * Elle ne part que si l'agriculteur la demande. Une fois la demande partie, la
+ * bande d'action disparaît au lieu de se griser : il n'y a plus de geste à
+ * faire, et un bouton mort invite à le presser quand même.
  */
 export const CarteEtudeDeSol: FunctionComponent<CarteEtudeDeSolProps> = ({
   requestedAt,
@@ -49,6 +76,7 @@ export const CarteEtudeDeSol: FunctionComponent<CarteEtudeDeSolProps> = ({
   isSending,
   error,
   demander,
+  secondaire = false,
 }) => {
   // Premier chargement : ni bouton ni confirmation, pour ne pas afficher une
   // proposition qu'on retirerait aussitôt à un agriculteur déjà servi.
@@ -57,37 +85,17 @@ export const CarteEtudeDeSol: FunctionComponent<CarteEtudeDeSolProps> = ({
   const envoyee = requestedAt !== null;
 
   return (
-    <Box>
-      <Stack direction="row" spacing={1.5} alignItems="flex-start">
-        <Box
-          aria-hidden
-          sx={{
-            width: 34,
-            height: 34,
-            flexShrink: 0,
-            borderRadius: '11px',
-            display: 'grid',
-            placeItems: 'center',
-            background: 'rgba(1,134,117,0.10)',
-            '& svg': { fontSize: 19, color: '#016557' },
-          }}
-        >
-          <ScienceRounded />
-        </Box>
+    <Box sx={carteSx}>
+      <Stack direction="row" spacing={1.75} alignItems="center" sx={{ px: 2, py: 1.75 }}>
+        <CoupeDeSol />
 
         <Box sx={{ minWidth: 0 }}>
           <Typography
-            sx={{
-              fontFamily: "'Ubuntu', sans-serif",
-              fontSize: 15,
-              fontWeight: 700,
-              color: '#1A1C1B',
-              lineHeight: 1.35,
-            }}
+            sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 16, fontWeight: 700, color: ENCRE, lineHeight: 1.3 }}
           >
             Étude de sol
           </Typography>
-          <Typography sx={{ fontSize: 13, color: '#5C5F5E', lineHeight: 1.45, mt: 0.15 }}>
+          <Typography sx={{ fontSize: 13, color: ENCRE_DOUCE, lineHeight: 1.45, mt: 0.25 }}>
             Savoir ce que votre terre peut porter, avant de semer.
           </Typography>
         </Box>
@@ -97,71 +105,38 @@ export const CarteEtudeDeSol: FunctionComponent<CarteEtudeDeSolProps> = ({
         <Stack
           direction="row"
           alignItems="center"
-          spacing={0.75}
+          spacing={1}
           sx={{
-            mt: 'clamp(8px, 1.5vh, 19px)',
-            px: 1.5,
-            py: 1.15,
-            borderRadius: '14px',
-            background: 'rgba(1,134,117,0.08)',
-            '& svg': { fontSize: 18, color: '#016557' },
+            px: 2,
+            py: 1.25,
+            background: MENTHE,
+            '& svg': { fontSize: 20, color: VERT_PROFOND },
           }}
         >
           <CheckCircleRounded />
           <Box sx={{ minWidth: 0 }}>
-            <Typography
-              sx={{
-                fontFamily: "'Ubuntu', sans-serif",
-                fontSize: 13.5,
-                fontWeight: 700,
-                color: '#016557',
-              }}
-            >
+            <Typography sx={{ fontFamily: "'Ubuntu', sans-serif", fontSize: 13.5, fontWeight: 700, color: VERT_PROFOND }}>
               Demande envoyée le {jourEtMois(requestedAt)}
             </Typography>
-            <Typography sx={{ fontSize: 12.5, color: '#5C5F5E', mt: 0.15 }}>
-              Un conseiller Kumy vous rappellera.
-            </Typography>
+            <Typography sx={{ fontSize: 12.5, color: ENCRE_DOUCE, mt: 0.1 }}>Un conseiller Kumy vous rappellera.</Typography>
           </Box>
         </Stack>
       ) : (
         <>
+          {error && (
+            <Typography role="alert" sx={{ fontSize: 12.5, color: '#BA1A1A', px: 2, pb: 1.25, lineHeight: 1.45 }}>
+              {error}
+            </Typography>
+          )}
           <Box
             component="button"
             type="button"
             onClick={demander}
             disabled={isSending}
-            sx={{
-              appearance: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '100%',
-              mt: 'clamp(8px, 1.5vh, 19px)',
-              minHeight: 48,
-              px: 2.5,
-              border: 0,
-              borderRadius: '14px',
-              // Vert plein assourdi plutôt qu'un vert transparent : sur fond
-              // blanc, 45 % d'opacité faisait passer le libellé blanc sous le
-              // seuil de contraste au moment précis où il faut le lire.
-              background: isSending ? '#5FA598' : 'linear-gradient(140deg, #018675 0%, #016557 100%)',
-              font: 'inherit',
-              fontFamily: "'Ubuntu', sans-serif",
-              fontSize: 14.5,
-              fontWeight: 700,
-              color: '#FFFFFF',
-              cursor: isSending ? 'default' : 'pointer',
-              transition: 'filter 0.2s ease',
-              '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
-              '&:active': { filter: isSending ? 'none' : 'brightness(0.96)' },
-              '&:focus-visible': { outline: '2px solid #016557', outlineOffset: 3 },
-            }}
+            sx={bandeSx(secondaire ? 'claire' : 'pleine', isSending)}
           >
             {isSending ? 'Envoi en cours…' : 'Demander une étude de sol'}
           </Box>
-
-          {error && <Typography sx={{ fontSize: 12.5, color: '#BA1A1A', mt: 1, lineHeight: 1.45 }}>{error}</Typography>}
         </>
       )}
     </Box>
