@@ -36,3 +36,15 @@ ios
 
 # Tests
 coverage
+
+# Signature Android — LA CLE NE DOIT JAMAIS ENTRER DANS LE DEPOT.
+# Perdre la cle d'upload avec Play App Signing reste rattrapable ; la publier
+# ne l'est pas. Le `.example` est le seul fichier de cette famille qui se commit.
+*.jks
+*.keystore
+keystore.properties
+!keystore.properties.example
+
+# Dossier administratif (RCCM, questionnaires D&B, brouillons de courriers).
+# Contient des donnees personnelles et des references de dossiers : ce depot est public.
+docs/app-registration/
